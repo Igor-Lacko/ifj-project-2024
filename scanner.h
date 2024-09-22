@@ -1,24 +1,24 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
-
-//enum for token types
-typedef enum{
+// enum for token types
+typedef enum
+{
     IDENTIIFIER,
     KEYWORD,
-    ASSIGNMENT, 
-    TYPE_IDENTIFIER, //for example i32, or ?[]u8
-    LITERAL, //strings
-    SEMICOLON, //signals end of expression
+    ASSIGNMENT,
+    TYPE_IDENTIFIER, // for example i32, or ?[]u8
+    LITERAL,         // strings
+    SEMICOLON,       // signals end of expression
 
-    //escape sequences
+    // escape sequences
     NEWLINE,
-    CARRIAGE_RETURN, //the '\r' literal
+    CARRIAGE_RETURN, // the '\r' literal
     TAB,
-    BACKSLASH, //two backslashes('\\') --> literal backslash
-    DOUBLE_QUOTE, //the '\"' literal --> literal double quote
+    BACKSLASH,    // two backslashes('\\') --> literal backslash
+    DOUBLE_QUOTE, // the '\"' literal --> literal double quote
 
-    //operators
+    // operators
     MULTIPLICATION_OPERATOR,
     DIVISION_OPERATOR,
     ADDITION_OPERATOR,
@@ -30,19 +30,17 @@ typedef enum{
     LESSER_EQUAL_OPERATOR,
     LARGER_EQUAL_OPERATOR,
 
-    //parentheses types used in expressions or fuction definitions/implementations
-    L_ROUND_BRACKET, //the '(' character
-    R_ROUND_BRACKET, //the ')' character
-    L_CURLY_BRACKET, //the '{' character
-    R_CURLY_BRACKET, //the '}' character
+    // parentheses types used in expressions or fuction definitions/implementations
+    L_ROUND_BRACKET, // the '(' character
+    R_ROUND_BRACKET, // the ')' character
+    L_CURLY_BRACKET, // the '{' character
+    R_CURLY_BRACKET, // the '}' character
 
+} TOKEN_TYPE;
 
-
-}TOKEN_TYPE;
-
-
-//keyword enum
-typedef enum{ 
+// keyword enum
+typedef enum
+{
     CONST,
     ELSE,
     FN,
@@ -56,28 +54,27 @@ typedef enum{
     VAR,
     VOID,
     WHILE,
-    NONE, //not a keyword, assigned to token if the token's type != KEYWORD
-}KEYWORD_TYPE;
+    NONE, // not a keyword, assigned to token if the token's type != KEYWORD
+} KEYWORD_TYPE;
 
-
-//token structure
-typedef struct{
+// token structure
+typedef struct
+{
     TOKEN_TYPE token_type;
-    KEYWORD_TYPE keyword_type; //KEYWORD_TYPE.NONE if token_type != KEYWORD
-    void* attribute; //null if the token has no attributre (e.g operators)
-}Token;
+    KEYWORD_TYPE keyword_type; // KEYWORD_TYPE.NONE if token_type != KEYWORD
+    void *attribute;           // null if the token has no attributre (e.g operators)
+} Token;
 
 /**
  * @brief Gets next token starting at pos (skipping whitespace)
- * 
- * @param current_position: Either the start of the token, or the end of the previous one 
+ *
  * @return Token* Pointer to the initialized token structure
  */
-Token* GetNextToken(char *current_position);
+Token *GetNextToken();
 
 /**
- * @brief Gets the length of the next token 
- * 
+ * @brief Gets the length of the next token
+ *
  * @param token points to the first character of the next token
  * @return int: length of the token including characters such as '/0' or newlines in case of multi-line strings
  */
