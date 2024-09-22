@@ -11,7 +11,12 @@ typedef enum
     LITERAL,         // strings
     SEMICOLON,       // signals end of expression
 
-    // escape sequences
+    //number tokens
+    I32,
+    F64,
+    UINT8,
+
+    //escape sequences
     NEWLINE,
     CARRIAGE_RETURN, // the '\r' literal
     TAB,

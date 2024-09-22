@@ -4,31 +4,22 @@
 #include <ctype.h>
 #include "scanner.h"
 
-int GetTokenLength(char *token)
-{
-    // pointer to the starting position should remain unchanged
-    char *current;
-    int length;
+int GetTokenLength(char* token){
+    //pointer to the starting position should remain unchanged
+    char* current; int length = 0;
 
-    // loop through the token until we encounter a delimeter (whitespace)
-    while (!isspace(*(current = token)))
-    {
+    //loop through the token until we encounter a delimeter (whitespace)
+    while(!isspace(*(current = token))){
+        length ++;
+        current ++; //move one char forward
     }
+
+    return length;
 }
 
-Token *GetNextToken()
-{
-
-    char c = getchar();
-    // skip whitespaces
-    while (isspace(c))
-    {
-        c = getchar();
+int main(){
+    int c;
+    while((c = getchar()) != EOF){
+        while(isspace(c)) continue; //consume whitespace
     }
-}
-
-int main()
-{
-    Token *token = GetNextToken();
-    return 0;
 }
