@@ -67,5 +67,20 @@ typedef struct{
     void* attribute; //null if the token has no attributre (e.g operators)
 }Token;
 
+/**
+ * @brief Gets next token starting at pos (skipping whitespace)
+ * 
+ * @param current_position: Either the start of the token, or the end of the previous one 
+ * @return Token* Pointer to the initialized token structure
+ */
+Token* GetNextToken(char *current_position);
+
+/**
+ * @brief Gets the length of the next token 
+ * 
+ * @param token points to the first character of the next token
+ * @return int: length of the token including characters such as '/0' or newlines in case of multi-line strings
+ */
+int GetTokenLength(char *token);
 
 #endif
