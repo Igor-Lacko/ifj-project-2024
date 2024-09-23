@@ -2,9 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void ErrorExit(int error_code)
+void ErrorExit(const char *message, int error_code)
 {
-    /*TODO: insert error messages for each error case,
-    also optional arguments? (which unused variable, etc.)*/
+    fprintf(stderr, "%s\n", message);
     exit(error_code);
 }

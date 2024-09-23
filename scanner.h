@@ -1,27 +1,37 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
+
+// enum for scanner FSM states
+typedef enum
+{
+    WHITESPACE,
+    IDENTIIFIER,
+    LITERAL,
+    READY
+} SCANNER_STATE;
+
 // enum for token types
 typedef enum
 {
-    IDENTIIFIER,
+    IDENTIIFIER_TOKEN,
     KEYWORD,
     ASSIGNMENT,
-    TYPE_IDENTIFIER, // for example i32, or ?[]u8
-    LITERAL,         // strings
-    SEMICOLON,       // signals end of expression
+    TYPE_IDENTIFIER,    // for example i32, or ?[]u8
+    LITERAL_TOKEN,      // strings
+    SEMICOLON,          // signals end of expression
 
     //number tokens
-    I32,
-    F64,
-    UINT8,
+    I32_TOKEN,
+    F64_TOKEN,
+    UINT8_TOKEN,
 
     //escape sequences
     NEWLINE,
-    CARRIAGE_RETURN, // the '\r' literal
+    CARRIAGE_RETURN,    // the '\r' literal
     TAB,
-    BACKSLASH,    // two backslashes('\\') --> literal backslash
-    DOUBLE_QUOTE, // the '\"' literal --> literal double quote
+    BACKSLASH,          // two backslashes('\\') --> literal backslash
+    DOUBLE_QUOTE,       // the '\"' literal --> literal double quote
 
     // operators
     MULTIPLICATION_OPERATOR,
@@ -36,10 +46,12 @@ typedef enum
     LARGER_EQUAL_OPERATOR,
 
     // parentheses types used in expressions or fuction definitions/implementations
-    L_ROUND_BRACKET, // the '(' character
-    R_ROUND_BRACKET, // the ')' character
-    L_CURLY_BRACKET, // the '{' character
-    R_CURLY_BRACKET, // the '}' character
+    L_ROUND_BRACKET,    // the '(' character
+    R_ROUND_BRACKET,    // the ')' character
+    L_CURLY_BRACKET,    // the '{' character
+    R_CURLY_BRACKET,    // the '}' character
+
+    EOF_TOKEN,
 
 } TOKEN_TYPE;
 
@@ -70,12 +82,20 @@ typedef struct
     void *attribute;           // null if the token has no attributre (e.g operators)
 } Token;
 
+// scanner structure to keep track of the state and line number
+typedef struct
+{
+    SCANNER_STATE state;
+    int line_number;
+} Scanner;
+
 /**
  * @brief Gets next token starting at pos (skipping whitespace)
  *
+ * @param scanner scanner instance
  * @return Token* Pointer to the initialized token structure
  */
-Token *GetNextToken();
+Token *GetNextToken(Scanner *scanner);
 
 /**
  * @brief Gets the length of the next token
@@ -84,5 +104,25 @@ Token *GetNextToken();
  * @return int: length of the token including characters such as '/0' or newlines in case of multi-line strings
  */
 int GetTokenLength(char *token);
+
+
+//Token constructor
+Token *InitToken();
+
+//Token destructor
+void DestroyToken();
+
+/**
+ * @brief Called after encountering a '=' character in the READY state
+ * 
+ * @param token the token instance to set type for, depending on the number of '=' characters
+ */
+void ConsumeEqualOperator(Token *token);
+
+//Scanner constructor
+Scanner *InitScanner();
+
+//Scanner destructor
+void DestroyScanner(Scanner *scanner);
 
 #endif

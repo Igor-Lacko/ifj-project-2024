@@ -22,7 +22,7 @@
 
 #define ERROR_INTERNAL 99 // internal compiler error, for example a failed malloc call... etc.
 
-// Ends the compiler with the given exit code
-void ErrorExit(int exit_code);
+// Ends the compiler with the given exit code and message
+void ErrorExit(const char *message, int exit_code);
 
 #endif

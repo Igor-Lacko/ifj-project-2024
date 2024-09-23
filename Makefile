@@ -1,5 +1,10 @@
-CC=gcc
-CFLAGS=-Wall -Wextra -pedantic -std=c99
+CC= gcc
+CFLAGS= -Wall -Wextra -pedantic -Werror
+MODULES = scanner.c vector.c error.c
+HEADERS = scanner.h vector.h error.h
 
-main: scanner.c vector.c error.c
-$(CC) $(CFLAGS) -o $@ $^
+main: $(MODULES) $(HEADERS)
+	$(CC) $(CFLAGS) $(MODULES) -o ifj24
+
+run: main
+	./ifj24

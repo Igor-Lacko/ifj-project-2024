@@ -23,7 +23,7 @@ void AppendChar(Vector *vector, char c)
     {
         if ((vector->value = realloc(vector->value, (vector->max_length) + ALLOC_CHUNK)) == NULL)
         {
-            ErrorExit(ERROR_INTERNAL);
+            ErrorExit("Compiler internal error: Memory allocation failed", ERROR_INTERNAL);
         }
         vector->max_length += ALLOC_CHUNK;
     }
