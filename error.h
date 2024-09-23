@@ -23,6 +23,6 @@
 #define ERROR_INTERNAL 99 // internal compiler error, for example a failed malloc call... etc.
 
 // Ends the compiler with the given exit code and message
-void ErrorExit(const char *message, int exit_code);
+void ErrorExit(int error_code, const char *message,...);
 
 #endif

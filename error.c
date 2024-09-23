@@ -1,9 +1,14 @@
 #include "error.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
-void ErrorExit(const char *message, int error_code)
+void ErrorExit(int error_code, const char *message,...)
 {
-    fprintf(stderr, "%s\n", message);
+    va_list args;
+    va_start(args, message);
+    vfprintf(stderr, message, args);
+    fprintf(stderr, "\n");
+    va_end(args);
     exit(error_code);
 }
