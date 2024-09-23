@@ -15,12 +15,12 @@ typedef enum
 {
     /*Tokens that are treated as identifiers until they are loaded
     -After, if the identifier is in the keyword table the token type is changed to keyword*/
-    IDENTIIFIER_TOKEN,
+    IDENTIFIER_TOKEN,
     KEYWORD,
 
     //number tokens, floats contain in them a '.' character
     INTEGER_32,
-    FLOAT_64,
+    DOUBLE_64,
 
     //u8 and relevant tokens
     U8_TOKEN,
@@ -123,18 +123,18 @@ char NextChar();
  * @brief Gets the next character's type
  * 
  * @param c : a character that isn't unique, e.g it belongs to a range of characters which can't be handled by a switch case (e.g [A-Z], etc.)
- * @param scanner : for newline tracking
  * @return CHAR_TYPE Whitespace/Characyer/Number or Other (probably invalid token and error)
  */
-CHAR_TYPE GetCharType(char c, Scanner *scanner);
+CHAR_TYPE GetCharType(char c);
 
 /**
  * @brief Handles a numeric literal token
  * 
  * @param token Token instance, it's attribute is filled with the number value
+ * @param scanner For line length print in case of a error
  * @return TOKEN_TYPE The type of the number. If type can't be determined, returns WHOLE_NUMBER
  */
-TOKEN_TYPE ConsumeNumber(Token *token);
+TOKEN_TYPE ConsumeNumber(Token *token, Scanner *scanner);
 
 
 /**
@@ -149,14 +149,15 @@ void ConsumeLiteral(Token *token, Scanner *scanner);
  * @brief Handles a identifier/keyword
  * 
  * @param token loaded token with attribute: "name" (so int i: attribute would be i), type KEYWORD/IDENTIFIER and if KEYWORD, a non empty keyword type
+ * @param scanner for getting number of current line for error messages
  */
-void ConsumeIdentifier(Token *token);
+void ConsumeIdentifier(Token *token, Scanner *scanner);
 
 /*continues until it reaches the end of the line or EOF, returns the first character after the comment ends
 -Also increments the scanner's line number when it encounters a newline character*/
-char ConsumeComment(Scanner *scanner);
+int ConsumeComment(Scanner *scanner);
 
 //Similar to ConsumeComment(), skips whitespace, increments the line_number if a '\n' is encountered and returns the first non-whitespace character
-char ConsumeWhitespace(Scanner *scanner);
+int ConsumeWhitespace(Scanner *scanner);
 
 #endif
