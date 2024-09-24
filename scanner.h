@@ -27,7 +27,6 @@ typedef enum
 
     //u8 and relevant tokens
     U8_TOKEN,
-    ARRAY_TOKEN,
 
     //strings
     LITERAL_TOKEN,

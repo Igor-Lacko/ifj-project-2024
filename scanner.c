@@ -261,7 +261,7 @@ Token *GetNextToken(int *line_number){
 
 
     while(true){
-        switch(c){
+        switch(c = (isspace(c)) ? getchar() : c){
             /*operator tokens*/
             case '=': //valid tokens are = and also ==
                 if ((c = getchar()) == '=')
@@ -341,12 +341,32 @@ Token *GetNextToken(int *line_number){
                 return token;
 
             case '[':
-                if((c = getchar()) != ']'){
-                    DestroyToken(token);
-                    ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token [%c", *line_number, next);
+            //TODO: add comments
+                ungetc(c, stdin);
+                char u8_token[] = "[]u8"; char actual_token[5]; int i;
+                for(i = 0; i < 4; i++){
+                    if((c = getchar()) != u8_token[i]){
+                        DestroyToken(token);
+                        actual_token[i++] = c;
+                        actual_token[i] = '\0';
+                        ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token %s", *line_number, actual_token);
+                    }
+
+                    else actual_token[i] = c;
                 }
 
-                token -> token_type = ARRAY_TOKEN;
+                actual_token[i] = '\0';
+
+                //copy the u8[] string to the token
+                if((token -> attribute = malloc(5 * sizeof(char))) == NULL){
+                    DestroyToken(token);
+                    ErrorExit(ERROR_INTERNAL, "Internal compiler error: Memory allocation failed");
+                }
+
+                strcpy(token -> attribute, u8_token);
+
+                token -> token_type = KEYWORD;
+                token -> keyword_type = U8;
                 return token;
 
             case '|':
@@ -438,10 +458,6 @@ void PrintToken(Token *token){
 
         case DOUBLE_64:
             printf("Type: F64 token, attribute: %lf", *(double *)(token -> attribute));
-            break;
-
-        case ARRAY_TOKEN:
-            printf("Type: []");
             break;
 
         case ASSIGNMENT:
