@@ -110,6 +110,7 @@ void ConsumeIdentifier(Token *token, int *line_number){
     if((c = getchar()) == '_' && !isalnum(NextChar())){
         token -> token_type = UNDERSCORE_TOKEN;
         DestroyVector(vector);
+        return;
     }
 
     //append the characters until we reach the end of the identifier
@@ -119,6 +120,7 @@ void ConsumeIdentifier(Token *token, int *line_number){
     }
 
     if(c == '\n') ++(*line_number);
+    else ungetc(c, stdin);
 
 
     //terminate the vector
@@ -159,15 +161,41 @@ void ConsumeLiteral(Token *token, int *line_number){
         if(c == '\\'){ //possible escape sequence
             switch(c = getchar()){
                 //all possible \x characters
-                case '"': case 'n': case: 'r' case: 't': case: '\\':
-                    AppendChar(c);
+                case '"': case 'n': case 'r': case 't': case '\\':
+                    AppendChar(vector, c);
                     break;
 
+                //invalid escape sequence, throw a lexical error
                 default:
-                    
+                    DestroyToken(token);
+                    DestroyVector(vector);
+                    ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid escape sequence '/%c' in a literal", *line_number, c);
             }
         }
     }
+
+    //terminate the string
+    AppendChar(vector, '\0');
+
+    //either a valid end of a string, or throw an error in case of newline/end of file
+    switch(c){
+        case '"': //valid string ending, copy the string to the token's attribute
+            if((token -> attribute = malloc(vector -> length * sizeof(char))) == NULL){
+                DestroyToken(token);
+                DestroyVector(vector);
+                ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
+            }
+
+            strcpy(token -> attribute, vector -> value);
+            DestroyVector(vector);
+            break;
+
+        case '\n': case EOF: 
+            DestroyToken(token);
+            DestroyVector(vector);
+            ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: String missing a second\"", *line_number);
+    }
+
 }
 
 int ConsumeComment(int *line_number){
@@ -183,10 +211,10 @@ int ConsumeComment(int *line_number){
 int ConsumeWhitespace(int *line_number){
     int c;
     while(isspace(c = getchar()) && c != EOF){
+        if(c == '\n') ++(*line_number);
         continue;
     }
 
-    if(c == '\n') ++(*line_number);
     return c;
 }
 
@@ -313,12 +341,16 @@ Token *GetNextToken(int *line_number){
                 return token;
 
             case '[':
-                if((next = NextChar()) != ']'){
+                if((c = getchar()) != ']'){
                     DestroyToken(token);
                     ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token [%c", *line_number, next);
                 }
 
                 token -> token_type = ARRAY_TOKEN;
+                return token;
+
+            case '|':
+                token -> token_type = VERTICAL_BAR_TOKEN;
                 return token;
 
             /*special symbols*/
@@ -332,6 +364,27 @@ Token *GetNextToken(int *line_number){
 
             case ';':
                 token -> token_type = SEMICOLON;
+                return token;
+
+            case '_':
+                ungetc(c, stdin);
+                ConsumeIdentifier(token, line_number);
+                return token;
+
+            case '@':
+                token -> token_type = AT_TOKEN;
+                return token;
+
+            case ':':
+                token -> token_type = COLON_TOKEN;
+                return token;
+
+            case '.':
+                token -> token_type = DOT_TOKEN;
+                return token;
+
+            case ',':
+                token -> token_type = COMMA_TOKEN;
                 return token;
 
             /*Beginning of a string*/
@@ -465,6 +518,34 @@ void PrintToken(Token *token){
 
         case KEYWORD:
             printf("Type: Keyword. Keyword type: %s", (char * )(token -> attribute));
+            break;
+
+        case UNDERSCORE_TOKEN:
+            printf("Type: _");
+            break;
+
+        case AT_TOKEN:
+            printf("Type: @");
+            break;
+
+        case VERTICAL_BAR_TOKEN:
+            printf("Type: |");
+            break;
+
+        case COLON_TOKEN:
+            printf("Type: :");
+            break;
+
+        case DOT_TOKEN:
+            printf("Type: .");
+            break;
+
+        case COMMA_TOKEN:
+            printf("Type: ,");
+            break;
+
+        case LITERAL_TOKEN:
+            printf("Type: string literal, value: %s", (char *)(token -> attribute));
             break;
 
         default:

@@ -50,11 +50,16 @@ typedef enum
     R_ROUND_BRACKET,    // the ')' character
     L_CURLY_BRACKET,    // the '{' character
     R_CURLY_BRACKET,    // the '}' character
+    VERTICAL_BAR_TOKEN, // the '|' character
 
     //special symbols
     PREFIX_TOKEN,
     SEMICOLON,
-    EOF_TOKEN
+    COMMA_TOKEN,
+    DOT_TOKEN,
+    COLON_TOKEN,
+    AT_TOKEN, //@
+    EOF_TOKEN,
 
 } TOKEN_TYPE;
 
