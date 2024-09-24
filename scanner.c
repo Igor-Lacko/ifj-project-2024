@@ -108,11 +108,8 @@ void ConsumeIdentifier(Token *token, int *line_number){
 
     //lone '_' identifier case
     if((c = getchar()) == '_' && !isalnum(NextChar())){
-        //free allocated resources
+        token -> token_type = UNDERSCORE_TOKEN;
         DestroyVector(vector);
-        DestroyToken(token);
-
-        ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token _", *line_number);
     }
 
     //append the characters until we reach the end of the identifier
@@ -120,6 +117,9 @@ void ConsumeIdentifier(Token *token, int *line_number){
     while(isalnum(c = getchar()) || c == '_'){
         AppendChar(vector, c);
     }
+
+    if(c == '\n') ++(*line_number);
+
 
     //terminate the vector
     AppendChar(vector, '\0');
@@ -131,6 +131,7 @@ void ConsumeIdentifier(Token *token, int *line_number){
         ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
     }
 
+
     strcpy((char *)(token -> attribute), vector -> value);
     DestroyVector(vector);
 
@@ -140,15 +141,34 @@ void ConsumeIdentifier(Token *token, int *line_number){
         token -> token_type = IDENTIFIER_TOKEN;
     }
 
-    token -> token_type = KEYWORD;
-    token -> keyword_type = keyword_type;
+    else{
+        token -> token_type = KEYWORD;
+        token -> keyword_type = keyword_type;
+    }
+
 }
 
 
-//TODO
-/*void ConsumeLiteral(Token *token, int *line_number){
-    return;
-}*/
+void ConsumeLiteral(Token *token, int *line_number){
+    int c; Vector *vector = InitVector();
+
+    //loop until we encounter another " character
+    while((c = getchar()) != '"' && c != '\n' && c != EOF){
+
+        AppendChar(vector, c);
+        if(c == '\\'){ //possible escape sequence
+            switch(c = getchar()){
+                //all possible \x characters
+                case '"': case 'n': case: 'r' case: 't': case: '\\':
+                    AppendChar(c);
+                    break;
+
+                default:
+                    
+            }
+        }
+    }
+}
 
 int ConsumeComment(int *line_number){
     int c;
@@ -230,13 +250,7 @@ Token *GetNextToken(int *line_number){
                 token -> token_type = ADDITION_OPERATOR;
                 return token;
 
-            case '-': //can signal the start of a negative number
-                //TODO: work this out
-
-                /*if(isdigit(next = NextChar())){
-                    token -> token_type = ConsumeNumber(token, line_number);
-                }*/
-
+            case '-': 
                 token -> token_type = SUBSTRACTION_OPERATOR;
                 return token;
 
@@ -320,6 +334,12 @@ Token *GetNextToken(int *line_number){
                 token -> token_type = SEMICOLON;
                 return token;
 
+            /*Beginning of a string*/
+            case '"':
+                token -> token_type = LITERAL_TOKEN;
+                ConsumeLiteral(token, line_number);
+                return token;
+
             /*call GetSymbolType to determine next token*/
             default:
                 //return the character back, since the consume functions parse the whole token
@@ -341,6 +361,7 @@ Token *GetNextToken(int *line_number){
                         continue;
 
                     default:
+                        DestroyToken(token);
                         ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token %c", *line_number, c);
                 }
 
@@ -442,15 +463,19 @@ void PrintToken(Token *token){
             printf("Type: EOF");
             break;
 
+        case KEYWORD:
+            printf("Type: Keyword. Keyword type: %s", (char * )(token -> attribute));
+            break;
+
         default:
-            printf("FAYHUSFGUYFSGAUHFAG");
+            printf("PrintToken() default case");
         
         
     }
 }
 
 int main(){
-    Token *token; int cnt = 0; int line_number = 0;
+    Token *token; int cnt = 0; int line_number = 1;
     while((token = GetNextToken(&line_number)) -> token_type != EOF_TOKEN){
         cnt ++; if(cnt >= 100) break;
         printf("Token on line %d. Printing token...\n", line_number);

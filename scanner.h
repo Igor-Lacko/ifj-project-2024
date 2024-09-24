@@ -18,6 +18,7 @@ typedef enum
     /*Tokens that are treated as identifiers until they are loaded
     -After, if the identifier is in the keyword table the token type is changed to keyword*/
     IDENTIFIER_TOKEN,
+    UNDERSCORE_TOKEN,
     KEYWORD,
 
     //number tokens, floats contain in them a '.' character
@@ -53,7 +54,7 @@ typedef enum
     //special symbols
     PREFIX_TOKEN,
     SEMICOLON,
-    EOF_TOKEN,
+    EOF_TOKEN
 
 } TOKEN_TYPE;
 
