@@ -1,6 +1,6 @@
 CC= gcc
 CFLAGS= -Wall -Wextra -pedantic -Werror
-MODULES = scanner.c vector.c error.c
+MODULES = scanner.c vector.c error.c parser.c
 HEADERS = scanner.h vector.h error.h
 
 main: $(MODULES) $(HEADERS)

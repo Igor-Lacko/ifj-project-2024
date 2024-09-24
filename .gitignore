@@ -9,6 +9,7 @@
 
 # Test files
 *test*
+.zig
 
 # Linker output
 *.ilk
@@ -38,6 +39,8 @@
 *.i*86
 *.x86_64
 *.hex
+ifj24
+ifj24debug
 
 # Debug files
 *.dSYM/
