@@ -1,6 +1,8 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
+#define KEYWORD_COUNT 13
+
 
 //enum for scanner FSM states
 typedef enum
@@ -88,19 +90,14 @@ typedef struct{
     void *attribute;           // null if the token has no attributre (e.g operators)
 } Token;
 
-//scanner structure to keep track of the state and line number
-typedef struct{
-    SCANNER_STATE state;
-    int line_number;
-} Scanner;
 
 /**
  * @brief Gets next token starting at pos (skipping whitespace)
  *
- * @param scanner scanner instance
+ * @param int keeps track of the line number
  * @return Token* Pointer to the initialized token structure
  */
-Token *GetNextToken(Scanner *scanner);
+Token *GetNextToken(int *line_number);
 
 
 //Token constructor
@@ -108,13 +105,6 @@ Token *InitToken();
 
 //Token destructor
 void DestroyToken(Token *token);
-
-
-//Scanner constructor
-Scanner *InitScanner();
-
-//Scanner destructor
-void DestroyScanner(Scanner *scanner);
 
 //Returns the next character from stdin without moving forward (it returns the character back)
 char NextChar();
@@ -131,10 +121,10 @@ CHAR_TYPE GetCharType(char c);
  * @brief Handles a numeric literal token
  * 
  * @param token Token instance, it's attribute is filled with the number value
- * @param scanner For line length print in case of a error
+ * @param int For line length print in case of a error
  * @return TOKEN_TYPE The type of the number. If type can't be determined, returns WHOLE_NUMBER
  */
-TOKEN_TYPE ConsumeNumber(Token *token, Scanner *scanner);
+TOKEN_TYPE ConsumeNumber(Token *token, int *line_number);
 
 
 /**
@@ -143,21 +133,29 @@ TOKEN_TYPE ConsumeNumber(Token *token, Scanner *scanner);
  * @param token loaded token with attribute: "string", type LITERAL and keyword NONE
  * @param scanner to keep track of the current line number
  */
-void ConsumeLiteral(Token *token, Scanner *scanner);
+void ConsumeLiteral(Token *token, int *line_number);
 
 /**
  * @brief Handles a identifier/keyword
  * 
  * @param token loaded token with attribute: "name" (so int i: attribute would be i), type KEYWORD/IDENTIFIER and if KEYWORD, a non empty keyword type
- * @param scanner for getting number of current line for error messages
+ * @param int for getting number of current line for error messages
  */
-void ConsumeIdentifier(Token *token, Scanner *scanner);
+void ConsumeIdentifier(Token *token, int *line_number);
 
 /*continues until it reaches the end of the line or EOF, returns the first character after the comment ends
 -Also increments the scanner's line number when it encounters a newline character*/
-int ConsumeComment(Scanner *scanner);
+int ConsumeComment(int *line_number);
 
 //Similar to ConsumeComment(), skips whitespace, increments the line_number if a '\n' is encountered and returns the first non-whitespace character
-int ConsumeWhitespace(Scanner *scanner);
+int ConsumeWhitespace(int *line_number);
+
+/**
+ * @brief Checks if the token passed is a keyword
+ * 
+ * @param token The given token -- the function checks it's attribute
+ * @return KEYWORD_TYPE NONE if not a keyword, otherwise the which one it is
+ */
+KEYWORD_TYPE IsKeyword(Token *token);
 
 #endif

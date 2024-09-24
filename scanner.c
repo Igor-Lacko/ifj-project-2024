@@ -8,26 +8,9 @@
 #include "vector.h"
 
 
-Scanner *InitScanner(){
-    Scanner *scanner;
-    if ((scanner = malloc(sizeof(scanner))) == NULL){
-        ErrorExit(ERROR_INTERNAL, "Internal compiler error: Memory allocation failed.");
-    }
-
-    //default values && return
-    scanner -> state = READY;
-    scanner -> line_number = 1;
-
-    return scanner;
-}
-
-void DestroyScanner(Scanner *scanner){
-    free(scanner);
-}
-
 Token *InitToken(){
     Token *token;
-    if ((token = calloc(1, sizeof(token))) == NULL){
+    if ((token = calloc(1, sizeof(Token))) == NULL){
         ErrorExit(ERROR_INTERNAL, "Internal compiler error: Memory allocation failed.");
     }
 
@@ -52,10 +35,11 @@ char NextChar(){
 CHAR_TYPE GetCharType(char c){
     if(isdigit(c)) return NUMBER;
     if(isalpha(c) || c == '_') return CHARACTER;
+    if(isspace(c)) return WHITESPACE;
     return OTHER;
 }
 
-TOKEN_TYPE ConsumeNumber(Token *token, Scanner *scanner){
+TOKEN_TYPE ConsumeNumber(Token *token, int *line_number){
     //tracking variables
     int c; TOKEN_TYPE type = INTEGER_32; 
 
@@ -72,20 +56,20 @@ TOKEN_TYPE ConsumeNumber(Token *token, Scanner *scanner){
             }
 
             else{
-                //copy the invalid token to a static array for error message
-                char invalid_token[vector -> length];
-                strcpy(invalid_token, vector -> value);
-
+                /*Don't use ErrorExit(here since we need to free memory AFTER printing the message)*/
+                AppendChar(vector, '\0'); //terminate the string for printing
+                fprintf(stderr, "Error in lexical analysis: Line %d: Invalid token %s.\n", *line_number, vector -> value);
+                
                 //free all allocated resources
                 DestroyToken(token);
                 DestroyVector(vector);
 
-                ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token %s", scanner -> line_number, invalid_token);
+                exit(ERROR_LEXICAL);
             }
         }
 
         //c is a number
-        AppendChar(vector, c);
+        else AppendChar(vector, c);
     }
 
     //terminate the vector
@@ -118,7 +102,7 @@ TOKEN_TYPE ConsumeNumber(Token *token, Scanner *scanner){
 }
 
 
-void ConsumeIdentifier(Token *token, Scanner *scanner){
+void ConsumeIdentifier(Token *token, int *line_number){
     //needed variables
     int c; Vector *vector = InitVector();
 
@@ -128,7 +112,7 @@ void ConsumeIdentifier(Token *token, Scanner *scanner){
         DestroyVector(vector);
         DestroyToken(token);
 
-        ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token _", scanner -> line_number);
+        ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token _", *line_number);
     }
 
     //append the characters until we reach the end of the identifier
@@ -141,50 +125,87 @@ void ConsumeIdentifier(Token *token, Scanner *scanner){
     AppendChar(vector, '\0');
 
     //copy the vector's value to the token's attribute (the identifier name)
-    if((token -> attribute = malloc(vector -> length * sizeof(char))) == NULL)
-            ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
+    if((token -> attribute = malloc(vector -> length * sizeof(char))) == NULL){
+        DestroyVector(vector);
+        DestroyToken(token);
+        ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
+    }
 
-    strcpy(vector -> value, (char *)(token -> attribute));
+    strcpy((char *)(token -> attribute), vector -> value);
+    DestroyVector(vector);
 
-    //TODO: implement list of keywords to check if the type isn't keyword
-    token -> token_type = IDENTIFIER_TOKEN;
+    //check if the identifier isn't actually a keyword
+    KEYWORD_TYPE keyword_type;
+    if((keyword_type = IsKeyword(token)) == NONE){
+        token -> token_type = IDENTIFIER_TOKEN;
+    }
+
+    token -> token_type = KEYWORD;
+    token -> keyword_type = keyword_type;
 }
 
 
 //TODO
-/*void ConsumeLiteral(Token *token, Scanner *scanner){
+/*void ConsumeLiteral(Token *token, int *line_number){
     return;
 }*/
 
-int ConsumeComment(Scanner *scanner){
+int ConsumeComment(int *line_number){
     int c;
     while((c = getchar()) != '\n' && c != EOF){
         continue;
     }
 
-    if(c == '\n') scanner -> line_number ++;
+    if(c == '\n') ++(*line_number);
     return c;
 }
 
-int ConsumeWhitespace(Scanner *scanner){
+int ConsumeWhitespace(int *line_number){
     int c;
     while(isspace(c = getchar()) && c != EOF){
         continue;
     }
 
-    if(c == '\n') scanner -> line_number ++;
+    if(c == '\n') ++(*line_number);
     return c;
+}
+
+KEYWORD_TYPE IsKeyword(Token *token){
+    //create a array of keywords(sice it's constant)
+    const char keyword_strings[][KEYWORD_COUNT] = {
+        "const",
+        "else",
+        "fn",
+        "if",
+        "i32",
+        "f64",
+        "null",
+        "pub",
+        "return",
+        "u8",
+        "var",
+        "void",
+        "while"
+    };
+
+    for(int i = 0; i < KEYWORD_COUNT; i++){
+        if(!strcmp(token -> attribute, keyword_strings[i])){
+            return i;
+        }
+    }
+
+    return NONE;
 }
 
 
 
-Token *GetNextToken(Scanner *scanner){
+Token *GetNextToken(int *line_number){
     //initial variables
     int c; char next; Token *token = InitToken();
 
     //skip all the whitespace character and
     //return the first non-whitespace character or end the function at the end of the file
-    if((c = ConsumeWhitespace(scanner)) == EOF){
+    if((c = ConsumeWhitespace(line_number)) == EOF){
         token -> token_type = EOF_TOKEN;
         return token;
     }
@@ -213,7 +234,7 @@ Token *GetNextToken(Scanner *scanner){
                 //TODO: work this out
 
                 /*if(isdigit(next = NextChar())){
-                    token -> token_type = ConsumeNumber(token, scanner);
+                    token -> token_type = ConsumeNumber(token, line_number);
                 }*/
 
                 token -> token_type = SUBSTRACTION_OPERATOR;
@@ -230,7 +251,7 @@ Token *GetNextToken(Scanner *scanner){
                 }
 
                 //indicates the start of a comment --> consume the second '/' character and skip to the end of the line/file
-                getchar(); c = ConsumeComment(scanner);
+                getchar(); c = ConsumeComment(line_number);
 
                 //run the switch again with the first character after the comment ends
                 continue;
@@ -238,7 +259,7 @@ Token *GetNextToken(Scanner *scanner){
             case '!': //! by itself isn't a valid token, however != is
                 if((next = NextChar()) != '='){
                     DestroyToken(token);
-                    ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token !%c", scanner -> line_number, next);
+                    ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token !%c", *line_number, next);
                 }
 
                 token -> token_type = NOT_EQUAL_OPERATOR;
@@ -280,7 +301,7 @@ Token *GetNextToken(Scanner *scanner){
             case '[':
                 if((next = NextChar()) != ']'){
                     DestroyToken(token);
-                    ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token [%c", scanner -> line_number, next);
+                    ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token [%c", *line_number, next);
                 }
 
                 token -> token_type = ARRAY_TOKEN;
@@ -308,15 +329,19 @@ Token *GetNextToken(Scanner *scanner){
                 switch(GetCharType(c)){
                     /*beginning of a identifier*/
                     case CHARACTER:
-                        ConsumeIdentifier(token, scanner);
+                        ConsumeIdentifier(token, line_number);
                         return token;
 
                     case NUMBER:
-                        token -> token_type = ConsumeNumber(token, scanner);
+                        token -> token_type = ConsumeNumber(token, line_number);
                         return token;
 
+                    case WHITESPACE:
+                        c = ConsumeWhitespace(line_number);
+                        continue;
+
                     default:
-                        ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token %c", scanner -> line_number, c);
+                        ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token %c", *line_number, c);
                 }
 
 
@@ -425,15 +450,16 @@ void PrintToken(Token *token){
 }
 
 int main(){
-    Token *token; Scanner *scanner = InitScanner(); int cnt = 0;
-    while((token = GetNextToken(scanner)) -> token_type != EOF_TOKEN){
+    Token *token; int cnt = 0; int line_number = 0;
+    while((token = GetNextToken(&line_number)) -> token_type != EOF_TOKEN){
         cnt ++; if(cnt >= 100) break;
-        printf("Token on line %d. Printing token...\n", scanner -> line_number);
+        printf("Token on line %d. Printing token...\n", line_number);
         PrintToken(token);
         printf("\n\n\n\n");
+    DestroyToken(token); 
     }
 
-    DestroyToken(token); DestroyScanner(scanner);
+    DestroyToken(token);
 }
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
-#define ALLOC_CHUNK 10
+#define ALLOC_CHUNK(size) size == 0 ? 1 : size * 2
 
 // Dynamic vector structure
 typedef struct
