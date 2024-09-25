@@ -152,7 +152,7 @@ void ProgramBody(int *line_number)
     DestroyToken(token);
 }
 
-int main()
+/*int main()
 {
     int line_number = 1;
     ProgramBody(&line_number);
@@ -160,4 +160,4 @@ int main()
            "SYNTAX OK\n"
            "\033[0m");
     return 0;
-}
+}*/

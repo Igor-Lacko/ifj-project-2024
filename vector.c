@@ -13,6 +13,7 @@ void DestroyVector(Vector *vector)
 {
     if (vector->value != NULL)
         free(vector->value);
+
     free(vector);
 }
 
