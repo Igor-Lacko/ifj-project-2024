@@ -12,7 +12,8 @@ void CheckTokenType(int *line_number, TOKEN_TYPE type)
     if ((token = GetNextToken(line_number))->token_type != type)
     {
         DestroyToken(token);
-        ErrorExit(ERROR_SYNTACTIC, "Expected '%s' at line %d", char_types[type], *line_number);
+        ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
+                  char_types[type], *line_number);
     }
     DestroyToken(token);
 }
@@ -24,12 +25,44 @@ void CheckKeywordType(int *line_number, KEYWORD_TYPE type)
     if ((token = GetNextToken(line_number))->keyword_type != type)
     {
         DestroyToken(token);
-        ErrorExit(ERROR_SYNTACTIC, "Expected '%s' keyword at line %d", keyword_types[type], *line_number);
+        ErrorExit(ERROR_SYNTACTIC, "Expected '%s' keyword at line %d",
+                  keyword_types[type], *line_number);
     }
     DestroyToken(token);
 }
 
 void ProgramBody(int *line_number);
+
+// const ifj = @import("ifj24.zig");
+void Header(int *line_number)
+{
+    CheckKeywordType(line_number, CONST);
+    CheckTokenType(line_number, IDENTIFIER_TOKEN);
+    CheckTokenType(line_number, ASSIGNMENT);
+    CheckTokenType(line_number, AT_TOKEN);
+    CheckTokenType(line_number, IDENTIFIER_TOKEN);
+    CheckTokenType(line_number, L_ROUND_BRACKET);
+    CheckTokenType(line_number, LITERAL_TOKEN);
+    CheckTokenType(line_number, R_ROUND_BRACKET);
+    CheckTokenType(line_number, SEMICOLON);
+}
+
+void Expression(int *line_number)
+{
+    Token *token;
+    while ((token = GetNextToken(line_number))->token_type != SEMICOLON)
+    {
+        if (token->token_type == EOF_TOKEN)
+        {
+            DestroyToken(token);
+            ErrorExit(ERROR_SYNTACTIC, "Expected ';' at line %d", *line_number);
+        }
+
+        // TODO: complete expressions, for now just skip
+        DestroyToken(token);
+    }
+    DestroyToken(token);
+}
 
 // checks all parameters
 void Parameters(int *line_number)
@@ -64,6 +97,7 @@ void Parameters(int *line_number)
 
             // TODO: fix the last char comma problem
             // param : data_type , )
+            // UPDATE: maybe not needed page 6,8 of the pdf
 
             // checks if there is another parameter
             if ((token = GetNextToken(line_number))->token_type != COMMA_TOKEN)
@@ -127,6 +161,17 @@ void IfElse(int *line_number)
     CheckTokenType(line_number, R_CURLY_BRACKET);
 }
 
+void WhileLoop(int *line_number)
+{
+    CheckTokenType(line_number, L_ROUND_BRACKET);
+    // expression
+    CheckTokenType(line_number, R_ROUND_BRACKET);
+
+    CheckTokenType(line_number, L_CURLY_BRACKET);
+    ProgramBody(line_number);
+    CheckTokenType(line_number, R_CURLY_BRACKET);
+}
+
 void ProgramBody(int *line_number)
 {
     Token *token;
@@ -135,8 +180,28 @@ void ProgramBody(int *line_number)
         switch (token->token_type)
         {
         case KEYWORD:
+            // start of function declaration
             if (token->keyword_type == PUB)
+            {
+                DestroyToken(token);
                 Function(line_number);
+            }
+            // start of if-else block
+            else if (token->keyword_type == IF)
+            {
+                DestroyToken(token);
+                IfElse(line_number);
+            }
+            else if (token->keyword_type == WHILE)
+            {
+                DestroyToken(token);
+                WhileLoop(line_number);
+            }
+            else
+            {
+                DestroyToken(token);
+                // ErrorExit(ERROR_SYNTACTIC, "Unexpected at line %d", *line_number);
+            }
             break;
         case R_CURLY_BRACKET:
             DestroyToken(token);
@@ -145,9 +210,9 @@ void ProgramBody(int *line_number)
 
         default:
             // ErrorExit(ERROR_SYNTACTIC, "Unexpected token at line %d", *line_number);
+            DestroyToken(token);
             break;
         }
-        DestroyToken(token);
     }
     DestroyToken(token);
 }
@@ -155,6 +220,7 @@ void ProgramBody(int *line_number)
 /*int main()
 {
     int line_number = 1;
+    Header(&line_number);
     ProgramBody(&line_number);
     printf("\033[1m\033[32m"
            "SYNTAX OK\n"

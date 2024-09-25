@@ -22,7 +22,11 @@
 
 #define ERROR_INTERNAL 99 // internal compiler error, for example a failed malloc call... etc.
 
+#define RED "\033[1m\033[31m"
+#define GREEN "\033[1m\033[32m"
+#define RESET "\033[0m"
+
 // Ends the compiler with the given exit code and message
-void ErrorExit(int error_code, const char *message,...);
+void ErrorExit(int error_code, const char *message, ...);
 
 #endif

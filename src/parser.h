@@ -4,6 +4,15 @@
 #include "scanner.h"
 #include "error.h"
 
+// Parser structure
+typedef struct
+{
+    int *line_number;
+    bool has_main = false;
+    bool in_function = false;
+    KEYWORD_TYPE return_type = NONE;
+} Parser;
+
 // Function declarations
 
 /**
