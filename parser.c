@@ -21,10 +21,6 @@ void PrintToken(Token *token)
         printf("Type: F64 token, attribute: %lf", *(double *)(token->attribute));
         break;
 
-    case ARRAY_TOKEN:
-        printf("Type: []");
-        break;
-
     case ASSIGNMENT:
         printf("Type: =");
         break;
@@ -232,11 +228,8 @@ void ProgramBody(int *line_number)
         {
         case KEYWORD:
             if (token->keyword_type == PUB)
-            {
                 Function(line_number);
-            }
             break;
-            token = GetNextToken(line_number);
 
         default:
             // printf("Unexpected token at line %d\n", *line_number);
