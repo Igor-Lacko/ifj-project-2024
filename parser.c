@@ -5,131 +5,31 @@
 #include "scanner.h"
 #include "error.h"
 
-void PrintToken(Token *token)
+void CheckTokenType(int *line_number, TOKEN_TYPE type)
 {
-    switch (token->token_type)
+    Token *token;
+    char char_types[30][15] = {"Identifier", "_", "Keyword", "integer", "double", "u8", "string", "=", "*", "/", "+", "-", "==", "!=", "<", ">", "<=", ">=", "(", ")", "{", "}", "|", ";", ",", ".", ":", "@", "EOF"};
+    if ((token = GetNextToken(line_number))->token_type != type)
     {
-    case IDENTIFIER_TOKEN:
-        printf("Type: Identifier token, attribute: %s", (char *)(token->attribute));
-        break;
-
-    case INTEGER_32:
-        printf("Type: Int32 token, attribute: %d", *(int *)(token->attribute));
-        break;
-
-    case DOUBLE_64:
-        printf("Type: F64 token, attribute: %lf", *(double *)(token->attribute));
-        break;
-
-    case ASSIGNMENT:
-        printf("Type: =");
-        break;
-
-    case MULTIPLICATION_OPERATOR:
-        printf("Type: *");
-        break;
-
-    case DIVISION_OPERATOR:
-        printf("Type: /");
-        break;
-
-    case ADDITION_OPERATOR:
-        printf("Type: +");
-        break;
-
-    case SUBSTRACTION_OPERATOR:
-        printf("Type: -");
-        break;
-
-    case EQUAL_OPERATOR:
-        printf("Type: ==");
-        break;
-
-    case NOT_EQUAL_OPERATOR:
-        printf("Type: !=");
-        break;
-
-    case LESS_THAN_OPERATOR:
-        printf("Type: <");
-        break;
-
-    case LARGER_THAN_OPERATOR:
-        printf("Type: >");
-        break;
-
-    case LESSER_EQUAL_OPERATOR:
-        printf("Type: <=");
-        break;
-
-    case LARGER_EQUAL_OPERATOR:
-        printf("Type: >=");
-        break;
-
-    case L_ROUND_BRACKET:
-        printf("Type: (");
-        break;
-
-    case R_ROUND_BRACKET:
-        printf("Type: )");
-        break;
-
-    case L_CURLY_BRACKET:
-        printf("Type: {");
-        break;
-
-    case R_CURLY_BRACKET:
-        printf("Type: }");
-        break;
-
-    case PREFIX_TOKEN:
-        printf("Type: ?");
-        break;
-
-    case SEMICOLON:
-        printf("Type: ;");
-        break;
-
-    case EOF_TOKEN:
-        printf("Type: EOF");
-        break;
-
-    case KEYWORD:
-        printf("Type: Keyword. Keyword type: %s", (char *)(token->attribute));
-        break;
-
-    case UNDERSCORE_TOKEN:
-        printf("Type: _");
-        break;
-
-    case AT_TOKEN:
-        printf("Type: @");
-        break;
-
-    case VERTICAL_BAR_TOKEN:
-        printf("Type: |");
-        break;
-
-    case COLON_TOKEN:
-        printf("Type: :");
-        break;
-
-    case DOT_TOKEN:
-        printf("Type: .");
-        break;
-
-    case COMMA_TOKEN:
-        printf("Type: ,");
-        break;
-
-    case LITERAL_TOKEN:
-        printf("Type: string literal, value: %s", (char *)(token->attribute));
-        break;
-
-    default:
-        printf("PrintToken() default case");
+        DestroyToken(token);
+        ErrorExit(ERROR_SYNTACTIC, "Expected '%s' at line %d", char_types[type], *line_number);
     }
-    printf("\n");
+    DestroyToken(token);
 }
+
+void CheckKeywordType(int *line_number, KEYWORD_TYPE type)
+{
+    Token *token;
+    char keyword_types[13][20] = {"const", "else", "fn", "if", "i32", "f64", "null", "pub", "return", "u8", "var", "void", "while"};
+    if ((token = GetNextToken(line_number))->keyword_type != type)
+    {
+        DestroyToken(token);
+        ErrorExit(ERROR_SYNTACTIC, "Expected '%s' keyword at line %d", keyword_types[type], *line_number);
+    }
+    DestroyToken(token);
+}
+
+void ProgramBody(int *line_number);
 
 // checks all parameters
 void Parameters(int *line_number)
@@ -139,7 +39,6 @@ void Parameters(int *line_number)
     while (1)
     {
         token = GetNextToken(line_number);
-        PrintToken(token);
         if (token->token_type == R_ROUND_BRACKET) // reached ')' so all parameters are checked
             break;
 
@@ -152,36 +51,35 @@ void Parameters(int *line_number)
         // id : data_type
         if (token->token_type == IDENTIFIER_TOKEN)
         {
-            if ((token = GetNextToken(line_number))->token_type != COLON_TOKEN)
-            {
-                DestroyToken(token);
-                ErrorExit(ERROR_SYNTACTIC, "Expected ':' at line %d", *line_number);
-            }
+            DestroyToken(token);
+
+            CheckTokenType(line_number, COLON_TOKEN);
 
             if ((token = GetNextToken(line_number))->token_type != KEYWORD && (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8))
             {
                 DestroyToken(token);
                 ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", *line_number);
             }
+            DestroyToken(token);
+
+            // TODO: fix the last char comma problem
+            // param : data_type , )
 
             // checks if there is another parameter
             if ((token = GetNextToken(line_number))->token_type != COMMA_TOKEN)
             {
                 if (token->token_type == R_ROUND_BRACKET) // no more parameters
-                {
                     break;
-                }
                 DestroyToken(token);
                 ErrorExit(ERROR_SYNTACTIC, "Expected ',' or ')' at line %d", *line_number);
             }
+            DestroyToken(token);
         }
         else
         {
             DestroyToken(token);
             ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", *line_number);
         }
-
-        DestroyToken(token);
     }
     DestroyToken(token);
 }
@@ -191,32 +89,42 @@ void Parameters(int *line_number)
 // }
 void Function(int *line_number)
 {
-    Token *token = GetNextToken(line_number);
-    if (token->keyword_type != FN) // expected 'fn' keyword
+    CheckKeywordType(line_number, FN);
+    CheckTokenType(line_number, IDENTIFIER_TOKEN);
+    CheckTokenType(line_number, L_ROUND_BRACKET);
+    Parameters(line_number); // params with )
+
+    Token *token; // return type
+    if ((token = GetNextToken(line_number))->token_type != KEYWORD && (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8 || token->keyword_type != VOID))
     {
         DestroyToken(token);
-        ErrorExit(ERROR_SYNTACTIC, "Expected 'fn' keyword at line %d", *line_number);
+        ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", *line_number);
     }
-
     DestroyToken(token);
-    token = GetNextToken(line_number);
-    if (token->token_type != IDENTIFIER_TOKEN) // expected function name
-    {
-        DestroyToken(token);
-        ErrorExit(ERROR_SYNTACTIC, "Expected function name at line %d", *line_number);
-    }
 
-    DestroyToken(token);
-    token = GetNextToken(line_number);
-    if (token->token_type != L_ROUND_BRACKET) // expected '('
-    {
-        DestroyToken(token);
-        ErrorExit(ERROR_SYNTACTIC, "Expected '(' at line %d", *line_number);
-    }
+    CheckTokenType(line_number, L_CURLY_BRACKET);
 
-    DestroyToken(token);
-    // check paramters
-    Parameters(line_number);
+    ProgramBody(line_number); // function body
+
+    CheckTokenType(line_number, R_CURLY_BRACKET);
+}
+
+// TODO: if(expression)|id|{} else{}
+// if(expression){}else{}
+void IfElse(int *line_number)
+{
+    CheckTokenType(line_number, L_ROUND_BRACKET);
+    // expression
+    CheckTokenType(line_number, R_ROUND_BRACKET);
+
+    CheckTokenType(line_number, L_CURLY_BRACKET);
+    ProgramBody(line_number);
+    CheckTokenType(line_number, R_CURLY_BRACKET);
+
+    CheckKeywordType(line_number, ELSE);
+    CheckTokenType(line_number, L_CURLY_BRACKET);
+    ProgramBody(line_number);
+    CheckTokenType(line_number, R_CURLY_BRACKET);
 }
 
 void ProgramBody(int *line_number)
@@ -230,9 +138,12 @@ void ProgramBody(int *line_number)
             if (token->keyword_type == PUB)
                 Function(line_number);
             break;
+        case R_CURLY_BRACKET:
+            DestroyToken(token);
+            ungetc('}', stdin);
+            return;
 
         default:
-            // printf("Unexpected token at line %d\n", *line_number);
             // ErrorExit(ERROR_SYNTACTIC, "Unexpected token at line %d", *line_number);
             break;
         }
@@ -245,5 +156,8 @@ int main()
 {
     int line_number = 1;
     ProgramBody(&line_number);
+    printf("\033[1m\033[32m"
+           "SYNTAX OK\n"
+           "\033[0m");
     return 0;
 }
