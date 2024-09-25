@@ -1,6 +1,9 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
+#include <stdbool.h>
+#include "vector.h"
+
 #define KEYWORD_COUNT 13
 
 
@@ -122,14 +125,25 @@ char NextChar();
  */
 CHAR_TYPE GetCharType(char c);
 
+
+/**
+ * @brief Helper function for ConsumeNumber, consumes the number's exponent
+ * 
+ * @param vector Vector to add characters to
+ * @param token To change the type if needed
+ * @param has_floating_point a flag if the token is a valid DOUBLE_64 token even without the exponent
+ * @return bool A flag to let ConsumeNumber know whether to end the loop or not
+ */
+bool ConsumeExponent(Vector *vector, Token *token, bool has_floating_point);
+
+
 /**
  * @brief Handles a numeric literal token
  * 
  * @param token Token instance, it's attribute is filled with the number value
  * @param int For line length print in case of a error
- * @return TOKEN_TYPE The type of the number. If type can't be determined, returns WHOLE_NUMBER
  */
-TOKEN_TYPE ConsumeNumber(Token *token, int *line_number);
+void ConsumeNumber(Token *token, int *line_number);
 
 
 /**
@@ -154,6 +168,10 @@ int ConsumeComment(int *line_number);
 
 //Similar to ConsumeComment(), skips whitespace, increments the line_number if a '\n' is encountered and returns the first non-whitespace character
 int ConsumeWhitespace(int *line_number);
+
+/*A bit of a special case -- []u8 is always written as such, so check if the next tokens match this pattern
+-also u8 by ITSELF is a keyword, so a variable can't be u8 but that is checked by ConsumeIdentifier and then IsKeyword*/
+void ConsumeU8Token(Token *token, int *line_number);
 
 /**
  * @brief Checks if the token passed is a keyword

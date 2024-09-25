@@ -1,7 +1,8 @@
-#include "error.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+
+#include "error.h"
 
 void ErrorExit(int error_code, const char *message,...)
 {

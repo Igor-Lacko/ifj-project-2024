@@ -9,6 +9,7 @@
 
 # Test files
 *test*
+*Test*
 .zig
 
 # Linker output
@@ -56,3 +57,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+#assignment
+zadani.pdf

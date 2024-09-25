@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdbool.h>
+
 #include "scanner.h"
 #include "error.h"
 #include "vector.h"
@@ -39,20 +40,58 @@ CHAR_TYPE GetCharType(char c){
     return OTHER;
 }
 
-TOKEN_TYPE ConsumeNumber(Token *token, int *line_number){
-    //tracking variables
-    int c; TOKEN_TYPE type = INTEGER_32; 
+
+bool ConsumeExponent(Vector *vector, Token *token, bool has_floating_point){
+    //at the start getchar() will return 'e'/'E' since we used ungetc()
+    int c = getchar();
+
+    /*reminder: valid float construction: 
+    3.14, or 3e-2 or 3e+2 or 3e2 or 3.14e-2 or 3.14e+2 or 3.14e2
+    */
+
+    //if the next character isn't a sign or a digit the number stays as it is
+    int next; if((next = NextChar()) == '+' || next == '-' || isdigit(next)){
+        AppendChar(vector, c);
+        AppendChar(vector, next);
+        getchar(); //move the stream forward
+    }
+
+    else{ //return 'e'/'E' to the stream, the token stays a number
+        if(!has_floating_point) token -> token_type = INTEGER_32;
+        return false;
+    }
+
+    //here we found a digit/sign and appended it, so the only thing that remains is to append remaining digits
+    while(isdigit(c = getchar())) AppendChar(vector, c);
+
+    //unget the last character after the numbers so that the scanner can process it
+    ungetc(c, stdin);
+    return true;
+}
+
+
+void ConsumeNumber(Token *token, int *line_number){
+    //tracking variable
+    int c; 
 
     //vector to put the string value of the token and int/doubles to put the actual value
-    Vector *vector = InitVector(); int i32; double f64;
+    //if the numbers ends up being a float, we save it as an string (since it can have an exponent, which C doesn't support so we can't save by value)
+    Vector *vector = InitVector(); int i32;
 
-    while(isdigit((c = getchar())) || c == '.'){ //number can be int/double (double has a '.')
-        if(c == '.'){ //check if we already have a exponent (in case of doubles)
+    //boolean values to check which parts the number has (if it's a floating point number)
+    //valid float construction: 3.14, or 3e-2 or 3e+2 or 3e2 or 3.14e-2 or 3.14e+2 or 3.14e2
+    //so 3e-2.14 would be token 3e-2, . would be another token and 14 would also be a separate token
+    bool has_exponent = false, has_floating_point = false;
+
+    //TODO: zeroes at the start of the part of a number that is whole are invalid
+    while(isdigit((c = getchar())) || c == '.' || tolower(c) == 'e'){ //number can be int/double (double has a '.')
+        if(c == '.'){ //check if we already have a floating point value (in case of doubles)
 
             //if not, switch the type to float. if yes, invalid token --> error --> exit the program with lexical error code
-            if(type != DOUBLE_64){
-                type = DOUBLE_64;
+            if(!has_floating_point){ 
+                token -> token_type = DOUBLE_64;
                 AppendChar(vector, c);
+                has_floating_point = true;
             }
 
             else{
@@ -68,6 +107,19 @@ TOKEN_TYPE ConsumeNumber(Token *token, int *line_number){
             }
         }
 
+        //do the same for the exponent part
+        //we need to break the loop if the exponent ends, since it's always at the end
+        else if(tolower(c) == 'e'){
+            if(!has_exponent){
+                ungetc(c, stdin);
+                if(!ConsumeExponent(vector, token, has_floating_point)){
+                    break;
+                }
+
+                else token -> token_type = DOUBLE_64;
+            }
+        }
+
         //c is a number
         else AppendChar(vector, c);
     }
@@ -79,26 +131,23 @@ TOKEN_TYPE ConsumeNumber(Token *token, int *line_number){
     ungetc(c, stdin);
 
     //copy the number to the token's value
-    if(type == INTEGER_32){
+    if(token -> token_type == INTEGER_32){
         i32 = atoi(vector -> value);
         if((token -> attribute = malloc(sizeof(int))) == NULL)
             ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
 
-        *(int*)(token -> attribute) = i32;
+        *(int *)(token -> attribute) = i32;
     }
 
     else{
-        f64 = atof(vector -> value);
-        if((token -> attribute = malloc(sizeof(double))) == NULL)
+        if((token -> attribute = malloc(vector -> length * sizeof(char))) == NULL)
             ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
 
-        *(double*)(token -> attribute) = f64;
+        //the float is saved as a char* since it can contain an exponent
+        strcpy((char *)(token -> attribute), vector -> value);
     }
 
     DestroyVector(vector);
-
-
-    return type;
 }
 
 
@@ -208,6 +257,7 @@ int ConsumeComment(int *line_number){
     return c;
 }
 
+
 int ConsumeWhitespace(int *line_number){
     int c;
     while(isspace(c = getchar()) && c != EOF){
@@ -217,6 +267,40 @@ int ConsumeWhitespace(int *line_number){
 
     return c;
 }
+
+
+void ConsumeU8Token(Token *token, int *line_number){
+    //expected token structure to compare to and a storage array to store the actual token
+    char u8_token[] = "[]u8"; char actual_token[5];
+
+    //iterator and a variable to store all the incoming characters
+    int i, c;
+
+    for(i = 0; i < 4; i++){
+        if((c = getchar()) != u8_token[i]){
+            DestroyToken(token);
+            actual_token[i++] = c;
+            actual_token[i] = '\0';
+            ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token %s", *line_number, actual_token);
+        }
+
+        else actual_token[i] = c;
+    }
+
+    actual_token[i] = '\0';
+
+    //copy the u8[] string to the token
+    if((token -> attribute = malloc(5 * sizeof(char))) == NULL){
+        DestroyToken(token);
+        ErrorExit(ERROR_INTERNAL, "Internal compiler error: Memory allocation failed");
+    }
+
+    strcpy(token -> attribute, u8_token);
+
+    token -> token_type = KEYWORD;
+    token -> keyword_type = U8;
+}
+
 
 KEYWORD_TYPE IsKeyword(Token *token){
     //create a array of keywords(sice it's constant)
@@ -340,33 +424,9 @@ Token *GetNextToken(int *line_number){
                 token -> token_type = R_CURLY_BRACKET;
                 return token;
 
-            case '[':
-            //TODO: add comments
-                ungetc(c, stdin);
-                char u8_token[] = "[]u8"; char actual_token[5]; int i;
-                for(i = 0; i < 4; i++){
-                    if((c = getchar()) != u8_token[i]){
-                        DestroyToken(token);
-                        actual_token[i++] = c;
-                        actual_token[i] = '\0';
-                        ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token %s", *line_number, actual_token);
-                    }
-
-                    else actual_token[i] = c;
-                }
-
-                actual_token[i] = '\0';
-
-                //copy the u8[] string to the token
-                if((token -> attribute = malloc(5 * sizeof(char))) == NULL){
-                    DestroyToken(token);
-                    ErrorExit(ERROR_INTERNAL, "Internal compiler error: Memory allocation failed");
-                }
-
-                strcpy(token -> attribute, u8_token);
-
-                token -> token_type = KEYWORD;
-                token -> keyword_type = U8;
+            case '[': //A bit of a special case, []u8 is a keyword that can't be mistaken for a identifier but u8 can but u8 by itself is a invalid token
+                ungetc(c, stdin); 
+                ConsumeU8Token(token, line_number);
                 return token;
 
             case '|':
@@ -426,7 +486,7 @@ Token *GetNextToken(int *line_number){
                         return token;
 
                     case NUMBER:
-                        token -> token_type = ConsumeNumber(token, line_number);
+                        ConsumeNumber(token, line_number);
                         return token;
 
                     case WHITESPACE:
@@ -457,7 +517,7 @@ void PrintToken(Token *token){
             break;
 
         case DOUBLE_64:
-            printf("Type: F64 token, attribute: %lf", *(double *)(token -> attribute));
+            printf("Type: F64 token, attribute: %s", (char *)(token -> attribute));
             break;
 
         case ASSIGNMENT:
