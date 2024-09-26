@@ -12,7 +12,7 @@
 Token *InitToken(){
     Token *token;
     if ((token = calloc(1, sizeof(Token))) == NULL){
-        ErrorExit(ERROR_INTERNAL, "Internal compiler error: Memory allocation failed.");
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed.");
     }
 
     //set default value and return
@@ -38,35 +38,6 @@ CHAR_TYPE GetCharType(char c){
     if(isalpha(c) || c == '_') return CHARACTER;
     if(isspace(c)) return WHITESPACE;
     return OTHER;
-}
-
-
-bool ConsumeExponent(Vector *vector, Token *token, bool has_floating_point){
-    //at the start getchar() will return 'e'/'E' since we used ungetc()
-    int c = getchar();
-
-    /*reminder: valid float construction: 
-    3.14, or 3e-2 or 3e+2 or 3e2 or 3.14e-2 or 3.14e+2 or 3.14e2
-    */
-
-    //if the next character isn't a sign or a digit the number stays as it is
-    int next; if((next = NextChar()) == '+' || next == '-' || isdigit(next)){
-        AppendChar(vector, c);
-        AppendChar(vector, next);
-        getchar(); //move the stream forward
-    }
-
-    else{ //return 'e'/'E' to the stream, the token stays a number
-        if(!has_floating_point) token -> token_type = INTEGER_32;
-        return false;
-    }
-
-    //here we found a digit/sign and appended it, so the only thing that remains is to append remaining digits
-    while(isdigit(c = getchar())) AppendChar(vector, c);
-
-    //unget the last character after the numbers so that the scanner can process it
-    ungetc(c, stdin);
-    return true;
 }
 
 
@@ -97,7 +68,7 @@ void ConsumeNumber(Token *token, int *line_number){
             else{
                 /*Don't use ErrorExit(here since we need to free memory AFTER printing the message)*/
                 AppendChar(vector, '\0'); //terminate the string for printing
-                fprintf(stderr, "Error in lexical analysis: Line %d: Invalid token %s.\n", *line_number, vector -> value);
+                fprintf(stderr, "Line %d: Invalid token %s.\n", *line_number, vector -> value);
                 
                 //free all allocated resources
                 DestroyToken(token);
@@ -134,14 +105,14 @@ void ConsumeNumber(Token *token, int *line_number){
     if(token -> token_type == INTEGER_32){
         i32 = atoi(vector -> value);
         if((token -> attribute = malloc(sizeof(int))) == NULL)
-            ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
+            ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
 
         *(int *)(token -> attribute) = i32;
     }
 
     else{
         if((token -> attribute = malloc(vector -> length * sizeof(char))) == NULL)
-            ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
+            ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
 
         //the float is saved as a char* since it can contain an exponent
         strcpy((char *)(token -> attribute), vector -> value);
@@ -149,6 +120,36 @@ void ConsumeNumber(Token *token, int *line_number){
 
     DestroyVector(vector);
 }
+
+
+bool ConsumeExponent(Vector *vector, Token *token, bool has_floating_point){
+    //at the start getchar() will return 'e'/'E' since we used ungetc()
+    int c = getchar();
+
+    /*reminder: valid float construction: 
+    3.14, or 3e-2 or 3e+2 or 3e2 or 3.14e-2 or 3.14e+2 or 3.14e2
+    */
+
+    //if the next character isn't a sign or a digit the number stays as it is
+    int next; if((next = NextChar()) == '+' || next == '-' || isdigit(next)){
+        AppendChar(vector, c);
+        AppendChar(vector, next);
+        getchar(); //move the stream forward
+    }
+
+    else{ //return 'e'/'E' to the stream, the token stays a number
+        if(!has_floating_point) token -> token_type = INTEGER_32;
+        return false;
+    }
+
+    //here we found a digit/sign and appended it, so the only thing that remains is to append remaining digits
+    while(isdigit(c = getchar())) AppendChar(vector, c);
+
+    //unget the last character after the numbers so that the scanner can process it
+    ungetc(c, stdin);
+    return true;
+}
+
 
 
 void ConsumeIdentifier(Token *token, int *line_number){
@@ -179,7 +180,7 @@ void ConsumeIdentifier(Token *token, int *line_number){
     if((token -> attribute = malloc(vector -> length * sizeof(char))) == NULL){
         DestroyVector(vector);
         DestroyToken(token);
-        ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
 
 
@@ -218,7 +219,7 @@ void ConsumeLiteral(Token *token, int *line_number){
                 default:
                     DestroyToken(token);
                     DestroyVector(vector);
-                    ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid escape sequence '/%c' in a literal", *line_number, c);
+                    ErrorExit(ERROR_LEXICAL, "Line %d: Invalid escape sequence '/%c' in a literal", *line_number, c);
             }
         }
     }
@@ -232,7 +233,7 @@ void ConsumeLiteral(Token *token, int *line_number){
             if((token -> attribute = malloc(vector -> length * sizeof(char))) == NULL){
                 DestroyToken(token);
                 DestroyVector(vector);
-                ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
+                ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
             }
 
             strcpy(token -> attribute, vector -> value);
@@ -242,7 +243,7 @@ void ConsumeLiteral(Token *token, int *line_number){
         case '\n': case EOF: 
             DestroyToken(token);
             DestroyVector(vector);
-            ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: String missing a second\"", *line_number);
+            ErrorExit(ERROR_LEXICAL, "Line %d: String missing a second \"", *line_number);
     }
 
 }
@@ -281,7 +282,7 @@ void ConsumeU8Token(Token *token, int *line_number){
             DestroyToken(token);
             actual_token[i++] = c;
             actual_token[i] = '\0';
-            ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token %s", *line_number, actual_token);
+            ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token %s", *line_number, actual_token);
         }
 
         else actual_token[i] = c;
@@ -292,7 +293,7 @@ void ConsumeU8Token(Token *token, int *line_number){
     //copy the u8[] string to the token
     if((token -> attribute = malloc(5 * sizeof(char))) == NULL){
         DestroyToken(token);
-        ErrorExit(ERROR_INTERNAL, "Internal compiler error: Memory allocation failed");
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
 
     strcpy(token -> attribute, u8_token);
@@ -385,7 +386,7 @@ Token *GetNextToken(int *line_number){
             case '!': //! by itself isn't a valid token, however != is
                 if((next = NextChar()) != '='){
                     DestroyToken(token);
-                    ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token !%c", *line_number, next);
+                    ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token !%c", *line_number, next);
                 }
 
                 token -> token_type = NOT_EQUAL_OPERATOR;
@@ -495,7 +496,7 @@ Token *GetNextToken(int *line_number){
 
                     default:
                         DestroyToken(token);
-                        ErrorExit(ERROR_LEXICAL, "Error in lexical analysis: Line %d: Invalid token %c", *line_number, c);
+                        ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token %c", *line_number, c);
                 }
 
 

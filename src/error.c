@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#include "error.h"
+
 void ErrorExit(int error_code, const char *message, ...)
 {
     va_list args;
@@ -11,9 +13,15 @@ void ErrorExit(int error_code, const char *message, ...)
     case ERROR_LEXICAL:
         fprintf(stderr, RED "ERROR IN LEXICAL ANALYSIS: " RESET);
         break;
+
     case ERROR_SYNTACTIC:
         fprintf(stderr, RED "ERROR IN SYNTAX ANALYSIS: " RESET);
         break;
+
+    case ERROR_INTERNAL:
+        fprintf(stderr, RED "INTERNAL COMPILER ERROR: " RESET);
+        break;
+
     default:
         fprintf(stderr, RED "ERROR: " RESET);
         break;

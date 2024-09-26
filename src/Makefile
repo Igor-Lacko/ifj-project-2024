@@ -1,10 +1,10 @@
 CC= gcc
 CFLAGS= -Wall -Wextra -pedantic -Werror
 
-HEADERS = scanner.h vector.h error.h parser.h
+HEADERS = scanner.h vector.h error.h parser.h symtable.h
 
-MODULES = scanner.o vector.o error.o parser.o
-DEBUG_MODULES = scanner-d.o vector-d.o error-d.o parser-d.o 
+MODULES = scanner.o vector.o error.o parser.o symtable.o
+DEBUG_MODULES = scanner-d.o vector-d.o error-d.o parser-d.o symtable-d.o 
 
 TARGETS = ifj24 ifj24debug
 

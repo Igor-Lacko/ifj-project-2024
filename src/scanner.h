@@ -1,7 +1,6 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
-#include <stdbool.h>
 #include "vector.h"
 
 #define KEYWORD_COUNT 13
@@ -127,6 +126,15 @@ CHAR_TYPE GetCharType(char c);
 
 
 /**
+ * @brief Handles a numeric literal token
+ * 
+ * @param token Token instance, it's attribute is filled with the number value
+ * @param int For line length print in case of a error
+ */
+void ConsumeNumber(Token *token, int *line_number);
+
+
+/**
  * @brief Helper function for ConsumeNumber, consumes the number's exponent
  * 
  * @param vector Vector to add characters to
@@ -135,15 +143,6 @@ CHAR_TYPE GetCharType(char c);
  * @return bool A flag to let ConsumeNumber know whether to end the loop or not
  */
 bool ConsumeExponent(Vector *vector, Token *token, bool has_floating_point);
-
-
-/**
- * @brief Handles a numeric literal token
- * 
- * @param token Token instance, it's attribute is filled with the number value
- * @param int For line length print in case of a error
- */
-void ConsumeNumber(Token *token, int *line_number);
 
 
 /**
