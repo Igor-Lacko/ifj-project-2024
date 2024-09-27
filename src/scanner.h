@@ -1,6 +1,7 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
+#include <stdbool.h>
 #include "vector.h"
 
 #define KEYWORD_COUNT 13
@@ -54,7 +55,6 @@ typedef enum
     VERTICAL_BAR_TOKEN, // the '|' character
 
     //special symbols
-    PREFIX_TOKEN,
     SEMICOLON,
     COMMA_TOKEN,
     DOT_TOKEN,
@@ -94,7 +94,7 @@ typedef enum{
 typedef struct{
     TOKEN_TYPE token_type;
     KEYWORD_TYPE keyword_type; // KEYWORD_TYPE.NONE if token_type != KEYWORD
-    void *attribute;           // null if the token has no attributre (e.g operators)
+    char *attribute;           // null if the token has no attributre (e.g operators)
 } Token;
 
 
@@ -153,6 +153,7 @@ bool ConsumeExponent(Vector *vector, Token *token, bool has_floating_point);
  */
 void ConsumeLiteral(Token *token, int *line_number);
 
+
 /**
  * @brief Handles a identifier/keyword
  * 
@@ -161,23 +162,31 @@ void ConsumeLiteral(Token *token, int *line_number);
  */
 void ConsumeIdentifier(Token *token, int *line_number);
 
+
 /*continues until it reaches the end of the line or EOF, returns the first character after the comment ends
 -Also increments the scanner's line number when it encounters a newline character*/
 int ConsumeComment(int *line_number);
 
+
 //Similar to ConsumeComment(), skips whitespace, increments the line_number if a '\n' is encountered and returns the first non-whitespace character
 int ConsumeWhitespace(int *line_number);
+
 
 /*A bit of a special case -- []u8 is always written as such, so check if the next tokens match this pattern
 -also u8 by ITSELF is a keyword, so a variable can't be u8 but that is checked by ConsumeIdentifier and then IsKeyword*/
 void ConsumeU8Token(Token *token, int *line_number);
 
+
+//checks if a identifier with a prefix at the start is valid or not (so if it's a keyword)
+bool IsValidPrefix(char *identifier);
+
+
 /**
  * @brief Checks if the token passed is a keyword
  * 
- * @param token The given token -- the function checks it's attribute
+ * @param attribute The given string
  * @return KEYWORD_TYPE NONE if not a keyword, otherwise the which one it is
  */
-KEYWORD_TYPE IsKeyword(Token *token);
+KEYWORD_TYPE IsKeyword(char *attribute);
 
 #endif

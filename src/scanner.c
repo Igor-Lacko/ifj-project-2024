@@ -27,11 +27,13 @@ void DestroyToken(Token *token){
     free(token);
 }
 
+
 char NextChar(){
     int c = getchar();
     ungetc(c, stdin);
     return c;
 }
+
 
 CHAR_TYPE GetCharType(char c){
     if(isdigit(c)) return NUMBER;
@@ -47,7 +49,7 @@ void ConsumeNumber(Token *token, int *line_number){
 
     //vector to put the string value of the token and int/doubles to put the actual value
     //if the numbers ends up being a float, we save it as an string (since it can have an exponent, which C doesn't support so we can't save by value)
-    Vector *vector = InitVector(); int i32;
+    Vector *vector = InitVector(); 
 
     //boolean values to check which parts the number has (if it's a floating point number)
     //valid float construction: 3.14, or 3e-2 or 3e+2 or 3e2 or 3.14e-2 or 3.14e+2 or 3.14e2
@@ -102,21 +104,12 @@ void ConsumeNumber(Token *token, int *line_number){
     ungetc(c, stdin);
 
     //copy the number to the token's value
-    if(token -> token_type == INTEGER_32){
-        i32 = atoi(vector -> value);
-        if((token -> attribute = malloc(sizeof(int))) == NULL)
-            ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    if((token -> attribute = malloc(vector -> length * sizeof(char))) == NULL)
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
 
-        *(int *)(token -> attribute) = i32;
-    }
-
-    else{
-        if((token -> attribute = malloc(vector -> length * sizeof(char))) == NULL)
-            ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
-
-        //the float is saved as a char* since it can contain an exponent
-        strcpy((char *)(token -> attribute), vector -> value);
-    }
+    //the float is saved as a char* since it can contain an exponent
+    strcpy((token -> attribute), vector -> value);
+    
 
     DestroyVector(vector);
 }
@@ -163,6 +156,7 @@ void ConsumeIdentifier(Token *token, int *line_number){
         return;
     }
 
+
     //append the characters until we reach the end of the identifier
     AppendChar(vector, c);
     while(isalnum(c = getchar()) || c == '_'){
@@ -184,12 +178,26 @@ void ConsumeIdentifier(Token *token, int *line_number){
     }
 
 
-    strcpy((char *)(token -> attribute), vector -> value);
+    strcpy(token -> attribute, vector -> value);
     DestroyVector(vector);
+
+    //check if the token isn't an invalid one with a prefix
+    if(token -> attribute[0] == '?'){
+        if(!IsValidPrefix(token -> attribute)){
+            fprintf(stderr, RED "Error in lexical analysis: Line %d: Invalid token %s\n" RESET, *line_number, token -> attribute);
+            DestroyToken(token);
+            exit(ERROR_LEXICAL);
+        }
+
+        token -> token_type = KEYWORD;
+        token -> keyword_type = IsKeyword(token -> attribute);
+
+        return;
+    }
 
     //check if the identifier isn't actually a keyword
     KEYWORD_TYPE keyword_type;
-    if((keyword_type = IsKeyword(token)) == NONE){
+    if((keyword_type = IsKeyword(token -> attribute)) == NONE){
         token -> token_type = IDENTIFIER_TOKEN;
     }
 
@@ -272,17 +280,20 @@ int ConsumeWhitespace(int *line_number){
 
 void ConsumeU8Token(Token *token, int *line_number){
     //expected token structure to compare to and a storage array to store the actual token
-    char u8_token[] = "[]u8"; char actual_token[5];
+    char u8_token[] = "[]u8"; char nullable_u8_token[] = "?[]u8";
+    char actual_token[6]; //max size is 6 because ? + u8[] + '\0'
 
     //iterator and a variable to store all the incoming characters
     int i, c;
 
-    for(i = 0; i < 4; i++){
-        if((c = getchar()) != u8_token[i]){
+    int length = NextChar() == '?' ? 5 : 4;
+    for(i = 0; i < length; i++){
+        c = getchar();
+        
+        if((c != u8_token[i] && i != 5) && (c != nullable_u8_token[i])){
             DestroyToken(token);
-            actual_token[i++] = c;
             actual_token[i] = '\0';
-            ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token %s", *line_number, actual_token);
+            ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token %s%c", *line_number, actual_token, c);
         }
 
         else actual_token[i] = c;
@@ -291,19 +302,19 @@ void ConsumeU8Token(Token *token, int *line_number){
     actual_token[i] = '\0';
 
     //copy the u8[] string to the token
-    if((token -> attribute = malloc(5 * sizeof(char))) == NULL){
+    if((token -> attribute = malloc((length + 1) * sizeof(char))) == NULL){
         DestroyToken(token);
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
 
-    strcpy(token -> attribute, u8_token);
+    strcpy(token -> attribute, actual_token);
 
     token -> token_type = KEYWORD;
     token -> keyword_type = U8;
 }
 
 
-KEYWORD_TYPE IsKeyword(Token *token){
+KEYWORD_TYPE IsKeyword(char *attribute){
     //create a array of keywords(sice it's constant)
     const char keyword_strings[][KEYWORD_COUNT] = {
         "const",
@@ -322,7 +333,7 @@ KEYWORD_TYPE IsKeyword(Token *token){
     };
 
     for(int i = 0; i < KEYWORD_COUNT; i++){
-        if(!strcmp(token -> attribute, keyword_strings[i])){
+        if(!strcmp(attribute, keyword_strings[i])){
             return i;
         }
     }
@@ -330,6 +341,10 @@ KEYWORD_TYPE IsKeyword(Token *token){
     return NONE;
 }
 
+
+bool IsValidPrefix(char *identifier){
+    return IsKeyword(identifier + 1) == NONE ? false : true;
+}
 
 
 Token *GetNextToken(int *line_number){
@@ -436,7 +451,13 @@ Token *GetNextToken(int *line_number){
 
             /*special symbols*/
             case '?':
-                token -> token_type = PREFIX_TOKEN;
+                next = NextChar();
+                ungetc(c, stdin);
+
+                if(isalnum(next)) ConsumeIdentifier(token, line_number);
+                else if(next == '[') ConsumeU8Token(token, line_number);
+                else ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token '?'", *line_number);
+
                 return token;
 
             case EOF:
@@ -510,15 +531,15 @@ Token *GetNextToken(int *line_number){
 void PrintToken(Token *token){
     switch (token -> token_type){
         case IDENTIFIER_TOKEN:
-            printf("Type: Identifier token, attribute: %s", (char *)(token -> attribute));
+            printf("Type: Identifier token, attribute: %s", token -> attribute);
             break;
         
         case INTEGER_32:
-            printf("Type: Int32 token, attribute: %d", *(int *)(token -> attribute));
+            printf("Type: Int32 token, attribute: %s", token -> attribute);
             break;
 
         case DOUBLE_64:
-            printf("Type: F64 token, attribute: %s", (char *)(token -> attribute));
+            printf("Type: F64 token, attribute: %s", token -> attribute);
             break;
 
         case ASSIGNMENT:
@@ -581,10 +602,6 @@ void PrintToken(Token *token){
             printf("Type: }");
             break;
 
-        case PREFIX_TOKEN:
-            printf("Type: ?");
-            break;
-
         case SEMICOLON:
             printf("Type: ;");
             break;
@@ -594,7 +611,7 @@ void PrintToken(Token *token){
             break;
 
         case KEYWORD:
-            printf("Type: Keyword. Keyword type: %s", (char * )(token -> attribute));
+            printf("Type: Keyword. Keyword type: %s", token -> attribute);
             break;
 
         case UNDERSCORE_TOKEN:
@@ -622,7 +639,7 @@ void PrintToken(Token *token){
             break;
 
         case LITERAL_TOKEN:
-            printf("Type: string literal, value: %s", (char *)(token -> attribute));
+            printf("Type: string literal, value: %s", token -> attribute);
             break;
 
         default:

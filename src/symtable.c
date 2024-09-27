@@ -6,13 +6,14 @@
 #include "error.h"
 
 
-
 SymtableListNode *InitNode(SYMBOL_TYPE symbol_type, void *symbol){
     SymtableListNode *node; if((node = malloc(sizeof(SymtableListNode))) == NULL){
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
 
     node -> symbol_type = symbol_type; node -> symbol = symbol;
+
+    return node;
 }
 
 
@@ -22,7 +23,7 @@ void DestroyNode(SymtableListNode *node){
 
     if(node -> symbol != NULL){
         //I LOVE THE TERNARY OPERATOR
-        node -> symbol_type == FUNCTION_SYMBOL ? DestroyFunctionSymbol(node -> symbol) : DestroyVariableSymbol(node -> symbol); 
+        node -> symbol_type == FUNCTION_SYMBOL ? DestroyFunctionSymbol((Function *)node -> symbol) : DestroyVariableSymbol((Variable *)node -> symbol); 
     }
 
     node -> next = NULL;
@@ -31,8 +32,15 @@ void DestroyNode(SymtableListNode *node){
 }
 
 
-void AppendNode(SymtableListNode *list, SymtableListNode *node){
+void AppendNode(int *symtable_size, SymtableListNode *list, SymtableListNode *node){
     SymtableListNode *current_node = list;
+
+    //if the list is empty, set the node to the first item
+    if(list == NULL){
+        ++(*symtable_size);
+        list = node;
+        return;
+    }
 
     //jump through the nodes until the next one is empty
     while(current_node -> next != NULL){
@@ -43,8 +51,15 @@ void AppendNode(SymtableListNode *list, SymtableListNode *node){
 }
 
 
-void PopNode(SymtableListNode *list){
+void PopNode(int *symtable_size, SymtableListNode *list){
     SymtableListNode *current_node = list;
+
+    //look if the item to pop isn't the list head
+    if(list -> next == NULL){
+        --(*symtable_size);
+        DestroyNode(list);
+        list = NULL;
+    }
 
     //we need to look 2 nodes forward, since we need to free current_node -> next and set it to NULL
     while(current_node -> next -> next != NULL){
@@ -56,29 +71,15 @@ void PopNode(SymtableListNode *list){
 }
 
 
-//this is probably a very inefficient function, might redo to a doubly linked list later
-void RemoveNode(SymtableListNode *list, SymtableListNode *node){
-    SymtableListNode *current_node = list;
-
-    //we want to find the node before the one we want to remove and link it with node -> next
-    while(current_node -> next != node){
-        current_node = current_node -> next;
-    }
-
-    current_node -> next = node -> next;
-    DestroyNode(node);
-}
-
-
-//recursion woohoo
 void DestroyList(SymtableListNode *list){
+    //recursion woohoo
     if(list -> next != NULL) DestroyList(list -> next);
     DestroyNode(list);
 }
 
 
 Symtable *InitSymtable(size_t size){
-    Symtable *symtable; if((symtable = malloc(sizeof(Symtable))) == NULL){
+    Symtable *symtable; if((symtable = calloc(1, sizeof(Symtable))) == NULL){
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
 
@@ -86,4 +87,75 @@ Symtable *InitSymtable(size_t size){
     if((symtable -> table = calloc(size, sizeof(SymtableListNode*))) == NULL){
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
+
+    symtable -> capacity = size;
+    return symtable;
+}
+
+
+void DestroySymtable(Symtable *symtable){
+    for(unsigned long i = 0; i < symtable -> size; i++){
+        if(symtable -> table[i] != NULL){
+            DestroyList(symtable -> table[i]);
+            symtable -> size --;
+        }
+    }
+
+    free(symtable -> table);
+    free(symtable);
+}
+
+
+Function *FunctionSymbolInit(void){
+    Function *function_symbol; if((function_symbol = calloc(1, sizeof(Function))) == NULL){
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    }
+
+    return function_symbol;
+}
+
+
+Variable *VariableSymbolInit(void){
+    Variable *variable_symbol; if((variable_symbol = calloc(1, sizeof(Variable))) == NULL){
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    }
+
+    return variable_symbol;
+}
+
+
+void DestroyFunctionSymbol(Function *function_symbol){
+    if(function_symbol == NULL) return; //just in case
+
+    free(function_symbol -> name);
+    free(function_symbol -> return_value);
+
+    //free all parameters
+    for(int i = 0; i < function_symbol -> num_of_parameters; i++){
+        free(function_symbol -> parameters[i]);
+    }
+
+    free(function_symbol -> parameters);
+
+    free(function_symbol);
+}
+
+
+void DestroyVariableSymbol(Variable *variable_symbol){
+    if(variable_symbol == NULL) return;
+
+    free(variable_symbol -> name);
+    free(variable_symbol  -> value);
+
+    free(variable_symbol);
+}
+
+
+Function *GetFunctionSymbol(SymtableListNode *node){
+    return (Function *)(node -> symbol);
+}
+
+
+Variable *GetVariableSymbol(SymtableListNode *node){
+    return (Variable *)(node -> symbol);
 }

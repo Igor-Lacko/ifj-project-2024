@@ -21,7 +21,7 @@ run: main
 	./ifj24
 
 run-debug: debug
-	./ifj24debug < ../test_files/test.ifj24 && ./ifj24debug < ../test_files/exponent.ifj24
+	./ifj24debug < ../test_files/test.ifj24 && ./ifj24debug < ../test_files/exponent.ifj24 && ./ifj24debug < ../test_files/u8.ifj24
 
 #----RULES----#
 %.o : %.c

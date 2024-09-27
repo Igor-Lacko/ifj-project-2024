@@ -20,16 +20,9 @@ typedef enum{
 typedef enum{
     U8_ARRAY_TYPE,
     INT32_TYPE,
-    DOUBLE64_TYPE
+    DOUBLE64_TYPE,
+    VOID_TYPE
 } DATA_TYPE;
-
-
-//structure of a function symbol
-typedef struct{
-    char *name;
-    void **parameters;
-    void *return_value;
-} Function;
 
 
 //structure of a variable symbol
@@ -39,6 +32,16 @@ typedef struct{
     bool is_declared;
     void *value;
 } Variable;
+
+
+//structure of a function symbol
+typedef struct{
+    char *name;
+    int num_of_parameters;
+    Variable **parameters;
+    void *return_value;
+    DATA_TYPE return_type;
+} Function;
 
 
 //structure of a symbol linked list node
@@ -51,6 +54,7 @@ typedef struct node{
 
 //symtable structure (a hash table --> an array of linked lists)
 typedef struct{
+    unsigned long capacity; //the maximum total number of lists
     unsigned long size; //so the count of lists we have active (non-NULL/length 0)
     SymtableListNode **table;
 } Symtable;
@@ -72,15 +76,11 @@ void DestroyNode(SymtableListNode *node);
 
 
 //appends a node to the end of a symtable list
-void AppendNode(SymtableListNode *list, SymtableListNode *node);
+void AppendNode(int *symtable_size, SymtableListNode *list, SymtableListNode *node);
 
 
 //removes a node from the end of the list
-void PopNode(SymtableListNode *list);
-
-
-//removes a specific node from the list
-void RemoveNode(SymtableListNode *list, SymtableListNode *node);
+void PopNode(int *symtable_size, SymtableListNode *list);
 
 
 //symtable list destructor, frees each node recursively
@@ -111,7 +111,7 @@ Function *FunctionSymbolInit(void);
 
 
 //Variable symbol constructor
-Variable *VariableSymbolInit();
+Variable *VariableSymbolInit(void);
 
 
 //Function symbol destructor
@@ -120,5 +120,15 @@ void DestroyFunctionSymbol(Function *function_symbol);
 
 //Variable symbol destructor
 void DestroyVariableSymbol(Variable *variable_symbol);
+
+
+//symbol getters from nodes to avoid the weird void* notation
+Function *GetFunctionSymbol(SymtableListNode *node);
+Variable *GetVariableSymbol(SymtableListNode *node);
+
+
+//better than if(symtable -> size == 0)
+bool IsSymtableEmpty(Symtable *symtable);
+
 
 #endif
