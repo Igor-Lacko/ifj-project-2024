@@ -244,3 +244,22 @@ VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name)
     // symbol not found
     return NULL;
 }
+
+bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol){
+    if(FindVariableSymbol(symtable, variable_symbol -> name) != NULL) return false;
+
+    SymtableListNode *node = InitNode(FUNCTION_SYMBOL, (void *)(variable_symbol));
+    AppendNode(symtable -> size, symtable -> table[GetSymtableHash(variable_symbol -> name, symtable -> capacity)], node);
+
+    return true;
+}
+
+
+bool InsertFunctionSymbol(Symtable *symtable, FunctionSymbol *function_symbol){
+    if(FindVariableSymbol(symtable, function_symbol -> name) != NULL) return false;
+
+    SymtableListNode *node = InitNode(VARIABLE_SYMBOL, (void *)(function_symbol));
+    AppendNode(symtable -> size, symtable -> table[GetSymtableHash(function_symbol -> name, symtable -> capacity)], node);
+
+    return true;
+}

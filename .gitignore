@@ -62,4 +62,5 @@ dkms.conf
 zadani.pdf
 
 #vscode files
-.vscode
+*vscode*
+.json*

@@ -123,4 +123,14 @@ FunctionSymbol *FindFunctionSymbol(Symtable *symtable, char *function_name);
 // the same but for variables
 VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name);
 
+/**
+ * @brief Inserts a variable symbol into the symtable
+ * 
+ * @param symtable Pointer to the symtable instance
+ * @param variable_symbol Pointer to the symbol to insert
+ * @return true If the symbol wasn't in the symtable, the symbol is inserted in this case
+ * @return false If the symbol already was in the sytmtable, it's not inserted in this case
+ */
+bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol);
+
 #endif
