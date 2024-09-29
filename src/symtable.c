@@ -37,26 +37,24 @@ void DestroyNode(SymtableListNode *node)
     free(node);
 }
 
-void AppendNode(long unsigned int *symtable_size, SymtableListNode **list, SymtableListNode *node)
-{
-    SymtableListNode *current_node = *list;
-
+void AppendNode(Symtable *symtable, SymtableListNode *node, unsigned long hash)
+{ 
     // if the list is empty, set the node to the first item
-    if (*list == NULL)
+    if ((symtable -> table[hash]) == NULL)
     {
-        printf("list is NULL\n");
-        ++(*symtable_size);
-        *list = node;
+        symtable -> table[hash] = node;
+        ++(symtable -> size);
         return;
     }
 
-    // jump through the nodes until the next one is empty
-    while (current_node->next != NULL)
-    {
-        current_node = current_node->next;
-    }
+    SymtableListNode *tmp = symtable -> table[hash];
 
-    current_node->next = node;
+    // jump through the nodes until the next one is empty
+    while (tmp -> next != NULL)
+    {
+        tmp = tmp->next;
+    }
+    tmp -> next = node;
 }
 
 void PopNode(int *symtable_size, SymtableListNode *list)
@@ -84,14 +82,12 @@ void PopNode(int *symtable_size, SymtableListNode *list)
 void DestroyList(SymtableListNode *list)
 {
     // recursion woohoo
-    if (list->next != NULL)
-        DestroyList(list->next);
+    if (list->next != NULL) DestroyList(list->next);
     DestroyNode(list);
 }
 
 Symtable *InitSymtable(size_t size)
 {
-    printf("size is %lu\n", size);
     Symtable *symtable;
     if ((symtable = calloc(1, sizeof(Symtable))) == NULL)
     {
@@ -99,9 +95,8 @@ Symtable *InitSymtable(size_t size)
     }
 
     // allocate size linked lists and set each one to NULL
-    if ((symtable->table = calloc(size, sizeof(SymtableListNode *))) == NULL)
-    {
-        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    for(unsigned long i = 0; i < symtable -> capacity; i++){
+        symtable -> table[i] = NULL;
     }
 
     symtable->capacity = size;
@@ -110,16 +105,16 @@ Symtable *InitSymtable(size_t size)
 
 void DestroySymtable(Symtable *symtable)
 {
-    for (unsigned long i = 0; i < symtable->size; i++)
+    for (unsigned long i = 0; i < symtable->capacity; i++)
     {
         if (symtable->table[i] != NULL)
         {
+            printf("Destroying at index %lu\n", i);
             DestroyList(symtable->table[i]);
             symtable->size--;
         }
     }
 
-    free(symtable->table);
     free(symtable);
 }
 
@@ -150,16 +145,16 @@ void DestroyFunctionSymbol(FunctionSymbol *function_symbol)
     if (function_symbol == NULL)
         return; // just in case
 
-    free(function_symbol->name);
-    free(function_symbol->return_value);
+    if(function_symbol -> name != NULL) free(function_symbol->name);
+    if(function_symbol -> return_value != NULL) free(function_symbol->return_value);
 
     // free all parameters
     for (int i = 0; i < function_symbol->num_of_parameters; i++)
     {
-        free(function_symbol->parameters[i]);
+        if(function_symbol -> parameters[i] != NULL) free(function_symbol->parameters[i]);
     }
 
-    free(function_symbol->parameters);
+    if(function_symbol -> parameters != NULL) free(function_symbol->parameters);
 
     free(function_symbol);
 }
@@ -169,8 +164,8 @@ void DestroyVariableSymbol(VariableSymbol *variable_symbol)
     if (variable_symbol == NULL)
         return;
 
-    free(variable_symbol->name);
-    free(variable_symbol->value);
+    if(variable_symbol -> name != NULL) free(variable_symbol->name);
+    if(variable_symbol -> value != NULL) free(variable_symbol->value);
 
     free(variable_symbol);
 }
@@ -228,7 +223,7 @@ FunctionSymbol *FindFunctionSymbol(Symtable *symtable, char *function_name)
 VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name)
 {
     // index into the table using a hash function on the variable name
-    SymtableListNode *symtable_row = symtable->table[GetSymtableHash(variable_name, symtable->capacity)];
+    SymtableListNode *symtable_row = symtable->table[GetSymtableHash(variable_name, symtable -> capacity)];
 
     // we will store/commpare here
     VariableSymbol *variable_symbol;
@@ -250,25 +245,25 @@ VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name)
 
 bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol)
 {
+    //check if the symbol isn't in the table already
     if (FindVariableSymbol(symtable, variable_symbol->name) != NULL)
-    {
         return false;
-    }
-    unsigned long hash;
+
+    //if not, create a new node and add it to the end
     SymtableListNode *node = InitNode(VARIABLE_SYMBOL, (void *)(variable_symbol));
-    AppendNode(&symtable->size, &symtable->table[hash = GetSymtableHash(variable_symbol->name, symtable->capacity)], node);
-    printf("type: %d\n", symtable->table[hash]->symbol_type);
+    AppendNode(symtable, node, GetSymtableHash(variable_symbol -> name, symtable -> capacity));
 
     return true;
 }
 
 bool InsertFunctionSymbol(Symtable *symtable, FunctionSymbol *function_symbol)
 {
+    //the same principle as InsertVariableSymbol()
     if (FindVariableSymbol(symtable, function_symbol->name) != NULL)
         return false;
 
-    SymtableListNode *node = InitNode(VARIABLE_SYMBOL, (void *)(function_symbol));
-    AppendNode(&symtable->size, &symtable->table[GetSymtableHash(function_symbol->name, symtable->capacity)], node);
+    SymtableListNode *node = InitNode(FUNCTION_SYMBOL, (void *)(function_symbol));
+    AppendNode(symtable, node, GetSymtableHash(function_symbol -> name, symtable -> capacity));
 
     return true;
 }
@@ -282,6 +277,8 @@ void PrintTable(Symtable *symtable)
 
         while (current != NULL)
         {
+
+            printf("at hash %d\n", i);
             if (current->symbol_type == FUNCTION_SYMBOL)
             {
                 printf("Function: %s\n", ((FunctionSymbol *)current->symbol)->name);

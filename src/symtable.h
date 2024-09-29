@@ -6,7 +6,7 @@
 
 #include <stdbool.h>
 
-#define TABLE_COUNT 5 // first prime over 1000, todo: change this
+#define TABLE_COUNT 1009 // first prime over 1000, todo: change this
 
 // symbol type enumeration
 typedef enum
@@ -56,7 +56,7 @@ typedef struct
 {
     unsigned long capacity; // the maximum total number of lists
     unsigned long size;     // so the count of lists we have active (non-NULL/length 0)
-    SymtableListNode **table;
+    SymtableListNode *table[TABLE_COUNT];
 } Symtable;
 
 /**
@@ -73,7 +73,7 @@ SymtableListNode *InitNode(SYMBOL_TYPE symbol_type, void *symbol);
 void DestroyNode(SymtableListNode *node);
 
 // appends a node to the end of a symtable list
-void AppendNode(long unsigned int *symtable_size, SymtableListNode **list, SymtableListNode *node);
+void AppendNode(Symtable *symtable, SymtableListNode *node, unsigned long hash);
 
 // removes a node from the end of the list
 void PopNode(int *symtable_size, SymtableListNode *list);
@@ -132,6 +132,9 @@ VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name);
  * @return false If the symbol already was in the sytmtable, it's not inserted in this case
  */
 bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol);
+
+//The same but for functions
+bool InsertFunctionSymbol(Symtable *symtable, FunctionSymbol *function_symbol);
 
 /**
  * @brief Prints the symtable to the stdout

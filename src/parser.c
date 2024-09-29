@@ -252,9 +252,9 @@ void ConstDeclaration(Parser *parser)
     if (!InsertVariableSymbol(parser->symtable, var))
         ErrorExit(ERROR_SEMANTIC_REDEFINED, "Variable %s already declared", var->name);
 
-    // VariableSymbol *var2 = FindVariableSymbol(parser->symtable, var->name);
-    // if (var2 == NULL)
-    //     ErrorExit(ERROR_SEMANTIC_UNDEFINED, "Variable %s not found", var->name);
+    VariableSymbol *var2 = FindVariableSymbol(parser->symtable, var->name);
+    if (var2 == NULL)
+    ErrorExit(ERROR_SEMANTIC_UNDEFINED, "Variable %s not found", var->name);
 
     PrintTable(parser->symtable);
 
