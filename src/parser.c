@@ -4,6 +4,8 @@
 
 #include "scanner.h"
 #include "error.h"
+#include "parser.h"
+#include "symtable.h"
 
 void CheckTokenType(int *line_number, TOKEN_TYPE type)
 {
@@ -31,31 +33,77 @@ void CheckKeywordType(int *line_number, KEYWORD_TYPE type)
     DestroyToken(token);
 }
 
-void ProgramBody(int *line_number);
-
-// const ifj = @import("ifj24.zig");
-void Header(int *line_number)
-{
-    CheckKeywordType(line_number, CONST);
-    CheckTokenType(line_number, IDENTIFIER_TOKEN);
-    CheckTokenType(line_number, ASSIGNMENT);
-    CheckTokenType(line_number, AT_TOKEN);
-    CheckTokenType(line_number, IDENTIFIER_TOKEN);
-    CheckTokenType(line_number, L_ROUND_BRACKET);
-    CheckTokenType(line_number, LITERAL_TOKEN);
-    CheckTokenType(line_number, R_ROUND_BRACKET);
-    CheckTokenType(line_number, SEMICOLON);
-}
-
-void Expression(int *line_number)
+Token *CheckAndReturnToken(int *line_number, TOKEN_TYPE type)
 {
     Token *token;
-    while ((token = GetNextToken(line_number))->token_type != SEMICOLON)
+    char char_types[30][15] = {"Identifier", "_", "Keyword", "integer", "double", "u8", "string", "=", "*", "/", "+", "-", "==", "!=", "<", ">", "<=", ">=", "(", ")", "{", "}", "|", ";", ",", ".", ":", "@", "EOF"};
+    if ((token = GetNextToken(line_number))->token_type != type)
     {
+        DestroyToken(token);
+        ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
+                  char_types[type], *line_number);
+    }
+    return token;
+}
+
+void ProgramBody(Parser *parser);
+
+// const ifj = @import("ifj24.zig");
+void Header(Parser *parser)
+{
+    CheckKeywordType(&parser->line_number, CONST);
+    CheckTokenType(&parser->line_number, IDENTIFIER_TOKEN);
+    CheckTokenType(&parser->line_number, ASSIGNMENT);
+    CheckTokenType(&parser->line_number, AT_TOKEN);
+    CheckTokenType(&parser->line_number, IDENTIFIER_TOKEN);
+    CheckTokenType(&parser->line_number, L_ROUND_BRACKET);
+    CheckTokenType(&parser->line_number, LITERAL_TOKEN);
+    CheckTokenType(&parser->line_number, R_ROUND_BRACKET);
+    CheckTokenType(&parser->line_number, SEMICOLON);
+}
+
+void Expression(Parser *parser)
+{
+    Token *token;
+    int bracket_count = 0;
+    while (1)
+    {
+        token = GetNextToken(&parser->line_number);
+
+        // ; closing the expression
+        if (token->token_type == SEMICOLON)
+        {
+            DestroyToken(token);
+            ungetc(';', stdin);
+            return;
+        }
+
+        // if the expression is not closed
         if (token->token_type == EOF_TOKEN)
         {
             DestroyToken(token);
-            ErrorExit(ERROR_SYNTACTIC, "Expected ';' at line %d", *line_number);
+            ErrorExit(ERROR_SYNTACTIC, "Expected ';' at line %d", parser->line_number);
+        }
+
+        if (token->token_type == L_ROUND_BRACKET)
+            bracket_count++;
+        else if (token->token_type == R_ROUND_BRACKET)
+            bracket_count--;
+
+        // | closing the expression
+        if (token->token_type == VERTICAL_BAR_TOKEN)
+        {
+            DestroyToken(token);
+            ungetc('|', stdin);
+            return;
+        }
+
+        // ) closing the expression
+        if (bracket_count < 0)
+        {
+            DestroyToken(token);
+            ungetc(')', stdin);
+            return;
         }
 
         // TODO: complete expressions, for now just skip
@@ -65,20 +113,21 @@ void Expression(int *line_number)
 }
 
 // checks all parameters
-void Parameters(int *line_number)
+void Parameters(Parser *parser)
 {
     Token *token;
 
+    // loops through all parameters
     while (1)
     {
-        token = GetNextToken(line_number);
+        token = GetNextToken(&parser->line_number);
         if (token->token_type == R_ROUND_BRACKET) // reached ')' so all parameters are checked
             break;
 
         if (token->token_type == EOF_TOKEN) // reached EOF without ')'
         {
             DestroyToken(token);
-            ErrorExit(ERROR_SYNTACTIC, "Didnt you forget ) at line %d ?", *line_number);
+            ErrorExit(ERROR_SYNTACTIC, "Didnt you forget ) at line %d ?", parser->line_number);
         }
 
         // id : data_type
@@ -86,33 +135,29 @@ void Parameters(int *line_number)
         {
             DestroyToken(token);
 
-            CheckTokenType(line_number, COLON_TOKEN);
+            CheckTokenType(&parser->line_number, COLON_TOKEN);
 
-            if ((token = GetNextToken(line_number))->token_type != KEYWORD && (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8))
+            if ((token = GetNextToken(&parser->line_number))->token_type != KEYWORD && (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8))
             {
                 DestroyToken(token);
-                ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", *line_number);
+                ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
             }
             DestroyToken(token);
 
-            // TODO: fix the last char comma problem
-            // param : data_type , )
-            // UPDATE: maybe not needed page 6,8 of the pdf
-
             // checks if there is another parameter
-            if ((token = GetNextToken(line_number))->token_type != COMMA_TOKEN)
+            if ((token = GetNextToken(&parser->line_number))->token_type != COMMA_TOKEN)
             {
                 if (token->token_type == R_ROUND_BRACKET) // no more parameters
                     break;
                 DestroyToken(token);
-                ErrorExit(ERROR_SYNTACTIC, "Expected ',' or ')' at line %d", *line_number);
+                ErrorExit(ERROR_SYNTACTIC, "Expected ',' or ')' at line %d", parser->line_number);
             }
             DestroyToken(token);
         }
         else
         {
             DestroyToken(token);
-            ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", *line_number);
+            ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", parser->line_number);
         }
     }
     DestroyToken(token);
@@ -121,61 +166,97 @@ void Parameters(int *line_number)
 // pub fn id ( seznam_parametrů ) návratový_typ {
 // sekvence_příkazů
 // }
-void Function(int *line_number)
+void Function(Parser *parser)
 {
-    CheckKeywordType(line_number, FN);
-    CheckTokenType(line_number, IDENTIFIER_TOKEN);
-    CheckTokenType(line_number, L_ROUND_BRACKET);
-    Parameters(line_number); // params with )
+    CheckKeywordType(&parser->line_number, FN);
+    CheckTokenType(&parser->line_number, IDENTIFIER_TOKEN);
+    CheckTokenType(&parser->line_number, L_ROUND_BRACKET);
+    Parameters(parser); // params with )
 
     Token *token; // return type
-    if ((token = GetNextToken(line_number))->token_type != KEYWORD || (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8 || token->keyword_type != VOID))
+
+    if ((token = GetNextToken(&parser->line_number))->token_type != KEYWORD || (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8 && token->keyword_type != VOID))
     {
         DestroyToken(token);
-        ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", *line_number);
+        ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
     }
     DestroyToken(token);
 
-    CheckTokenType(line_number, L_CURLY_BRACKET);
+    CheckTokenType(&parser->line_number, L_CURLY_BRACKET);
 
-    ProgramBody(line_number); // function body
+    ProgramBody(parser); // function body
 
-    CheckTokenType(line_number, R_CURLY_BRACKET);
+    CheckTokenType(&parser->line_number, R_CURLY_BRACKET);
 }
 
-// TODO: if(expression)|id|{} else{}
+// if(expression)|id|{} else{}
 // if(expression){}else{}
-void IfElse(int *line_number)
+void IfElse(Parser *parser)
 {
-    CheckTokenType(line_number, L_ROUND_BRACKET);
+    CheckTokenType(&parser->line_number, L_ROUND_BRACKET);
     // expression
-    CheckTokenType(line_number, R_ROUND_BRACKET);
+    Expression(parser);
+    CheckTokenType(&parser->line_number, R_ROUND_BRACKET);
 
-    CheckTokenType(line_number, L_CURLY_BRACKET);
-    ProgramBody(line_number);
-    CheckTokenType(line_number, R_CURLY_BRACKET);
+    Token *token;
+    token = GetNextToken(&parser->line_number);
+    if (token->token_type == VERTICAL_BAR_TOKEN)
+    {
+        DestroyToken(token);
+        Expression(parser);
+        CheckTokenType(&parser->line_number, VERTICAL_BAR_TOKEN);
+    }
+    else if (token->token_type == L_CURLY_BRACKET)
+    {
+        DestroyToken(token);
+    }
+    else
+    {
+        DestroyToken(token);
+        ErrorExit(ERROR_SYNTACTIC, "Expected '|' or '{' at line %d", parser->line_number);
+    }
 
-    CheckKeywordType(line_number, ELSE);
-    CheckTokenType(line_number, L_CURLY_BRACKET);
-    ProgramBody(line_number);
-    CheckTokenType(line_number, R_CURLY_BRACKET);
+    ProgramBody(parser);
+    CheckTokenType(&parser->line_number, R_CURLY_BRACKET);
+
+    CheckKeywordType(&parser->line_number, ELSE);
+    CheckTokenType(&parser->line_number, L_CURLY_BRACKET);
+    ProgramBody(parser);
+    CheckTokenType(&parser->line_number, R_CURLY_BRACKET);
 }
 
-void WhileLoop(int *line_number)
+void WhileLoop(Parser *parser)
 {
-    CheckTokenType(line_number, L_ROUND_BRACKET);
+    CheckTokenType(&parser->line_number, L_ROUND_BRACKET);
     // expression
-    CheckTokenType(line_number, R_ROUND_BRACKET);
+    Expression(parser);
+    CheckTokenType(&parser->line_number, R_ROUND_BRACKET);
 
-    CheckTokenType(line_number, L_CURLY_BRACKET);
-    ProgramBody(line_number);
-    CheckTokenType(line_number, R_CURLY_BRACKET);
+    CheckTokenType(&parser->line_number, L_CURLY_BRACKET);
+    ProgramBody(parser);
+    CheckTokenType(&parser->line_number, R_CURLY_BRACKET);
 }
 
-void ProgramBody(int *line_number)
+// const id = expression;
+void ConstDeclaration(Parser *parser)
 {
     Token *token;
-    while ((token = GetNextToken(line_number))->token_type != EOF_TOKEN)
+    token = CheckAndReturnToken(&parser->line_number, IDENTIFIER_TOKEN);
+    printf("Const declaration: %s\n", token->attribute);
+    // add to symtable
+    VariableSymbol *var = VariableSymbolInit();
+    DestroyToken(token);
+
+    CheckTokenType(&parser->line_number, ASSIGNMENT);
+    // expression
+    Expression(parser);
+    CheckTokenType(&parser->line_number, SEMICOLON);
+}
+
+void ProgramBody(Parser *parser)
+{
+    Token *token;
+    while ((token = GetNextToken(&parser->line_number))->token_type != EOF_TOKEN)
     {
         switch (token->token_type)
         {
@@ -184,18 +265,24 @@ void ProgramBody(int *line_number)
             if (token->keyword_type == PUB)
             {
                 DestroyToken(token);
-                Function(line_number);
+                Function(parser);
             }
             // start of if-else block
             else if (token->keyword_type == IF)
             {
                 DestroyToken(token);
-                IfElse(line_number);
+                IfElse(parser);
             }
+            // start of while loop
             else if (token->keyword_type == WHILE)
             {
                 DestroyToken(token);
-                WhileLoop(line_number);
+                WhileLoop(parser);
+            }
+            else if (token->keyword_type == CONST)
+            {
+                DestroyToken(token);
+                ConstDeclaration(parser);
             }
             else
             {
@@ -217,13 +304,17 @@ void ProgramBody(int *line_number)
     DestroyToken(token);
 }
 
-/*int main()
+int main()
 {
-    int line_number = 1;
-    Header(&line_number);
-    ProgramBody(&line_number);
+    Parser parser;
+    parser.line_number = 1;
+    parser.has_main = false;
+    parser.in_function = false;
+    parser.symtable = InitSymtable(TABLE_COUNT);
+    Header(&parser);
+    ProgramBody(&parser);
     printf("\033[1m\033[32m"
            "SYNTAX OK\n"
            "\033[0m");
     return 0;
-}*/
+}
