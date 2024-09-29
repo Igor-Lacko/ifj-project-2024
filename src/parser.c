@@ -129,7 +129,7 @@ void Function(int *line_number)
     Parameters(line_number); // params with )
 
     Token *token; // return type
-    if ((token = GetNextToken(line_number))->token_type != KEYWORD && (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8 || token->keyword_type != VOID))
+    if ((token = GetNextToken(line_number))->token_type != KEYWORD || (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8 || token->keyword_type != VOID))
     {
         DestroyToken(token);
         ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", *line_number);

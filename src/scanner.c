@@ -110,7 +110,6 @@ void ConsumeNumber(Token *token, int *line_number){
     //the float is saved as a char* since it can contain an exponent
     strcpy((token -> attribute), vector -> value);
     
-
     DestroyVector(vector);
 }
 
@@ -493,6 +492,16 @@ Token *GetNextToken(int *line_number){
             case '"':
                 token -> token_type = LITERAL_TOKEN;
                 ConsumeLiteral(token, line_number);
+                return token;
+
+            /*multiple 0's are an invalid token*/
+            case '0':
+                if(isdigit(next = NextChar()))
+                    ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token '0%c'", *line_number, next);
+
+                ungetc(c, stdin);
+                ConsumeNumber(token, line_number);
+
                 return token;
 
             /*call GetSymbolType to determine next token*/

@@ -159,3 +159,61 @@ Function *GetFunctionSymbol(SymtableListNode *node){
 Variable *GetVariableSymbol(SymtableListNode *node){
     return (Variable *)(node -> symbol);
 }
+
+
+unsigned long GetSymtableHash(char *symbol_name, unsigned long modulo){
+    unsigned int hash = 0; const unsigned char *p;
+    for(p=(const unsigned char*)symbol_name; *p!='\0'; p++){
+        hash = 65599*hash + *p;
+    }
+
+    return hash % modulo;
+}
+
+
+bool IsSymtableEmpty(Symtable *symtable){
+    return !(symtable -> size);
+}
+
+
+Function *FindFunctionSymbol(Symtable *symtable, char *function_name){
+    //index into the table using a hash function on the function name
+    SymtableListNode *symtable_row = symtable -> table[GetSymtableHash(function_name, symtable -> capacity)];
+
+    //we will store/commpare here
+    Function *function_symbol; 
+
+    while(symtable_row != NULL){
+        //check if the node's symbol is a function
+        if(symtable_row -> symbol_type == FUNCTION_SYMBOL){
+            if(!strcmp((function_symbol = GetFunctionSymbol(symtable_row)) -> name, function_name))
+                return function_symbol;
+        }
+
+        symtable_row = symtable_row -> next;
+    }
+    //symbol not found
+    return NULL;
+}
+
+
+
+Variable *FindVariableSymbol(Symtable *symtable, char *variable_name){
+    //index into the table using a hash function on the variable name
+    SymtableListNode *symtable_row = symtable -> table[GetSymtableHash(variable_name, symtable -> capacity)];
+
+    //we will store/commpare here
+    Variable *variable_symbol; 
+
+    while(symtable_row != NULL){
+        //check if the node's symbol is a function
+        if(symtable_row -> symbol_type == VARIABLE_SYMBOL){
+            if(!strcmp((variable_symbol = GetVariableSymbol(symtable_row)) -> name, variable_name))
+                return variable_symbol;
+        }
+
+        symtable_row = symtable_row -> next;
+    }
+    //symbol not found
+    return NULL;
+}

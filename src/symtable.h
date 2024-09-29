@@ -100,9 +100,10 @@ void DestroySymtable(Symtable *symtable);
  * 
  * @param symbol_name name of the symbol, used as an input to the hash function
  * @param modulo size of the symtable, the index into the symtable is H(x) % size
- * @return int index into the symtable
+ * @return unsigned long index into the symtable
  */
-int GetSymtableHash(char *symbol_name, int modulo);
+/*This function is from http://www.cse.yorku.ca/~oz/hash.html -- sdbm variant - also used in my IJC project :)*/
+unsigned long GetSymtableHash(char *symbol_name, unsigned long modulo);
 
 
 //Function symbol constructor
@@ -129,6 +130,13 @@ Variable *GetVariableSymbol(SymtableListNode *node);
 
 //better than if(symtable -> size == 0)
 bool IsSymtableEmpty(Symtable *symtable);
+
+
+//looks if the symbol is in the symtable and returns a pointer to it if yes, else returns NULL
+Function *FindFunctionSymbol(Symtable *symtable, char *function_name);
+
+//the same but for variables
+Variable *FindVariableSymbol(Symtable *symtable, char *variable_name);
 
 
 #endif
