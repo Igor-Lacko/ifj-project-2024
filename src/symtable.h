@@ -6,7 +6,7 @@
 
 #include <stdbool.h>
 
-#define TABLE_COUNT 1009 // first prime over 1000, todo: change this
+#define TABLE_COUNT 5 // first prime over 1000, todo: change this
 
 // symbol type enumeration
 typedef enum
@@ -73,7 +73,7 @@ SymtableListNode *InitNode(SYMBOL_TYPE symbol_type, void *symbol);
 void DestroyNode(SymtableListNode *node);
 
 // appends a node to the end of a symtable list
-void AppendNode(int *symtable_size, SymtableListNode *list, SymtableListNode *node);
+void AppendNode(long unsigned int *symtable_size, SymtableListNode **list, SymtableListNode *node);
 
 // removes a node from the end of the list
 void PopNode(int *symtable_size, SymtableListNode *list);
@@ -125,12 +125,20 @@ VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name);
 
 /**
  * @brief Inserts a variable symbol into the symtable
- * 
+ *
  * @param symtable Pointer to the symtable instance
  * @param variable_symbol Pointer to the symbol to insert
  * @return true If the symbol wasn't in the symtable, the symbol is inserted in this case
  * @return false If the symbol already was in the sytmtable, it's not inserted in this case
  */
 bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol);
+
+/**
+ * @brief Prints the symtable to the stdout
+ *
+ * @param symtable Pointer to the symtable instance
+ * @note This function is for debugging purposes
+ */
+void PrintTable(Symtable *symtable);
 
 #endif

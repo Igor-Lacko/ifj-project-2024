@@ -242,9 +242,22 @@ void ConstDeclaration(Parser *parser)
 {
     Token *token;
     token = CheckAndReturnToken(&parser->line_number, IDENTIFIER_TOKEN);
-    printf("Const declaration: %s\n", token->attribute);
+
     // add to symtable
     VariableSymbol *var = VariableSymbolInit();
+    var->name = strdup(token->attribute);
+    var->is_declared = true;
+    var->type = INT32_TYPE;
+    var->value = NULL;
+    if (!InsertVariableSymbol(parser->symtable, var))
+        ErrorExit(ERROR_SEMANTIC_REDEFINED, "Variable %s already declared", var->name);
+
+    // VariableSymbol *var2 = FindVariableSymbol(parser->symtable, var->name);
+    // if (var2 == NULL)
+    //     ErrorExit(ERROR_SEMANTIC_UNDEFINED, "Variable %s not found", var->name);
+
+    PrintTable(parser->symtable);
+
     DestroyToken(token);
 
     CheckTokenType(&parser->line_number, ASSIGNMENT);
@@ -316,5 +329,6 @@ int main()
     printf("\033[1m\033[32m"
            "SYNTAX OK\n"
            "\033[0m");
+    DestroySymtable(parser.symtable);
     return 0;
 }

@@ -15,6 +15,7 @@ SymtableListNode *InitNode(SYMBOL_TYPE symbol_type, void *symbol)
 
     node->symbol_type = symbol_type;
     node->symbol = symbol;
+    node->next = NULL;
 
     return node;
 }
@@ -36,15 +37,16 @@ void DestroyNode(SymtableListNode *node)
     free(node);
 }
 
-void AppendNode(int *symtable_size, SymtableListNode *list, SymtableListNode *node)
+void AppendNode(long unsigned int *symtable_size, SymtableListNode **list, SymtableListNode *node)
 {
-    SymtableListNode *current_node = list;
+    SymtableListNode *current_node = *list;
 
     // if the list is empty, set the node to the first item
-    if (list == NULL)
+    if (*list == NULL)
     {
+        printf("list is NULL\n");
         ++(*symtable_size);
-        list = node;
+        *list = node;
         return;
     }
 
@@ -89,6 +91,7 @@ void DestroyList(SymtableListNode *list)
 
 Symtable *InitSymtable(size_t size)
 {
+    printf("size is %lu\n", size);
     Symtable *symtable;
     if ((symtable = calloc(1, sizeof(Symtable))) == NULL)
     {
@@ -245,21 +248,49 @@ VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name)
     return NULL;
 }
 
-bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol){
-    if(FindVariableSymbol(symtable, variable_symbol -> name) != NULL) return false;
-
-    SymtableListNode *node = InitNode(FUNCTION_SYMBOL, (void *)(variable_symbol));
-    AppendNode(symtable -> size, symtable -> table[GetSymtableHash(variable_symbol -> name, symtable -> capacity)], node);
+bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol)
+{
+    if (FindVariableSymbol(symtable, variable_symbol->name) != NULL)
+    {
+        return false;
+    }
+    unsigned long hash;
+    SymtableListNode *node = InitNode(VARIABLE_SYMBOL, (void *)(variable_symbol));
+    AppendNode(&symtable->size, &symtable->table[hash = GetSymtableHash(variable_symbol->name, symtable->capacity)], node);
+    printf("type: %d\n", symtable->table[hash]->symbol_type);
 
     return true;
 }
 
-
-bool InsertFunctionSymbol(Symtable *symtable, FunctionSymbol *function_symbol){
-    if(FindVariableSymbol(symtable, function_symbol -> name) != NULL) return false;
+bool InsertFunctionSymbol(Symtable *symtable, FunctionSymbol *function_symbol)
+{
+    if (FindVariableSymbol(symtable, function_symbol->name) != NULL)
+        return false;
 
     SymtableListNode *node = InitNode(VARIABLE_SYMBOL, (void *)(function_symbol));
-    AppendNode(symtable -> size, symtable -> table[GetSymtableHash(function_symbol -> name, symtable -> capacity)], node);
+    AppendNode(&symtable->size, &symtable->table[GetSymtableHash(function_symbol->name, symtable->capacity)], node);
 
     return true;
+}
+
+void PrintTable(Symtable *symtable)
+{
+    printf("Table:\n");
+    for (int i = 0; i < (int)symtable->capacity; i++)
+    {
+        SymtableListNode *current = symtable->table[i];
+
+        while (current != NULL)
+        {
+            if (current->symbol_type == FUNCTION_SYMBOL)
+            {
+                printf("Function: %s\n", ((FunctionSymbol *)current->symbol)->name);
+            }
+            else
+            {
+                printf("Variable: %s\n", ((VariableSymbol *)current->symbol)->name);
+            }
+            current = current->next;
+        }
+    }
 }
