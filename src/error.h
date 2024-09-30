@@ -28,7 +28,7 @@
 
 /**
  * @brief Ends the compiler with the given error code and message
- * 
+ *
  * @param error_code Type of the error/in which part of the compiler the error has ocurred
  * @param message Depending on error_code, the function pre_prints the error type (so if it's internal it prints "Internal compiler error: ") so pass only the rest here
  * @param ... The function accepts variable arguments for printing, like printf/fprintf using vfprintf
