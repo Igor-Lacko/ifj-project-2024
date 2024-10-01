@@ -20,27 +20,27 @@ typedef struct
 /**
  * @brief Checks if the next token matches the expected token type.
  *
- * @param line_number Pointer to the current line number.
+ * @param parser Pointer to the parser structure.
  * @param type The expected token type.
  */
-void CheckTokenType(int *line_number, TOKEN_TYPE type);
+void CheckTokenType(Parser *parser, TOKEN_TYPE type);
 
 /**
  * @brief Checks if the next token matches the expected keyword type.
  *
- * @param line_number Pointer to the current line number.
+ * @param parser Pointer to the parser structure.
  * @param type The expected keyword type.
  */
-void CheckKeywordType(int *line_number, KEYWORD_TYPE type);
+void CheckKeywordType(Parser *parser, KEYWORD_TYPE type);
 
 /**
  * @brief Checks if the next token matches the expected token type and returns the token.
  *
- * @param line_number Pointer to the current line number.
+ * @param parser Pointer to the parser structure.
  * @param type The expected token type.
  * @return Token* The checked token.
  */
-Token *CheckAndReturnToken(int *line_number, TOKEN_TYPE type);
+Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type);
 
 /**
  * @brief Parses the program header.
@@ -60,8 +60,9 @@ void Expression(Parser *parser);
  * @brief Parses all function parameters.
  *
  * @param parser Pointer to the parser structure.
+ * @param function_name Name of the function.
  */
-void Parameters(Parser *parser);
+void Parameters(Parser *parser, char *function_name);
 
 /**
  * @brief Parses a function declaration and body.

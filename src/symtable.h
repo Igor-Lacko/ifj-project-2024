@@ -6,7 +6,7 @@
 
 #include <stdbool.h>
 
-#define TABLE_COUNT 1009 // first prime over 1000, todo: change this
+#define TABLE_COUNT 7 // first prime over 1000, todo: change this
 
 // symbol type enumeration
 typedef enum
@@ -29,7 +29,7 @@ typedef struct
 {
     char *name;
     DATA_TYPE type;
-    bool is_declared;
+    bool is_const;
     void *value;
 } VariableSymbol;
 
@@ -133,7 +133,7 @@ VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name);
  */
 bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol);
 
-//The same but for functions
+// The same but for functions
 bool InsertFunctionSymbol(Symtable *symtable, FunctionSymbol *function_symbol);
 
 /**
