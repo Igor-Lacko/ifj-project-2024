@@ -54,8 +54,7 @@ void Header(Parser *parser)
     CheckKeywordType(&parser->line_number, CONST);
     CheckTokenType(&parser->line_number, IDENTIFIER_TOKEN);
     CheckTokenType(&parser->line_number, ASSIGNMENT);
-    CheckTokenType(&parser->line_number, AT_TOKEN);
-    CheckTokenType(&parser->line_number, IDENTIFIER_TOKEN);
+    CheckTokenType(&parser->line_number, IMPORT_TOKEN);
     CheckTokenType(&parser->line_number, L_ROUND_BRACKET);
     CheckTokenType(&parser->line_number, LITERAL_TOKEN);
     CheckTokenType(&parser->line_number, R_ROUND_BRACKET);

@@ -33,6 +33,9 @@ typedef enum
     // strings
     LITERAL_TOKEN,
 
+    // @import
+    IMPORT_TOKEN,
+
     // operators
     ASSIGNMENT,
     MULTIPLICATION_OPERATOR,
@@ -58,7 +61,6 @@ typedef enum
     COMMA_TOKEN,
     DOT_TOKEN,
     COLON_TOKEN,
-    AT_TOKEN, //@
     EOF_TOKEN,
 
 } TOKEN_TYPE;
@@ -154,9 +156,17 @@ void ConsumeLiteral(Token *token, int *line_number);
  * @brief Handles a identifier/keyword
  *
  * @param token loaded token with attribute: "name" (so int i: attribute would be i), type KEYWORD/IDENTIFIER and if KEYWORD, a non empty keyword type
- * @param int for getting number of current line for error messages
+ * @param line_number for getting number of current line for error messages
  */
 void ConsumeIdentifier(Token *token, int *line_number);
+
+/**
+ * @brief called upon encountering a '@'
+ * 
+ * @param token token to add to
+ * @param line_number for error messages
+ */
+void ConsumeImportToken(Token *token, int *line_number);
 
 /*continues until it reaches the end of the line or EOF, returns the first character after the comment ends
 -Also increments the scanner's line number when it encounters a newline character*/

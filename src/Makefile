@@ -9,7 +9,7 @@ DEBUG_MODULES = scanner-d.o vector-d.o error-d.o parser-d.o symtable-d.o
 TARGETS = ifj24 ifj24debug
 
 #----MAIN IFJ24 EXECUTABLE----$
-main: $(MODULES) $(HEADERS)
+all: $(MODULES) $(HEADERS)
 	$(CC) $(MODULES) -o ifj24
 
 #----EXECUTABLE WITH DEBUG ADDITIONS----#
@@ -29,6 +29,10 @@ run-debug: debug
 
 %-d.o : %.c
 	$(CC) $(CFLAGS) -DIFJ24_DEBUG -c $< -o $@
+
+#----STAGE FOR COMMIT----#
+stage:
+	cd .. && git add .
 
 #----CLEAN----#
 clean:

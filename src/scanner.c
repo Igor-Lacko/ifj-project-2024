@@ -265,6 +265,20 @@ int ConsumeComment(int *line_number){
     return c;
 }
 
+void ConsumeImportToken(Token *token, int *line_number){
+    const char import[8] = "@import"; int c;
+    //compare until we reach the end, or throw an error (@ is an invalid token by itself)
+
+    for(int i = 0; i < 7; i++){
+        if((c = getchar()) != import[i]){
+            DestroyToken(token);
+            ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token '@'", *line_number);
+        }
+    }
+
+    //token is valid
+    token -> token_type = IMPORT_TOKEN;
+}
 
 int ConsumeWhitespace(int *line_number){
     int c;
@@ -473,7 +487,8 @@ Token *GetNextToken(int *line_number){
                 return token;
 
             case '@':
-                token -> token_type = AT_TOKEN;
+                ungetc(c, stdin);
+                ConsumeImportToken(token, line_number);
                 return token;
 
             case ':':
@@ -627,8 +642,8 @@ void PrintToken(Token *token){
             printf("Type: _");
             break;
 
-        case AT_TOKEN:
-            printf("Type: @");
+        case IMPORT_TOKEN:
+            printf("Type: @import");
             break;
 
         case VERTICAL_BAR_TOKEN:
