@@ -32,7 +32,7 @@ run-debug: debug
 
 #----STAGE FOR COMMIT----#
 stage:
-	cd .. && git add .
+	git add . && cd ../ && git add .
 
 #----CLEAN----#
 clean:
