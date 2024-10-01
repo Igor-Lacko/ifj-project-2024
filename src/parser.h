@@ -15,6 +15,7 @@ typedef struct
     Symtable *symtable;
 } Parser;
 
+
 // Function declarations
 
 /**
@@ -98,5 +99,6 @@ void ConstDeclaration(Parser *parser);
  * @param parser Pointer to the parser structure.
  */
 void ProgramBody(Parser *parser);
+
 
 #endif
