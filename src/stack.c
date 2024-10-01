@@ -27,12 +27,14 @@ void SymtableStackRemoveTop(SymtableStack *stack) {
         // free resources
         DestroySymtable(previous_top -> table);
         free(previous_top);
+
+        --(stack -> size);
     }
 }
 
 Symtable *SymtableStackPop(SymtableStack *stack) {
     // look if the stack is not empty
-    if(stack -> size = 0) return NULL;
+    if(stack -> size == 0) return NULL;
 
     // retrieve the top and pop it from the symtable
     Symtable *symtable = SymtableStackTop(stack);
@@ -89,21 +91,30 @@ void ExpressionStackRemoveTop(ExpressionStack *stack) {
     if(stack -> size != 0){
         ExpressionStackNode *previous_top = stack -> top;
         stack -> top = previous_top -> next;
-
+        printf("Removing from stack: "); PrintToken(previous_top -> token);
+        printf("Sizee beforee: %lu ", stack->size);
         // free allocated memory resources
         DestroyToken(previous_top -> token);
         free(previous_top);
+
+        --(stack -> size);
+        printf("Sizee afteer: %lu\n", stack->size);
     }
 }
 
 Token *ExpressionStackPop(ExpressionStack *stack) {
     // look if the stack is not empty
-    if(stack -> size = 0) return NULL;
+    if(stack -> size == 0) return NULL;
 
     // retrieve the top and pop it from the symtable
     Token *token = ExpressionStackTop(stack);
     ExpressionStackNode *previous_top = stack -> top;
     stack -> top = previous_top -> next; // can also be NULL
+    printf("Popping from stack: "); PrintToken(token);
+    printf("Sized before %lu ", stack -> size);
+    --(stack -> size);
+
+    printf("Sized after: %lu\n", stack -> size);
 
     free(previous_top);
 
@@ -115,17 +126,24 @@ void ExpressionStackPush(ExpressionStack *stack, Token *token) {
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
 
+    printf("Adding to stack: ");
+    PrintToken(token);
+
+
      // add data
     node -> next = stack -> top;
     node -> token = token;
 
     // push to the stack and increase size
     stack -> top = node;
+    printf("Size beforef: %lu ", stack -> size);
     ++(stack -> size);
+    printf("Size afterf: %lu\n", stack -> size);
 }
 
 void ExpressionStackDestroy(ExpressionStack *stack) {
     while(stack -> size != 0){
+        PrintToken(stack -> top -> token);
         ExpressionStackRemoveTop(stack);
     }
 

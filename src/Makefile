@@ -17,7 +17,7 @@ debug: $(DEBUG_MODULES) $(HEADERS)
 	$(CC) $(DEBUG_MODULES) -o ifj24debug
 
 #----RUN THE NORMAL/DEBUG EXECUTABLE----#
-run: main
+run: all
 	./ifj24
 
 run-debug: debug

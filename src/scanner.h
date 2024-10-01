@@ -179,6 +179,14 @@ int ConsumeWhitespace(int *line_number);
 -also u8 by ITSELF is a keyword, so a variable can't be u8 but that is checked by ConsumeIdentifier and then IsKeyword*/
 void ConsumeU8Token(Token *token, int *line_number);
 
+/**
+ * @brief Allocates the space for the operator (as a string) and copies it to token -> attribute
+ * 
+ * @param token Token instance
+ * @param operator Operator which is a string
+ */
+void AllocateOperator(Token *token, const char *operator);
+
 // checks if a identifier with a prefix at the start is valid or not (so if it's a keyword)
 bool IsValidPrefix(char *identifier);
 
@@ -189,5 +197,8 @@ bool IsValidPrefix(char *identifier);
  * @return KEYWORD_TYPE NONE if not a keyword, otherwise the which one it is
  */
 KEYWORD_TYPE IsKeyword(char *attribute);
+
+// debug function
+void PrintToken(Token *token);
 
 #endif

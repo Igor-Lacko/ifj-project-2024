@@ -57,14 +57,14 @@ void ProgramBody(Parser *parser);
 // const ifj = @import("ifj24.zig");
 void Header(Parser *parser)
 {
-    CheckKeywordType(&parser->line_number, CONST);
-    CheckTokenType(&parser->line_number, IDENTIFIER_TOKEN);
-    CheckTokenType(&parser->line_number, ASSIGNMENT);
-    CheckTokenType(&parser->line_number, IMPORT_TOKEN);
-    CheckTokenType(&parser->line_number, L_ROUND_BRACKET);
-    CheckTokenType(&parser->line_number, LITERAL_TOKEN);
-    CheckTokenType(&parser->line_number, R_ROUND_BRACKET);
-    CheckTokenType(&parser->line_number, SEMICOLON);
+    CheckKeywordType(parser, CONST);
+    CheckTokenType(parser, IDENTIFIER_TOKEN);
+    CheckTokenType(parser, ASSIGNMENT);
+    CheckTokenType(parser, IMPORT_TOKEN);
+    CheckTokenType(parser, L_ROUND_BRACKET);
+    CheckTokenType(parser, LITERAL_TOKEN);
+    CheckTokenType(parser, R_ROUND_BRACKET);
+    CheckTokenType(parser, SEMICOLON);
 }
 
 void Expression(Parser *parser)
@@ -397,6 +397,8 @@ void ProgramBody(Parser *parser)
     DestroyToken(token);
 }
 
+#ifndef IFJ24_DEBUG // not for debugs
+
 int main()
 {
     Parser parser;
@@ -421,3 +423,5 @@ int main()
     DestroySymtable(parser.symtable);
     return 0;
 }
+
+#endif

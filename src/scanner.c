@@ -355,6 +355,17 @@ KEYWORD_TYPE IsKeyword(char *attribute){
 }
 
 
+void AllocateOperator(Token *token, const char *operator){
+    // TODO: Fix memory leaks (parser not freed... etc,.)
+    if((token -> attribute = malloc((strlen(operator) + 1) * sizeof(char))) == NULL){
+        DestroyToken(token);
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    }
+
+    strcpy(token -> attribute, operator);
+}
+
+
 bool IsValidPrefix(char *identifier){
     return IsKeyword(identifier + 1) == NONE ? false : true;
 }
@@ -377,30 +388,37 @@ Token *GetNextToken(int *line_number){
         switch(c = (isspace(c)) ? getchar() : c){
             /*operator tokens*/
             case '=': //valid tokens are = and also ==
-                if ((c = getchar()) == '=')
+                if ((c = getchar()) == '='){
+                    AllocateOperator(token, "==");
                     token -> token_type = EQUAL_OPERATOR;
+                }
 
                 else{
                     ungetc(c, stdin);
+                    AllocateOperator(token, "=");
                     token -> token_type = ASSIGNMENT;
                 }
 
                 return token;
 
             case '+':
+                AllocateOperator(token, "+");
                 token -> token_type = ADDITION_OPERATOR;
                 return token;
 
-            case '-': 
+            case '-':
+                AllocateOperator(token, "-");
                 token -> token_type = SUBSTRACTION_OPERATOR;
                 return token;
 
             case '*':
+                AllocateOperator(token, "*");
                 token -> token_type = MULTIPLICATION_OPERATOR;
                 return token;
 
             case '/': //can also signal the start of a comment
                 if((next = NextChar()) != '/'){
+                    AllocateOperator(token, "/");
                     token -> token_type = DIVISION_OPERATOR;
                     return token;
                 }
@@ -417,22 +435,27 @@ Token *GetNextToken(int *line_number){
                     ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token !%c", *line_number, next);
                 }
 
+                AllocateOperator(token, "!=");
                 token -> token_type = NOT_EQUAL_OPERATOR;
                 return token;
 
             case '<': //< is a valid token, but so is <=
                 if((next = NextChar()) != '='){
+                    AllocateOperator(token, "<");
                     token -> token_type = LESS_THAN_OPERATOR;
                 }
 
+                AllocateOperator(token, "<=");
                 token -> token_type = LESSER_EQUAL_OPERATOR;
                 return token;
 
             case '>': //analogous to <
                 if((next = NextChar()) != '='){
+                    AllocateOperator(token, ">");
                     token -> token_type = LARGER_THAN_OPERATOR;
                 }
 
+                AllocateOperator(token, ">=");
                 token -> token_type = LARGER_EQUAL_OPERATOR;
                 return token;
 
@@ -550,8 +573,6 @@ Token *GetNextToken(int *line_number){
     }
 }
 
-#ifdef IFJ24_DEBUG
-
 void PrintToken(Token *token){
     switch (token -> token_type){
         case IDENTIFIER_TOKEN:
@@ -607,7 +628,7 @@ void PrintToken(Token *token){
             break;
 
         case LARGER_EQUAL_OPERATOR:
-        printf("Type: >=");
+            printf("Type: >=");
             break;
 
         case L_ROUND_BRACKET:
@@ -671,19 +692,6 @@ void PrintToken(Token *token){
         
         
     }
+        printf(" ");
 }
 
-int main(){
-    Token *token; int cnt = 0; int line_number = 1;
-    while((token = GetNextToken(&line_number)) -> token_type != EOF_TOKEN){
-        cnt ++; if(cnt >= 100) break;
-        printf("Token on line %d. Printing token...\n", line_number);
-        PrintToken(token);
-        printf("\n\n\n\n");
-    DestroyToken(token); 
-    }
-
-    DestroyToken(token);
-}
-
-#endif
