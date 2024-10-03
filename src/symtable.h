@@ -21,6 +21,7 @@ typedef enum
     U8_ARRAY_TYPE,
     INT32_TYPE,
     DOUBLE64_TYPE,
+    BOOLEAN,
     VOID_TYPE
 } DATA_TYPE;
 

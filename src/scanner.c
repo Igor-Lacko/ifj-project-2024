@@ -355,7 +355,7 @@ KEYWORD_TYPE IsKeyword(char *attribute){
 }
 
 
-void AllocateOperator(Token *token, const char *operator){
+void AllocateAttribute(Token *token, const char *operator){
     // TODO: Fix memory leaks (parser not freed... etc,.)
     if((token -> attribute = malloc((strlen(operator) + 1) * sizeof(char))) == NULL){
         DestroyToken(token);
@@ -389,36 +389,36 @@ Token *GetNextToken(int *line_number){
             /*operator tokens*/
             case '=': //valid tokens are = and also ==
                 if ((c = getchar()) == '='){
-                    AllocateOperator(token, "==");
+                    AllocateAttribute(token, "==");
                     token -> token_type = EQUAL_OPERATOR;
                 }
 
                 else{
                     ungetc(c, stdin);
-                    AllocateOperator(token, "=");
+                    AllocateAttribute(token, "=");
                     token -> token_type = ASSIGNMENT;
                 }
 
                 return token;
 
             case '+':
-                AllocateOperator(token, "+");
+                AllocateAttribute(token, "+");
                 token -> token_type = ADDITION_OPERATOR;
                 return token;
 
             case '-':
-                AllocateOperator(token, "-");
+                AllocateAttribute(token, "-");
                 token -> token_type = SUBSTRACTION_OPERATOR;
                 return token;
 
             case '*':
-                AllocateOperator(token, "*");
+                AllocateAttribute(token, "*");
                 token -> token_type = MULTIPLICATION_OPERATOR;
                 return token;
 
             case '/': //can also signal the start of a comment
                 if((next = NextChar()) != '/'){
-                    AllocateOperator(token, "/");
+                    AllocateAttribute(token, "/");
                     token -> token_type = DIVISION_OPERATOR;
                     return token;
                 }
@@ -435,36 +435,38 @@ Token *GetNextToken(int *line_number){
                     ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token !%c", *line_number, next);
                 }
 
-                AllocateOperator(token, "!=");
+                AllocateAttribute(token, "!=");
                 token -> token_type = NOT_EQUAL_OPERATOR;
                 return token;
 
             case '<': //< is a valid token, but so is <=
                 if((next = NextChar()) != '='){
-                    AllocateOperator(token, "<");
+                    AllocateAttribute(token, "<");
                     token -> token_type = LESS_THAN_OPERATOR;
                 }
 
-                AllocateOperator(token, "<=");
+                AllocateAttribute(token, "<=");
                 token -> token_type = LESSER_EQUAL_OPERATOR;
                 return token;
 
             case '>': //analogous to <
                 if((next = NextChar()) != '='){
-                    AllocateOperator(token, ">");
+                    AllocateAttribute(token, ">");
                     token -> token_type = LARGER_THAN_OPERATOR;
                 }
 
-                AllocateOperator(token, ">=");
+                AllocateAttribute(token, ">=");
                 token -> token_type = LARGER_EQUAL_OPERATOR;
                 return token;
 
             /*bracket tokens and array symbol*/
             case '(':
+                AllocateAttribute(token, "(");
                 token -> token_type = L_ROUND_BRACKET;
                 return token;
 
             case ')':
+                AllocateAttribute(token, ")");
                 token -> token_type = R_ROUND_BRACKET;
                 return token;
 
@@ -501,6 +503,7 @@ Token *GetNextToken(int *line_number){
                 return token;
 
             case ';':
+                AllocateAttribute(token, ";");
                 token -> token_type = SEMICOLON;
                 return token;
 

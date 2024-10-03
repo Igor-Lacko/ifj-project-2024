@@ -23,7 +23,7 @@ void AppendChar(Vector *vector, char c)
     // check if length + 1 > capacity, if yes allocate more memory
     if (vector->length + 1 > vector->max_length)
     {
-        if ((vector->value = realloc(vector->value, ALLOC_CHUNK(vector -> length))) == NULL)
+        if ((vector->value = realloc(vector->value, sizeof(char) * ALLOC_CHUNK(vector -> length))) == NULL)
         {
             ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
         }
@@ -31,5 +31,5 @@ void AppendChar(Vector *vector, char c)
     }
 
     // append new character
-    (vector->value)[vector->length ++] = c;;
+    (vector->value)[vector->length ++] = c;
 }

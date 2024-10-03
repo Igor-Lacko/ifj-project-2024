@@ -6,6 +6,9 @@ HEADERS = scanner.h vector.h error.h parser.h symtable.h stack.h expression_pars
 MODULES = scanner.o vector.o error.o parser.o symtable.o stack.o expression_parser.o
 DEBUG_MODULES = scanner-d.o vector-d.o error-d.o parser-d.o symtable-d.o stack-d.o expression_parser-d.o
 
+#----CURRENT DEBUG FILE----#
+DEBUG_FILE = ../test_files/expressions.ifj24
+
 TARGETS = ifj24 ifj24debug
 
 #----MAIN IFJ24 EXECUTABLE----$
@@ -21,14 +24,14 @@ run: all
 	./ifj24
 
 run-debug: debug
-	./ifj24debug < ../test_files/test.ifj24 && ./ifj24debug < ../test_files/exponent.ifj24 && ./ifj24debug < ../test_files/u8.ifj24
+	./ifj24debug < $(DEBUG_FILE)
 
 #----RULES----#
 %.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %-d.o : %.c
-	$(CC) $(CFLAGS) -DIFJ24_DEBUG -c $< -o $@
+	$(CC) $(CFLAGS) -g -DIFJ24_DEBUG -c $< -o $@
 
 #----STAGE FOR COMMIT----#
 stage:

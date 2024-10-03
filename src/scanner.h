@@ -6,14 +6,6 @@
 
 #define KEYWORD_COUNT 13
 
-// enum for scanner FSM states
-typedef enum
-{
-    IDENTIIFIER,
-    LITERAL,
-    READY
-} SCANNER_STATE;
-
 // enum for token types
 typedef enum
 {
@@ -185,7 +177,7 @@ void ConsumeU8Token(Token *token, int *line_number);
  * @param token Token instance
  * @param operator Operator which is a string
  */
-void AllocateOperator(Token *token, const char *operator);
+void AllocateAttribute(Token *token, const char *operator);
 
 // checks if a identifier with a prefix at the start is valid or not (so if it's a keyword)
 bool IsValidPrefix(char *identifier);
