@@ -99,7 +99,7 @@ int ComparePriority(TOKEN_TYPE operator_1, TOKEN_TYPE operator_2) {
 
 bool IsInSymtable(Token *token, Symtable *symtable, Parser parser) {
     if(FindVariableSymbol(symtable, token -> attribute) == NULL){
-        fprintf(stderr, "Error in semantic analysis: Line %d: Undefined variable %s\n", parser.line_number, token -> attribute);
+        fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable %s\n"RESET, parser.line_number, token -> attribute);
         DestroySymtable(symtable); // we can do that already here, better than later
         return false;
     }
@@ -112,7 +112,6 @@ int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *
     int value_2 = strtol(operand_2 -> attribute, NULL, 10);
 
     // now we can compute the values
-    int result;
     switch(operator){
         case ADDITION_OPERATOR:
             return value_1 + value_2;
@@ -141,7 +140,6 @@ double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, 
     double value_2 = strtod(operand_2 -> attribute, NULL);
 
     // now we can compute the values
-    double result;
     switch(operator){
         case ADDITION_OPERATOR:
             return value_1 + value_2;
@@ -189,7 +187,6 @@ TokenVector *InfixToPostfix(Parser *parser) {
             // operand tokens
             case(INTEGER_32):       case(IDENTIFIER_TOKEN):     case(DOUBLE_64):
                 AppendToken(postfix, token);
-
                 break;
 
 
@@ -207,7 +204,6 @@ TokenVector *InfixToPostfix(Parser *parser) {
             case(LARGER_THAN_OPERATOR):         case(LARGER_EQUAL_OPERATOR):
 
                 while(true){
-
                     if(ExpressionStackIsEmpty(stack) ||
                     ExpressionStackTop(stack) -> token_type == L_ROUND_BRACKET ||
                     (priority_difference = ComparePriority(token -> token_type, ExpressionStackTop(stack) -> token_type)) == 1){
@@ -217,12 +213,18 @@ TokenVector *InfixToPostfix(Parser *parser) {
 
                     else if(priority_difference == 0 || priority_difference == 1 || !ExpressionStackIsEmpty(stack)){
                         // pop the operators with higher/equal priority from the stack to the end of the postfix string
-                        while(priority_difference <= 0 && !ExpressionStackIsEmpty(stack) && ExpressionStackTop(stack) -> token_type != L_ROUND_BRACKET){
-                            Token *top = ExpressionStackPop(stack);
+                        //while((priority_difference = ComparePriority(token -> token_type, ExpressionStackTop(stack) -> token_type)) <= 0 && !ExpressionStackIsEmpty(stack) && ExpressionStackTop(stack) -> token_type != L_ROUND_BRACKET){
+                        while(true){
+                            if(!ExpressionStackIsEmpty(stack)){
+                                if(ExpressionStackTop(stack) -> token_type != L_ROUND_BRACKET && (priority_difference = ComparePriority(token -> token_type, ExpressionStackTop(stack) -> token_type))){
+                                    Token *top = ExpressionStackPop(stack);
+                                    AppendToken(postfix, top);
+                                }
 
-                            //check 
-                            // copy all characters from the top token to the vector
-                            AppendToken(postfix, top);
+                                else break;
+                            }
+
+                            else break;
                         }
 
                     }
@@ -242,30 +244,35 @@ TokenVector *InfixToPostfix(Parser *parser) {
 
                 // right bracket
                 case(R_ROUND_BRACKET):
-                    do{ // pop the characters from the stack until we encounter a left bracket
-                        // expression over case
-                        if(--bracket_count < 0){
-                            DestroyToken(token);
-                            ExpressionStackDestroy(stack);
-                            ungetc(')', stdin);
-                            return postfix;
-                        }
+                    // expression over case
+                    if(--bracket_count < 0){
+                        DestroyToken(token);
+                        ExpressionStackDestroy(stack);
+                        ungetc(')', stdin);
+                        return postfix;
+                    }
 
+                    // pop the characters from the stack until we encounter a left bracket
+                    Token *top = ExpressionStackPop(stack);
+                    while(top -> token_type != L_ROUND_BRACKET) {
                         // invalid end of expression
-                        if(token -> token_type == EOF_TOKEN || ExpressionStackIsEmpty(stack)){
+                        if(ExpressionStackIsEmpty(stack)){
                             DestroyToken(token);
+                            DestroyToken(top);
                             DestroyTokenVector(postfix);
                             ExpressionStackDestroy(stack);
                             ErrorExit(ERROR_SYNTACTIC, "Line %d: Expression not ended correctly", line_start);
                         }
 
-                        Token *top = ExpressionStackPop(stack);
 
                         // append the token to the vector
                         AppendToken(postfix, top);
-                    } while(token -> token_type != L_ROUND_BRACKET);
+                        top = ExpressionStackPop(stack);
 
-                    ExpressionStackRemoveTop(stack); // remove the right bracket from the stack
+                    }
+
+                    DestroyToken(token);
+                    DestroyToken(top);
                     break;
 
                 default:
@@ -276,59 +283,84 @@ TokenVector *InfixToPostfix(Parser *parser) {
         }
     }
 
-    AppendToken(postfix, token);
-    ungetc(';', stdin);
-    DestroyToken(token);
 
     while(!ExpressionStackIsEmpty(stack)){
         Token *top = ExpressionStackPop(stack);
         AppendToken(postfix, top); 
     }
 
+    AppendToken(postfix, token);
+    ungetc(';', stdin);
+
     ExpressionStackDestroy(stack);
     return postfix;
 }
 
-ExpressionReturn EvaluatePosfixExpression(TokenVector *postfix, Symtable *symtable, Parser parser) {
+ExpressionReturn *InitExpressionReturn(void) {
+    ExpressionReturn *retvalue;
+    if((retvalue = calloc(1, sizeof(ExpressionReturn))) == NULL) {
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    }
+
+    return retvalue;
+}
+
+void DestroyExpressionReturn(ExpressionReturn *return_value) {
+    if(return_value -> value != NULL) free(return_value -> value);
+    free(return_value);
+}
+
+bool IsTokenInString(TokenVector *postfix, Token *token) {
+    for(int i = 0; i < postfix -> length; i++){
+        if(token == postfix -> token_string[i]) return true;
+    }
+
+    return false;
+}
+
+ExpressionReturn *EvaluatePosfixExpression(TokenVector *postfix, Symtable *symtable, Parser parser) {
     // later return value
-    ExpressionReturn return_value = {.type = INT32_TYPE, .value = NULL};
+    ExpressionReturn *return_value = InitExpressionReturn();
 
     // expression type flag and variable symbols for checking if tokens are in symtable, also a stack which we will need
     bool float_expression = false;
-    VariableSymbol *var1; VariableSymbol *var2;
     ExpressionStack *stack = ExpressionStackInit();
+
+    // operand and result tokens
+    Token *operand_1 = NULL, *operand_2 = NULL, *result = NULL;
 
     // loop through the string from left to right
     for(int i = 0; i < postfix -> length; i++){
         Token *current_token = postfix -> token_string[i]; // access the current token
 
         switch(current_token -> token_type){
+            case INTEGER_32: case DOUBLE_64:
+                ExpressionStackPush(stack, current_token);
+                // check if we don't need to update the boolean/floating flags
+                if(current_token -> token_type == DOUBLE_64) float_expression = true;
+                break;
+
             case IDENTIFIER_TOKEN: // put on top of stack
                 // check if the token is in the symtable
-                if(var1 = FindVariableSymbol(symtable, current_token -> attribute) == NULL){
-                    // error message
-                    fprintf(stderr, "Line %d: Undefined variable %s\n", parser.line_number, current_token -> attribute);
-
+                if(!IsInSymtable(current_token, symtable, parser)){
                     // free allocated resources
                     ExpressionStackDestroy(stack);
-                    DestroySymtable(symtable);
                     DestroyTokenVector(postfix);
-
                     exit(ERROR_SEMANTIC_UNDEFINED);
                 }
 
                 ExpressionStackPush(stack, current_token);
 
                 // check if we don't need to update the boolean/floating flags
-                if(var1 -> type == DOUBLE64_TYPE) float_expression = true;
+                if(current_token -> token_type == DOUBLE_64) float_expression = true;
                 break;
 
             // arithmetic operators, push out 2 tokens from the stack and evaluate the result
             case MULTIPLICATION_OPERATOR: case DIVISION_OPERATOR:
             case ADDITION_OPERATOR: case SUBSTRACTION_OPERATOR:
                 // pop the operands from the stack
-                Token *operand_1 = ExpressionStackPop(stack);
-                Token *operand_2 = ExpressionStackPop(stack);
+                operand_1 = ExpressionStackPop(stack);
+                operand_2 = ExpressionStackPop(stack);
 
                 // if the operands are identifiers, we need to check for them in the symtable
                 if(operand_1 -> token_type == IDENTIFIER_TOKEN){
@@ -339,7 +371,7 @@ ExpressionReturn EvaluatePosfixExpression(TokenVector *postfix, Symtable *symtab
                     }
                 }
 
-                else if(operand_2 -> token_type == IDENTIFIER_TOKEN){
+                if(operand_2 -> token_type == IDENTIFIER_TOKEN){
                     // have to do it separately, otherwise i wouldn't know which one is NULL :(
                     if(!IsInSymtable(operand_2, symtable, parser)){
                         ExpressionStackDestroy(stack);
@@ -349,27 +381,37 @@ ExpressionReturn EvaluatePosfixExpression(TokenVector *postfix, Symtable *symtab
                 }
 
                 // update the type flag if it is needed
-                if(var1 -> type == DOUBLE64_TYPE || var2 -> type == DOUBLE64_TYPE) float_expression = true;
+                if(operand_1 -> token_type == DOUBLE_64 || operand_2 -> token_type == DOUBLE_64) float_expression = true;
 
                 // compute the result
                 bool zero_division = false; // help flag
-                Token *result_token; // token to store the result
 
                 if(!float_expression){ // int result
                     int res = GetIntResult(operand_1, operand_2, current_token -> token_type, &zero_division);
 
                     // check for errors
                     if(zero_division){
-                        fprintf(stderr, "Error in semantic analysis: Line %d: Division by zero\n", parser.line_number);
+                        fprintf(stderr, RED"Error in semantic analysis: Line %d: Division by zero\n"RESET, parser.line_number);
                         DestroySymtable(symtable);
                         ExpressionStackDestroy(stack);
                         DestroyTokenVector(postfix);
                         exit(ERROR_SEMANTIC_UNDEFINED); // TODO: check if correct exit code
                     }
 
-                    result_token = InitToken();
+                    Token *result_token = InitToken();
+                    result_token -> token_type = INTEGER_32;
+                    // get the string length of the result
+                    if((result_token -> attribute = calloc(1, snprintf(NULL, 0, "%d", res) + 1)) == NULL){
+                        DestroyToken(result_token);
+                        DestroySymtable(symtable);
+                        ExpressionStackDestroy(stack);
+                        DestroyTokenVector(postfix);
+                        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+                    }
+
                     // convert the result back to a string
                     sprintf(result_token -> attribute, "%d", res);
+                    ExpressionStackPush(stack, result_token);
                 }
 
                 else{
@@ -377,27 +419,69 @@ ExpressionReturn EvaluatePosfixExpression(TokenVector *postfix, Symtable *symtab
 
                     // check for errors
                     if(zero_division){
-                        fprintf(stderr, "Error in semantic analysis: Line %d: Division by zero\n", parser.line_number);
+                        fprintf(stderr, RED"Error in semantic analysis: Line %d: Division by zero\n"RESET, parser.line_number);
                         DestroySymtable(symtable);
                         ExpressionStackDestroy(stack);
                         DestroyTokenVector(postfix);
                         exit(ERROR_SEMANTIC_UNDEFINED); // TODO: check if correct exit code
                     }
 
-                    result_token = InitToken();
+                    Token *result_token = InitToken();
+                    result_token -> token_type = DOUBLE_64;
+
+                    // string length
+                    if((result_token -> attribute = calloc(1, snprintf(NULL, 0, "%lf", res) + 1)) == NULL){
+                        DestroyToken(result_token);
+                        DestroySymtable(symtable);
+                        ExpressionStackDestroy(stack);
+                        DestroyTokenVector(postfix);
+                        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+                    }
                     // convert the result back to a string
                     sprintf(result_token -> attribute, "%lf", res);
+                    ExpressionStackPush(stack, result_token);
                 }
 
-                ExpressionStackPush(stack, result_token);
+                if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
+                if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
                 break;
 
             case SEMICOLON: // end condition
-                Token *result = ExpressionStackPop(stack);
+                result = ExpressionStackPop(stack);
                 ExpressionStackDestroy(stack);
-                // TODO: Finish this
+                DestroyTokenVector(postfix);
+
+                if(float_expression) {
+                    double res_value = strtod(result -> attribute, NULL);
+                    if((return_value -> value = malloc(sizeof(double))) == NULL) {
+                        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+                    }
+
+                    return_value -> type = DOUBLE64_TYPE;
+                    *(double *)(return_value -> value) = res_value;
+                }
+
+                else {
+                    int res_value = strtol(result -> attribute, NULL, 10);
+                    if((return_value -> value = malloc(sizeof(int))) == NULL) {
+                        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+                    }
+
+                    return_value -> type = INT32_TYPE;
+                    *(int *)(return_value -> value) = res_value;
+                }
+
+                DestroyToken(result);
+                return return_value;
+
+            default:
+                printf("default aaayy\n\n");
+                return return_value;
+
         }
     }
+
+    return return_value;
 }
 
 #ifdef IFJ24_DEBUG
@@ -407,12 +491,21 @@ ExpressionReturn EvaluatePosfixExpression(TokenVector *postfix, Symtable *symtab
 int main(void){
     Parser parser = {.has_main = false, .in_function = false, .line_number = 1, .symtable = NULL};
     TokenVector *postfix = InfixToPostfix(&parser);
-    printf("postfix value: ");
-    for(int i = 0; i < postfix -> length; i++){
-        printf("%s",postfix -> token_string[i] -> attribute);
-    }
+    Symtable *table = InitSymtable(109);
     printf("\n");
-    DestroyTokenVector(postfix);
+    ExpressionReturn *return_value = EvaluatePosfixExpression(postfix, table, parser);
+    switch(return_value -> type){
+        case INT32_TYPE:
+            printf("%d\n", *(int *)(return_value -> value));
+            break;
+        case DOUBLE64_TYPE:
+            printf("%lf\n", *(double *)(return_value -> value));
+            break;
+        default:
+            printf("dfsahudhusa");
+    }
+    DestroySymtable(table);
+    DestroyExpressionReturn(return_value);
 }
 
 #endif

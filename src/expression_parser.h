@@ -56,6 +56,22 @@ int ComparePriority(TOKEN_TYPE operator_1, TOKEN_TYPE operator_2);
  */
 TokenVector *InfixToPostfix(Parser *parser);
 
+// Expression return structure constructor
+ExpressionReturn *InitExpressionReturn(void);
+
+// Expression return structure destructor
+void DestroyExpressionReturn(ExpressionReturn *return_value);
+
+/**
+ * @brief Used when freeing operand tokens in the EvaluatePostfixExpression function. Checks if the token can be freed
+ * 
+ * @param postfix The postfix string of tokens
+ * @param token The token to search for
+ * @return true If the token is included in the postfix vector
+ * @return false If the token is not included in the postfix vector
+ */
+bool IsTokenInString(TokenVector *postfix, Token *token);
+
 /**
  * @brief Evaluates a postfix expression and it's value
  * 
@@ -64,7 +80,7 @@ TokenVector *InfixToPostfix(Parser *parser);
  * @param parser For line numbers, etc. 
  * @return Token* Token with an initialized value and type
  */
-ExpressionReturn EvaluatePosfixExpression(TokenVector *postfix, Symtable *symtable, Parser parser);
+ExpressionReturn *EvaluatePosfixExpression(TokenVector *postfix, Symtable *symtable, Parser parser);
 
 /**
  * @brief Returns an int expression result from an expression between 2 tokens

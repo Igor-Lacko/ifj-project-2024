@@ -56,6 +56,8 @@ void ConsumeNumber(Token *token, int *line_number){
     //so 3e-2.14 would be token 3e-2, . would be another token and 14 would also be a separate token
     bool has_exponent = false, has_floating_point = false;
 
+    token -> token_type = INTEGER_32;
+
     //TODO: zeroes at the start of the part of a number that is whole are invalid
     while(isdigit((c = getchar())) || c == '.' || tolower(c) == 'e'){ //number can be int/double (double has a '.')
         if(c == '.'){ //check if we already have a floating point value (in case of doubles)
@@ -109,7 +111,7 @@ void ConsumeNumber(Token *token, int *line_number){
 
     //the float is saved as a char* since it can contain an exponent
     strcpy((token -> attribute), vector -> value);
-    
+
     DestroyVector(vector);
 }
 
