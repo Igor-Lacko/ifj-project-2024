@@ -6,6 +6,8 @@
 #include "stack.h" // expression stack for infix-to-postfix
 #include "parser.h" // for keeping track of line numbers mostly
 
+#define EPSILON 1e-7 // rounding error with float results, used to check for division by zero
+
 
 typedef struct { // simple precedence table struct
     TOKEN_TYPE PRIORITY_HIGHEST[2]; // * and /

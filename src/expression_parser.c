@@ -7,6 +7,7 @@
 #include "stack.h"
 #include "parser.h"
 #include "string.h"
+#include "math.h"
 
 PrecedenceTable InitPrecedenceTable(void) {
     PrecedenceTable table;
@@ -103,15 +104,19 @@ int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtab
     int value_1, value_2;
 
     if(operand_1 -> token_type == IDENTIFIER_TOKEN){
-        // we assume that we already know that the value_1 name was found in the symbol table
-        value_1 = *(int *)(FindVariableSymbol(symtable, operand_1 -> attribute) -> value);
+        // check if we don't have to convert it
+        VariableSymbol *symbol_1 = FindVariableSymbol(symtable, operand_1 -> attribute);
+        if(symbol_1 -> type == DOUBLE64_TYPE) value_1 = (int)*(double *)(symbol_1 -> value);
+        else value_1 = *(int *)(symbol_1 -> value);
     }
 
     else value_1 = strtol(operand_1 -> attribute, NULL, 10);
 
     // same but for value 2
     if(operand_2 -> token_type == IDENTIFIER_TOKEN){
-        value_2 = *(int *)(FindVariableSymbol(symtable, operand_2 -> attribute) -> value);
+        VariableSymbol *symbol_2 = FindVariableSymbol(symtable, operand_2 -> attribute);
+        if(symbol_2 -> type == DOUBLE64_TYPE) value_2 = (int)*(double *)(symbol_2 -> value);
+        else value_2 = *(int *)(symbol_2 -> value);
     }
 
     else value_2 = strtol(operand_2 -> attribute, NULL, 10);
@@ -128,7 +133,7 @@ int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtab
             return value_1 * value_2;
 
         case DIVISION_OPERATOR:
-            if(value_1 == 0){ // division by zero
+            if(value_1 == 0.0){ // division by zero
                 *zero_division = true;
                 return -1;
             }
@@ -144,17 +149,24 @@ double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, 
     // variables to store the results
     double value_1, value_2;
 
+    printf("first operand: %s, second: %s\n", operand_1 -> attribute, operand_2 -> attribute);
+
     if(operand_1 -> token_type == IDENTIFIER_TOKEN){
-        value_1 = *(double *)(FindVariableSymbol(symtable, operand_1 -> attribute) -> value);
+        // check if we don't have to convert it
+        VariableSymbol *symbol_1 = FindVariableSymbol(symtable, operand_1 -> attribute);
+        if(symbol_1 -> type == INT32_TYPE) value_1 = (double)*(int *)(symbol_1 -> value);
+        else value_1 = *(double *)(symbol_1 -> value);
     }
 
     else value_1 = strtod(operand_1 -> attribute, NULL);
 
     if(operand_2 -> token_type == IDENTIFIER_TOKEN){
-        value_2 = *(double *)(FindVariableSymbol(symtable, operand_1 -> attribute) -> value);
+        VariableSymbol *symbol_2 = FindVariableSymbol(symtable, operand_2 -> attribute);
+        if(symbol_2 -> type == INT32_TYPE) value_2 = (double)*(int *)(symbol_2 -> value);
+        else value_2 = *(double *)(symbol_2 -> value);
     }
 
-    else value_2 = strtod(operand_1 -> attribute, NULL);
+    else value_2 = strtod(operand_2 -> attribute, NULL);
 
     // now we can compute the values
     switch(operator){
@@ -168,7 +180,8 @@ double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, 
             return value_1 * value_2;
 
         case DIVISION_OPERATOR:
-            if(value_1 == 0){ // division by zero
+            printf("dividing by %lf\n", value_1);
+            if(fabs(value_1) < EPSILON){ // division by zero
                 *zero_division = true;
                 return -1.0;
             }
