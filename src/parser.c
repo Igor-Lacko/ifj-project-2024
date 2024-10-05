@@ -280,16 +280,77 @@ void IfElse(Parser *parser)
 {
     CheckTokenType(parser, L_ROUND_BRACKET);
     // expression
-    Expression(parser);
+    TokenVector *postfix = InfixToPostfix(parser);
+    ExpressionReturn *return_value = EvaluatePostfixExpression(postfix, *parser);
     CheckTokenType(parser, R_ROUND_BRACKET);
+
+    bool if_block = true; // flag to indicate whether to do the if else block
+
+    // null value or false boolean expression cause the else block to be executed
+    if(return_value -> type == NULL_DATA_TYPE) if_block = false;
+    if(return_value -> type == BOOLEAN && *(bool *)(return_value -> value) == false) if_block = false;
+
 
     Token *token;
     token = GetNextToken(&parser->line_number);
-    if (token->token_type == VERTICAL_BAR_TOKEN)
+    if (token->token_type == VERTICAL_BAR_TOKEN) // null-if block , the value can't be boolean
     {
+
         DestroyToken(token);
-        Expression(parser);
+
+        if(return_value -> type == BOOLEAN){ // invalid expression type, can't assign to variable
+            DestroyToken(token);
+            DestroySymtable(parser -> symtable);
+            DestroyExpressionReturn(return_value);
+            ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Invalid expression type 'boolean' in the If-Else |ID| block");
+        }
+
+        VariableSymbol *symbol; // should not be there
+        Token *id = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
+        if((symbol = FindVariableSymbol(parser -> symtable, id -> attribute)) == NULL) { // redefinition of variable
+            DestroyToken(token);
+            DestroyToken(id);
+            DestroySymtable(parser -> symtable);
+            DestroyExpressionReturn(return_value);
+            ErrorExit(ERROR_SEMANTIC_REDEFINED, "Line %d: Redefinition of variable");
+        }
+
+        // create a new symbol
+        symbol = VariableSymbolInit();
+        symbol -> name = id -> attribute;
+        symbol -> type = return_value -> type;
+        symbol -> nullable = false;
+        symbol -> is_const = false;
+        switch(symbol -> type) { //add value depending on the type
+            case INT32_TYPE:
+                symbol -> value = (int *)(return_value -> value);
+                break;
+
+            case DOUBLE64_TYPE:
+                symbol -> value = (double *)(return_value -> value);
+                break;
+
+            case U8_ARRAY_TYPE:
+                symbol -> value = (char **)(return_value -> value);
+                break;
+
+            default:
+                //THIS SHOULD NEVER HAPPEN!
+                ErrorExit(ERROR_INTERNAL, "Invalid switch case!!!");
+        }
+
+        InsertVariableSymbol(parser->symtable, symbol);
         CheckTokenType(parser, VERTICAL_BAR_TOKEN);
+
+        if(if_block){
+            ProgramBody(parser);
+            CheckTokenType(parser, R_CURLY_BRACKET);
+        }
+
+        else{
+            //code that skips if block
+            ProgramBody(parser);
+        }
     }
     else if (token->token_type == L_CURLY_BRACKET)
     {
@@ -302,12 +363,12 @@ void IfElse(Parser *parser)
         ErrorExit(ERROR_SYNTACTIC, "Expected '|' or '{' at line %d", parser->line_number);
     }
 
-    ProgramBody(parser);
+    if(if_block) ProgramBody(parser);
     CheckTokenType(parser, R_CURLY_BRACKET);
-
-    CheckKeywordType(parser, ELSE);
+    CheckKeywordType(parser, ELSE); 
     CheckTokenType(parser, L_CURLY_BRACKET);
-    ProgramBody(parser);
+    // code that skips else block
+    if(!if_block) ProgramBody(parser);
     CheckTokenType(parser, R_CURLY_BRACKET);
 }
 
