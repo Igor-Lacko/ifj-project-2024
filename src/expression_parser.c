@@ -99,9 +99,15 @@ int ComparePriority(TOKEN_TYPE operator_1, TOKEN_TYPE operator_2) {
 }
 
 
-int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division) {
+int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division, bool *type_incompatibility) {
     // declare variables to store the values later on
     int value_1, value_2;
+
+    // check for type compatibility
+    if(AreTypesIncompatible(operand_1, operand_2, symtable)){
+        *type_incompatibility = true;
+        return 0.0;
+    }
 
     if(operand_1 -> token_type == IDENTIFIER_TOKEN){
         // check if we don't have to convert it
@@ -146,9 +152,15 @@ int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtab
     return 0;
 }
 
-double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division) {
+double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division, bool *type_incompatibility) {
     // variables to store the results
     double value_1, value_2;
+
+    // check for type compatibility
+    if(AreTypesIncompatible(operand_1, operand_2, symtable)){
+        *type_incompatibility = true;
+        return 0.0;
+    }
 
     if(operand_1 -> token_type == IDENTIFIER_TOKEN){
         // check if we don't have to convert it
@@ -183,6 +195,7 @@ double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, 
                 *zero_division = true;
                 return -1.0;
             }
+
             return value_2 / value_1;
 
         default:
@@ -553,10 +566,10 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                 if(operand_1 -> token_type == DOUBLE_64 || operand_2 -> token_type == DOUBLE_64) float_expression = true;
 
                 // compute the result
-                bool zero_division = false; // help flag
+                bool zero_division = false, type_incompatiblity = false; // help flags
 
                 if(!float_expression){ // int result
-                    int res = GetIntResult(operand_1, operand_2, current_token -> token_type, symtable, &zero_division);
+                    int res = GetIntResult(operand_1, operand_2, current_token -> token_type, symtable, &zero_division, &type_incompatiblity);
 
                     // check for errors
                     if(zero_division){
@@ -566,7 +579,17 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                         DestroySymtable(symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
-                        exit(ERROR_SEMANTIC_UNDEFINED); // TODO: check if correct exit code
+                        exit(ERROR_SEMANTIC_OTHER); // TODO: check if correct exit code
+                    }
+
+                    else if(type_incompatiblity){
+                        fprintf(stderr, RED"Error in semantic analysis: Line %d: Incompatible operands '%s' and '%s'\n"RESET, parser.line_number, operand_1 -> attribute, operand_1 -> attribute);
+                        if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
+                        if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
+                        DestroySymtable(symtable);
+                        DestroyStackAndVector(postfix, stack);
+                        DestroyExpressionReturn(return_value);
+                        exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY); // TODO: check if correct exit code
                     }
 
                     Token *result_token = InitToken();
@@ -588,7 +611,7 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                 }
 
                 else{
-                    double res = GetDoubleResult(operand_1, operand_2, current_token -> token_type, symtable, &zero_division);
+                    double res = GetDoubleResult(operand_1, operand_2, current_token -> token_type, symtable, &zero_division, &type_incompatiblity);
 
                     // check for errors
                     if(zero_division){
@@ -598,7 +621,17 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                         DestroySymtable(symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
-                        exit(ERROR_SEMANTIC_UNDEFINED); // TODO: check if correct exit code
+                        exit(ERROR_SEMANTIC_OTHER); // TODO: check if correct exit code
+                    }
+
+                    else if(type_incompatiblity){
+                        fprintf(stderr, RED"Error in semantic analysis: Line %d: Incompatible operands '%s' and '%s'\n"RESET, parser.line_number, operand_1 -> attribute, operand_2 -> attribute);
+                        if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
+                        if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
+                        DestroySymtable(symtable);
+                        DestroyStackAndVector(postfix, stack);
+                        DestroyExpressionReturn(return_value);
+                        exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY); // TODO: check if correct exit code
                     }
 
                     Token *result_token = InitToken();

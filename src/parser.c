@@ -349,8 +349,7 @@ void ConstDeclaration(Parser *parser)
     // add the computed value to the variable
     var -> type = ret_value -> type;
     var -> value = ret_value -> value;
-    if(var -> type == INT32_TYPE) printf("returned value of %s: %d\n", var->name,*(int*)var->value);
-    else printf("returned value of %s: %lf\n", var->name,*(double*)var->value);
+    PrintResult(ret_value);
     DestroyExpressionReturn(ret_value);
     CheckTokenType(parser, SEMICOLON);
 }

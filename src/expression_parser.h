@@ -93,12 +93,13 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
  * @param operator The operation to be done
  * @param symtable If one of the operands is an identifier, searches the symtable for it's value (assuming the token is included in the symtable since it's checked before)
  * @param zero_division Error flag which the expression parser checks after the function finishes
+ * @param type_compatibility Error flag which the expression parser also checks after the function finishes
  * @return int Evaluated result
  */
-int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division);
+int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division, bool *type_compatibility);
 
 // the same, but if one of the operands is a DOUBLE_64
-double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division);
+double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division, bool *type_compatibility);
 
 // mostly the same, but for boolean expressions, the float_expression flag indicates whether to convert the values to floats or not
 // @param nullable Flag to set if one of the operands is nullable
