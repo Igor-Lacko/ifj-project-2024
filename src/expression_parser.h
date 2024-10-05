@@ -6,6 +6,10 @@
 #include "stack.h" // expression stack for infix-to-postfix
 #include "parser.h" // for keeping track of line numbers mostly
 
+// help macros to access symtable, used in the GetIntResult()/GetDoubleResult() functions
+#define GetIntValue(operand, symtable) *(int *)(FindVariableSymbol(symtable, operand -> attribute) -> value)
+#define GetDoubleValue(operand, symtable) *(double *)(FindVariableSymbol(symtable, operand -> attribute) -> value)
+
 typedef struct { // simple precedence table struct
     TOKEN_TYPE PRIORITY_HIGHEST[2]; // * and /
     TOKEN_TYPE PRIORITY_MIDDLE[2]; // + and -
@@ -88,23 +92,14 @@ ExpressionReturn *EvaluatePosfixExpression(TokenVector *postfix, Symtable *symta
  * @param operand_1 First operand
  * @param operand_2 Second operand
  * @param operator The operation to be done
+ * @param symtable If one of the operands is an identifier, searches the symtable for it's value (assuming the token is included in the symtable since it's checked before)
+ * @param zero_division Error flag which the expression parser checks after the function finishes
  * @return int Evaluated result
  */
-int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *zero_division);
+int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division);
 
 // the same, but if one of the operands is a DOUBLE_64
-double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *zero_division);
-
-/**
- * @brief Checks if the token is in the symtable
- * 
- * @param token a symbol (variable in the case of this expression parser)
- * @param symtable the table to search
- * @param parser for error print (line_number)
- * @return true if the symbol is found
- * @return false if not found, also prints an error message to stderr
- */
-bool IsInSymtable(Token *token, Symtable *symtable, Parser parser);
+double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division);
 
 // Vector functions
 TokenVector *InitTokenVector();

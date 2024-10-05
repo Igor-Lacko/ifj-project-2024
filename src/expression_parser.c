@@ -97,19 +97,10 @@ int ComparePriority(TOKEN_TYPE operator_1, TOKEN_TYPE operator_2) {
     return 0;
 }
 
-bool IsInSymtable(Token *token, Symtable *symtable, Parser parser) {
-    if(FindVariableSymbol(symtable, token -> attribute) == NULL){
-        fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable %s\n"RESET, parser.line_number, token -> attribute);
-        DestroySymtable(symtable); // we can do that already here, better than later
-        return false;
-    }
 
-    return true;
-}
-
-int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *zero_division) {
-    int value_1 = strtol(operand_1 -> attribute, NULL, 10);
-    int value_2 = strtol(operand_2 -> attribute, NULL, 10);
+int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division) {
+    int value_1 = operand_1 -> token_type == IDENTIFIER_TOKEN ? GetIntValue(operand_1, symtable) : strtol(operand_1 -> attribute, NULL, 10);
+    int value_2 = operand_2 -> token_type == IDENTIFIER_TOKEN ? GetIntValue(operand_2, symtable) : strtol(operand_2 -> attribute, NULL, 10);
 
     // now we can compute the values
     switch(operator){
@@ -135,9 +126,9 @@ int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *
     }
 }
 
-double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *zero_division) {
-    double value_1 = strtod(operand_1 -> attribute, NULL);
-    double value_2 = strtod(operand_2 -> attribute, NULL);
+double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division) {
+    double value_1 = operand_1 -> token_type == IDENTIFIER_TOKEN ? GetDoubleValue(operand_1, symtable) : strtod(operand_1 -> attribute, NULL);
+    double value_2 = operand_2 -> token_type == IDENTIFIER_TOKEN ? GetDoubleValue(operand_2, symtable) : strtod(operand_2 -> attribute, NULL);
 
     // now we can compute the values
     switch(operator){
@@ -329,6 +320,9 @@ ExpressionReturn *EvaluatePosfixExpression(TokenVector *postfix, Symtable *symta
     // operand and result tokens
     Token *operand_1 = NULL, *operand_2 = NULL, *result = NULL;
 
+    // variable symbol instances if needed
+    VariableSymbol *var_1 = NULL, *var_2 = NULL;
+
     // loop through the string from left to right
     for(int i = 0; i < postfix -> length; i++){
         Token *current_token = postfix -> token_string[i]; // access the current token
@@ -342,12 +336,18 @@ ExpressionReturn *EvaluatePosfixExpression(TokenVector *postfix, Symtable *symta
 
             case IDENTIFIER_TOKEN: // put on top of stack
                 // check if the token is in the symtable
-                if(!IsInSymtable(current_token, symtable, parser)){
+                if((var_1 = FindVariableSymbol(symtable, current_token -> attribute)) == NULL){
+                    // error message
+                    fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable %s\n"RESET, parser.line_number, current_token -> attribute);
+
                     // free allocated resources
+                    DestroySymtable(symtable);
                     ExpressionStackDestroy(stack);
                     DestroyTokenVector(postfix);
                     exit(ERROR_SEMANTIC_UNDEFINED);
                 }
+
+                if(var_1 -> type == DOUBLE64_TYPE) float_expression = true;
 
                 ExpressionStackPush(stack, current_token);
 
@@ -364,20 +364,31 @@ ExpressionReturn *EvaluatePosfixExpression(TokenVector *postfix, Symtable *symta
 
                 // if the operands are identifiers, we need to check for them in the symtable
                 if(operand_1 -> token_type == IDENTIFIER_TOKEN){
-                    if(!IsInSymtable(operand_1, symtable, parser)){
+                    if((var_1 = FindVariableSymbol(symtable, operand_1 -> attribute)) == NULL){
+                        fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable %s\n"RESET, parser.line_number, operand_1 -> attribute);
+
+                        DestroySymtable(symtable);
                         ExpressionStackDestroy(stack);
                         DestroyTokenVector(postfix);
                         exit(ERROR_SEMANTIC_UNDEFINED);
                     }
+
+                    // check if we don't need to update the float_expression flag
+                    if(var_1 -> type == DOUBLE64_TYPE) float_expression = true;
                 }
 
                 if(operand_2 -> token_type == IDENTIFIER_TOKEN){
                     // have to do it separately, otherwise i wouldn't know which one is NULL :(
-                    if(!IsInSymtable(operand_2, symtable, parser)){
+                    if((var_2 = FindVariableSymbol(symtable, operand_2 -> attribute)) == NULL){
+                        fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable %s\n"RESET, parser.line_number, operand_1 -> attribute);
+
+                        DestroySymtable(symtable);
                         ExpressionStackDestroy(stack);
                         DestroyTokenVector(postfix);
                         exit(ERROR_SEMANTIC_UNDEFINED);
                     }
+
+                    if(var_2 -> type == DOUBLE64_TYPE) float_expression = true;
                 }
 
                 // update the type flag if it is needed
@@ -387,7 +398,7 @@ ExpressionReturn *EvaluatePosfixExpression(TokenVector *postfix, Symtable *symta
                 bool zero_division = false; // help flag
 
                 if(!float_expression){ // int result
-                    int res = GetIntResult(operand_1, operand_2, current_token -> token_type, &zero_division);
+                    int res = GetIntResult(operand_1, operand_2, current_token -> token_type, symtable, &zero_division);
 
                     // check for errors
                     if(zero_division){
@@ -415,7 +426,7 @@ ExpressionReturn *EvaluatePosfixExpression(TokenVector *postfix, Symtable *symta
                 }
 
                 else{
-                    double res = GetDoubleResult(operand_1, operand_2, current_token -> token_type, &zero_division);
+                    double res = GetDoubleResult(operand_1, operand_2, current_token -> token_type, symtable, &zero_division);
 
                     // check for errors
                     if(zero_division){
