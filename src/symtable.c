@@ -301,7 +301,8 @@ void PrintTable(Symtable *symtable)
             else
             {
                 printf("Variable: %s\n", ((VariableSymbol *)current->symbol)->name);
-                printf("Int Value: %d\n", (*(int *)((VariableSymbol *)current->symbol)->value));
+                if (((VariableSymbol *)current->symbol)->value != NULL)
+                    printf("Int Value: %d\n", (*(int *)((VariableSymbol *)current->symbol)->value));
             }
             current = current->next;
         }

@@ -16,7 +16,7 @@ void CheckTokenType(Parser *parser, TOKEN_TYPE type)
     if ((token = GetNextToken(&parser->line_number))->token_type != type)
     {
         DestroyToken(token);
-        SymtableStackDestroy(parser->symtable_stack);        
+        SymtableStackDestroy(parser->symtable_stack);
         ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
                   char_types[type], parser->line_number);
     }
@@ -31,7 +31,7 @@ void CheckKeywordType(Parser *parser, KEYWORD_TYPE type)
     if ((token = GetNextToken(&parser->line_number))->keyword_type != type)
     {
         DestroyToken(token);
-        SymtableStackDestroy(parser->symtable_stack);        
+        SymtableStackDestroy(parser->symtable_stack);
         ErrorExit(ERROR_SYNTACTIC, "Expected '%s' keyword at line %d",
                   keyword_types[type], parser->line_number);
     }
@@ -46,7 +46,7 @@ Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type)
     if ((token = GetNextToken(&parser->line_number))->token_type != type)
     {
         DestroyToken(token);
-        SymtableStackDestroy(parser->symtable_stack);        
+        SymtableStackDestroy(parser->symtable_stack);
         ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
                   char_types[type], parser->line_number);
     }
@@ -264,6 +264,10 @@ void Function(Parser *parser)
     DestroyToken(token);
 
     CheckTokenType(parser, L_CURLY_BRACKET);
+    // symtable_real is being pushed into a stack
+    Symtable *symtable_real = InitSymtable(TABLE_COUNT);
+    // push the global symtable
+    SymtableStackPush(parser->symtable_stack, symtable_real);
 
     parser->in_function = true;
 
@@ -329,7 +333,8 @@ void WhileLoop(Parser *parser)
     CheckTokenType(parser, R_CURLY_BRACKET);
 }
 
-void VarDeclaration(Parser *parser){
+void VarDeclaration(Parser *parser)
+{
     Token *token;
     token = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
 
@@ -338,27 +343,28 @@ void VarDeclaration(Parser *parser){
     var->name = strdup(token->attribute);
     var->is_const = false;
     var->value = NULL;
-    
-    //check if the variable is already declared in stack
+    var->type = VOID_TYPE;
+
+    // check if the variable is already declared in stack
     VariableSymbol *var_in_stack = SymtableStackFindVariable(parser->symtable_stack, var->name);
 
-    if(var_in_stack != NULL){
+    if (var_in_stack != NULL)
+    {
         ErrorExit(ERROR_SEMANTIC_REDEFINED, "Variable %s already declared", var->name);
     }
 
     // insert into symtable on top of the stack
     InsertVariableSymbol(SymtableStackTop(parser->symtable_stack), var);
 
-
     DestroyToken(token);
     CheckTokenType(parser, ASSIGNMENT);
     // expression
     TokenVector *postfix = InfixToPostfix(parser);
     ExpressionReturn *ret_value = EvaluatePostfixExpression(postfix, *parser);
-    
+
     // add the computed value to the variable
-    var -> type = ret_value -> type;
-    var -> value = ret_value -> value;
+    var->type = ret_value->type;
+    var->value = ret_value->value;
     PrintResult(ret_value);
     DestroyExpressionReturn(ret_value);
     CheckTokenType(parser, SEMICOLON);
@@ -376,13 +382,12 @@ void ConstDeclaration(Parser *parser)
     var->is_const = true;
     var->value = NULL;
     var->type = VOID_TYPE;
-    if (!InsertVariableSymbol(parser->symtable, var))
-    {
-        DestroySymtable(parser->symtable);
 
-    //check if the constant is already declared in stack
+    // check if the variable is already declared in stack
     VariableSymbol *var_in_stack = SymtableStackFindVariable(parser->symtable_stack, var->name);
-    if(var_in_stack != NULL){
+
+    if (var_in_stack != NULL)
+    {
         ErrorExit(ERROR_SEMANTIC_REDEFINED, "Variable %s already declared", var->name);
     }
 
@@ -392,6 +397,13 @@ void ConstDeclaration(Parser *parser)
     DestroyToken(token);
 
     token = GetNextToken(&parser->line_number);
+
+    if (token->token_type != ASSIGNMENT && token->token_type != COLON_TOKEN)
+    {
+        DestroyToken(token);
+        DestroySymtable(parser->symtable);
+        ErrorExit(ERROR_SYNTACTIC, "Expected '=' or ':' at line %d", parser->line_number);
+    }
 
     // const a : i32 = 5;
     if (token->token_type == COLON_TOKEN)
@@ -424,6 +436,7 @@ void ConstDeclaration(Parser *parser)
     ExpressionReturn *ret_value = EvaluatePostfixExpression(postfix, *parser);
     var->value = ret_value->value;
 
+    printf("var type: %d, ret_value type: %d\n", var->type, ret_value->type);
     // check if the types are compatible
     if (var->type != ret_value->type && var->type != VOID_TYPE)
     {
@@ -485,6 +498,7 @@ void ProgramBody(Parser *parser)
         case R_CURLY_BRACKET:
             DestroyToken(token);
             --(parser->nested_level);
+            SymtableStackPrint(parser->symtable_stack);
             SymtableStackPop(parser->symtable_stack);
             ungetc('}', stdin);
             return;
@@ -510,12 +524,6 @@ int main()
     parser.symtable = InitSymtable(TABLE_COUNT);
     parser.symtable_stack = SymtableStackInit();
 
-    //symtable_real is being pushed into a stack 
-    Symtable *symtable_real = InitSymtable(TABLE_COUNT);
-    // push the global symtable
-    SymtableStackPush(parser.symtable_stack, symtable_real);
-    
-
     Header(&parser);
     ProgramBody(&parser);
     printf("\033[1m\033[32m"
@@ -528,9 +536,10 @@ int main()
         DestroySymtable(parser.symtable);
         ErrorExit(ERROR_SEMANTIC_UNDEFINED, "Main function not found");
     }
-
-    PrintTable(parser.symtable);
-    DestroySymtable(parser.symtable);
+    // PrintTable(parser.symtable);
+    SymtableStackPrint(parser.symtable_stack);
+    printf("symstack lenght: %ld\n", parser.symtable_stack->size);
+    // SymtableStackDestroy(parser.symtable_stack);
     return 0;
 }
 
