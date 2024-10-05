@@ -18,7 +18,7 @@ void CheckTokenType(Parser *parser, TOKEN_TYPE type)
         DestroyToken(token);
         SymtableStackDestroy(parser->symtable_stack);        
         ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
-                char_types[type], parser->line_number);
+                  char_types[type], parser->line_number);
     }
     DestroyToken(token);
 }
@@ -375,6 +375,10 @@ void ConstDeclaration(Parser *parser)
     var->name = strdup(token->attribute);
     var->is_const = true;
     var->value = NULL;
+    var->type = VOID_TYPE;
+    if (!InsertVariableSymbol(parser->symtable, var))
+    {
+        DestroySymtable(parser->symtable);
 
     //check if the constant is already declared in stack
     VariableSymbol *var_in_stack = SymtableStackFindVariable(parser->symtable_stack, var->name);
@@ -386,16 +390,51 @@ void ConstDeclaration(Parser *parser)
     InsertVariableSymbol(SymtableStackTop(parser->symtable_stack), var);
 
     DestroyToken(token);
-    CheckTokenType(parser, ASSIGNMENT);
+
+    token = GetNextToken(&parser->line_number);
+
+    // const a : i32 = 5;
+    if (token->token_type == COLON_TOKEN)
+    {
+        // data type
+        DestroyToken(token);
+        token = GetNextToken(&parser->line_number);
+        if (token->token_type != KEYWORD || (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8))
+        {
+            DestroyToken(token);
+            DestroySymtable(parser->symtable);
+            ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
+        }
+        var->type = token->keyword_type == I32 ? INT32_TYPE : token->keyword_type == F64 ? DOUBLE64_TYPE
+                                                                                         : U8_ARRAY_TYPE;
+        DestroyToken(token);
+    }
+    // else if (token->token_type != ASSIGNMENT)
+    // {
+    //     DestroyToken(token);
+    //     DestroySymtable(parser->symtable);
+    //     ErrorExit(ERROR_SYNTACTIC, "Expected '=' at line %d", parser->line_number);
+    // }
+    PrintToken(token);
+
+    // PrintToken(GetNextToken(&parser->line_number));
+
     // expression
     TokenVector *postfix = InfixToPostfix(parser);
     ExpressionReturn *ret_value = EvaluatePostfixExpression(postfix, *parser);
-    
-    // add the computed value to the variable
-    var -> type = ret_value -> type;
-    var -> value = ret_value -> value;
-    PrintResult(ret_value);
+    var->value = ret_value->value;
+
+    // check if the types are compatible
+    if (var->type != ret_value->type && var->type != VOID_TYPE)
+    {
+        DestroyExpressionReturn(ret_value);
+        DestroySymtable(parser->symtable);
+        ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Incompatible types at line %d", parser->line_number);
+    }
+
     DestroyExpressionReturn(ret_value);
+
+    PrintResult(ret_value);
     CheckTokenType(parser, SEMICOLON);
 }
 
