@@ -22,7 +22,8 @@ typedef enum
     INT32_TYPE,
     DOUBLE64_TYPE,
     BOOLEAN,
-    VOID_TYPE
+    VOID_TYPE,
+    NULL_DATA_TYPE
 } DATA_TYPE;
 
 // structure of a variable symbol
