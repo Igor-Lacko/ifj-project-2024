@@ -18,7 +18,7 @@ void CheckTokenType(Parser *parser, TOKEN_TYPE type)
         DestroyToken(token);
         DestroySymtable(parser->symtable);
         ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
-                  char_types[type], parser->line_number);
+                char_types[type], parser->line_number);
     }
     DestroyToken(token);
 }
