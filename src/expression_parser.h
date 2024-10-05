@@ -79,11 +79,10 @@ bool IsTokenInString(TokenVector *postfix, Token *token);
  * @brief Evaluates a postfix expression and it's value
  * 
  * @param postfix Vector whose value is the postfix form expression
- * @param symtable To look up symbols
- * @param parser For line numbers, etc. 
+ * @param parser For line numbers, symtable, et 
  * @return Token* Token with an initialized value and type
  */
-ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symtable, Parser parser);
+ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Parser parser);
 
 /**
  * @brief Returns an int expression result from an expression between 2 tokens

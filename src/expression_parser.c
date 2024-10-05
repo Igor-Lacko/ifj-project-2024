@@ -223,7 +223,7 @@ bool GetBooleanResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, S
     double double_1, double_2;
     int int_1, int_2;
 
-    // compute the double values, TODO: type compatibility check
+    // compute the double values
     // note to type checking: we can compare f64 < 2 where 2 is converted to 2.0, but we can't compare i32 < 1.5 (if we don't know the i32 value on compile-time)
     if(float_expression){
         // compute the first value
@@ -477,7 +477,7 @@ void DestroyStackAndVector(TokenVector *postfix, ExpressionStack *stack) {
     ExpressionStackDestroy(stack);
 }
 
-ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symtable, Parser parser) {
+ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Parser parser) {
     // later return value
     ExpressionReturn *return_value = InitExpressionReturn();
 
@@ -504,13 +504,13 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
 
             case IDENTIFIER_TOKEN: // put on top of stack
                 // check if the token is in the symtable
-                if((var_1 = FindVariableSymbol(symtable, current_token -> attribute)) == NULL){
+                if((var_1 = FindVariableSymbol(parser.symtable, current_token -> attribute)) == NULL){
                     // error message
                     fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable %s\n"RESET, parser.line_number, current_token -> attribute);
                     // free allocated resources
                     if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                     if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                    DestroySymtable(symtable);
+                    DestroySymtable(parser.symtable);
                     DestroyStackAndVector(postfix, stack);
                     DestroyExpressionReturn(return_value);
                     exit(ERROR_SEMANTIC_UNDEFINED);
@@ -533,11 +533,11 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
 
                 // if the operands are identifiers, we need to check for them in the symtable
                 if(operand_1 -> token_type == IDENTIFIER_TOKEN){
-                    if((var_1 = FindVariableSymbol(symtable, operand_1 -> attribute)) == NULL){
+                    if((var_1 = FindVariableSymbol(parser.symtable, operand_1 -> attribute)) == NULL){
                         fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable %s\n"RESET, parser.line_number, operand_1 -> attribute);
                         if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                         if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                        DestroySymtable(symtable);
+                        DestroySymtable(parser.symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
                         exit(ERROR_SEMANTIC_UNDEFINED);
@@ -549,11 +549,11 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
 
                 if(operand_2 -> token_type == IDENTIFIER_TOKEN){
                     // have to do it separately, otherwise i wouldn't know which one is NULL :(
-                    if((var_2 = FindVariableSymbol(symtable, operand_2 -> attribute)) == NULL){
+                    if((var_2 = FindVariableSymbol(parser.symtable, operand_2 -> attribute)) == NULL){
                         fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable %s\n"RESET, parser.line_number, operand_1 -> attribute);
                         if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                         if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                        DestroySymtable(symtable);
+                        DestroySymtable(parser.symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
                         exit(ERROR_SEMANTIC_UNDEFINED);
@@ -569,27 +569,27 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                 bool zero_division = false, type_incompatiblity = false; // help flags
 
                 if(!float_expression){ // int result
-                    int res = GetIntResult(operand_1, operand_2, current_token -> token_type, symtable, &zero_division, &type_incompatiblity);
+                    int res = GetIntResult(operand_1, operand_2, current_token -> token_type, parser.symtable, &zero_division, &type_incompatiblity);
 
                     // check for errors
                     if(zero_division){
                         fprintf(stderr, RED"Error in semantic analysis: Line %d: Division by zero\n"RESET, parser.line_number);
                         if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                         if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                        DestroySymtable(symtable);
+                        DestroySymtable(parser.symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
-                        exit(ERROR_SEMANTIC_OTHER); // TODO: check if correct exit code
+                        exit(ERROR_SEMANTIC_OTHER);
                     }
 
                     else if(type_incompatiblity){
                         fprintf(stderr, RED"Error in semantic analysis: Line %d: Incompatible operands '%s' and '%s'\n"RESET, parser.line_number, operand_1 -> attribute, operand_1 -> attribute);
                         if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                         if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                        DestroySymtable(symtable);
+                        DestroySymtable(parser.symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
-                        exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY); // TODO: check if correct exit code
+                        exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
                     }
 
                     Token *result_token = InitToken();
@@ -599,7 +599,7 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                         DestroyToken(result_token);
                         if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                         if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                        DestroySymtable(symtable);
+                        DestroySymtable(parser.symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
                         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
@@ -611,27 +611,27 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                 }
 
                 else{
-                    double res = GetDoubleResult(operand_1, operand_2, current_token -> token_type, symtable, &zero_division, &type_incompatiblity);
+                    double res = GetDoubleResult(operand_1, operand_2, current_token -> token_type, parser.symtable, &zero_division, &type_incompatiblity);
 
                     // check for errors
                     if(zero_division){
                         fprintf(stderr, RED"Error in semantic analysis: Line %d: Division by zero\n"RESET, parser.line_number);
                         if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                         if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                        DestroySymtable(symtable);
+                        DestroySymtable(parser.symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
-                        exit(ERROR_SEMANTIC_OTHER); // TODO: check if correct exit code
+                        exit(ERROR_SEMANTIC_OTHER);
                     }
 
                     else if(type_incompatiblity){
                         fprintf(stderr, RED"Error in semantic analysis: Line %d: Incompatible operands '%s' and '%s'\n"RESET, parser.line_number, operand_1 -> attribute, operand_2 -> attribute);
                         if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                         if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                        DestroySymtable(symtable);
+                        DestroySymtable(parser.symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
-                        exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY); // TODO: check if correct exit code
+                        exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
                     }
 
                     Token *result_token = InitToken();
@@ -640,7 +640,7 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                     // string length
                     if((result_token -> attribute = calloc(1, snprintf(NULL, 0, "%lf", res) + 1)) == NULL){
                         DestroyToken(result_token);
-                        DestroySymtable(symtable);
+                        DestroySymtable(parser.symtable);
                         if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                         if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
                         DestroyStackAndVector(postfix, stack);
@@ -667,11 +667,11 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
 
                 // if the operands are identifiers, we need to check for them in the symtable
                 if(operand_1 -> token_type == IDENTIFIER_TOKEN){
-                    if((var_1 = FindVariableSymbol(symtable, operand_1 -> attribute)) == NULL){
+                    if((var_1 = FindVariableSymbol(parser.symtable, operand_1 -> attribute)) == NULL){
                         fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable %s\n"RESET, parser.line_number, operand_1 -> attribute);
                         if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                         if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                        DestroySymtable(symtable);
+                        DestroySymtable(parser.symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
                         exit(ERROR_SEMANTIC_UNDEFINED);
@@ -683,11 +683,11 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
 
                 if(operand_2 -> token_type == IDENTIFIER_TOKEN){
                     // have to do it separately, otherwise i wouldn't know which one is NULL :(
-                    if((var_2 = FindVariableSymbol(symtable, operand_2 -> attribute)) == NULL){
+                    if((var_2 = FindVariableSymbol(parser.symtable, operand_2 -> attribute)) == NULL){
                         fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable %s\n"RESET, parser.line_number, operand_1 -> attribute);
                         if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                         if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                        DestroySymtable(symtable);
+                        DestroySymtable(parser.symtable);
                         DestroyStackAndVector(postfix, stack);
                         DestroyExpressionReturn(return_value);
                         exit(ERROR_SEMANTIC_UNDEFINED);
@@ -704,7 +704,7 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
 
                 // comical amount of arguments
                 bool boolexpr_result = GetBooleanResult(operand_1, operand_2, 
-                current_token -> token_type, symtable, float_expression, 
+                current_token -> token_type, parser.symtable, float_expression, 
                 &nullable, &incompatible_types);
 
                 (void)boolexpr_result;
@@ -713,7 +713,7 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                 if(nullable){
                     if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                     if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                    DestroySymtable(symtable);
+                    DestroySymtable(parser.symtable);
                     DestroyStackAndVector(postfix, stack);
                     DestroyExpressionReturn(return_value);
                     ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Nullable type in relational expression", parser.line_number);
@@ -722,7 +722,7 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                 if(incompatible_types){
                     if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                     if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                    DestroySymtable(symtable);
+                    DestroySymtable(parser.symtable);
                     DestroyStackAndVector(postfix, stack);
                     DestroyExpressionReturn(return_value);
                     ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Incompatible types in relational expression", parser.line_number);
@@ -733,7 +733,7 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
                 if(!ExpressionStackIsEmpty(stack) || (postfix -> token_string[++i] -> token_type != SEMICOLON && postfix -> token_string[i] -> token_type != R_ROUND_BRACKET)){
                     if(!IsTokenInString(postfix, operand_1)) DestroyToken(operand_1);
                     if(!IsTokenInString(postfix, operand_2)) DestroyToken(operand_2);
-                    DestroySymtable(symtable);
+                    DestroySymtable(parser.symtable);
                     DestroyStackAndVector(postfix, stack);
                     DestroyExpressionReturn(return_value);
                     ErrorExit(ERROR_SYNTACTIC, "Line %d: Invalid expression construction", parser.line_number);
@@ -775,10 +775,11 @@ ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symt
 
                 return return_value;
 
-            default: // TODO: Error
-                printf("default aaayy\n\n");
-                return return_value;
-
+            default:
+                DestroyStackAndVector(postfix, stack);
+                DestroySymtable(parser.symtable);
+                ErrorExit(ERROR_SYNTACTIC, "Line %d: Unexpected symbol in expression");
+                break; // to prevent compiler warnings
         }
     }
 

@@ -344,7 +344,7 @@ void ConstDeclaration(Parser *parser)
     CheckTokenType(parser, ASSIGNMENT);
     // expression
     TokenVector *postfix = InfixToPostfix(parser);
-    ExpressionReturn *ret_value = EvaluatePostfixExpression(postfix, parser -> symtable, *parser);
+    ExpressionReturn *ret_value = EvaluatePostfixExpression(postfix, *parser);
     
     // add the computed value to the variable
     var -> type = ret_value -> type;
