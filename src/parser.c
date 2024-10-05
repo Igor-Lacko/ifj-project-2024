@@ -6,6 +6,7 @@
 #include "error.h"
 #include "parser.h"
 #include "symtable.h"
+#include "expression_parser.h"
 
 // checks if the next token is of the expected type
 void CheckTokenType(Parser *parser, TOKEN_TYPE type)
@@ -342,7 +343,14 @@ void ConstDeclaration(Parser *parser)
     DestroyToken(token);
     CheckTokenType(parser, ASSIGNMENT);
     // expression
-    Expression(parser);
+    TokenVector *postfix = InfixToPostfix(parser);
+    ExpressionReturn *ret_value = EvaluatePosfixExpression(postfix, parser -> symtable, *parser);
+    
+    // add the computed value to the variable
+    var -> type = ret_value -> type;
+    var -> value = ret_value -> value;
+    printf("returned value of %s: %d\n", var->name,*(int*)var->value);
+    DestroyExpressionReturn(ret_value);
     CheckTokenType(parser, SEMICOLON);
 }
 

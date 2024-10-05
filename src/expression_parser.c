@@ -99,8 +99,22 @@ int ComparePriority(TOKEN_TYPE operator_1, TOKEN_TYPE operator_2) {
 
 
 int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division) {
-    int value_1 = operand_1 -> token_type == IDENTIFIER_TOKEN ? GetIntValue(operand_1, symtable) : strtol(operand_1 -> attribute, NULL, 10);
-    int value_2 = operand_2 -> token_type == IDENTIFIER_TOKEN ? GetIntValue(operand_2, symtable) : strtol(operand_2 -> attribute, NULL, 10);
+    // declare variables to store the values later on
+    int value_1, value_2;
+
+    if(operand_1 -> token_type == IDENTIFIER_TOKEN){
+        // we assume that we already know that the value_1 name was found in the symbol table
+        value_1 = *(int *)(FindVariableSymbol(symtable, operand_1 -> attribute) -> value);
+    }
+
+    else value_1 = strtol(operand_1 -> attribute, NULL, 10);
+
+    // same but for value 2
+    if(operand_2 -> token_type == IDENTIFIER_TOKEN){
+        value_2 = *(int *)(FindVariableSymbol(symtable, operand_2 -> attribute) -> value);
+    }
+
+    else value_2 = strtol(operand_2 -> attribute, NULL, 10);
 
     // now we can compute the values
     switch(operator){
@@ -127,8 +141,20 @@ int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtab
 }
 
 double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division) {
-    double value_1 = operand_1 -> token_type == IDENTIFIER_TOKEN ? GetDoubleValue(operand_1, symtable) : strtod(operand_1 -> attribute, NULL);
-    double value_2 = operand_2 -> token_type == IDENTIFIER_TOKEN ? GetDoubleValue(operand_2, symtable) : strtod(operand_2 -> attribute, NULL);
+    // variables to store the results
+    double value_1, value_2;
+
+    if(operand_1 -> token_type == IDENTIFIER_TOKEN){
+        value_1 = *(double *)(FindVariableSymbol(symtable, operand_1 -> attribute) -> value);
+    }
+
+    else value_1 = strtod(operand_1 -> attribute, NULL);
+
+    if(operand_2 -> token_type == IDENTIFIER_TOKEN){
+        value_2 = *(double *)(FindVariableSymbol(symtable, operand_1 -> attribute) -> value);
+    }
+
+    else value_2 = strtod(operand_1 -> attribute, NULL);
 
     // now we can compute the values
     switch(operator){
@@ -221,13 +247,13 @@ TokenVector *InfixToPostfix(Parser *parser) {
                     }
 
                     else{ // invalid symbol sequence
+                        fprintf(stderr, RED"Error in syntax analysis: Line %d: Unexpected symbol '%s' in expression\n"RESET, parser->line_number, token -> attribute);
                         DestroyToken(token);
                         DestroyTokenVector(postfix);
                         ExpressionStackDestroy(stack);
 
                         // TODO: Possible memory leak: Other structures such as parser aren't freed
                         // TODO 2: Add attributes for all symbols
-                        ErrorExit(ERROR_SYNTACTIC, "Line %d: Unexpected symbol in expression", parser -> line_number);
                     }
 
                 }
@@ -267,10 +293,11 @@ TokenVector *InfixToPostfix(Parser *parser) {
                     break;
 
                 default:
+                    PrintToken(token);
+                    fprintf(stderr, RED"Error in syntax analysis: Line %d: Unexpected symbol '%s' in expression\n"RESET, parser -> line_number, token -> attribute);
                     DestroyToken(token);
                     DestroyTokenVector(postfix);
                     ExpressionStackDestroy(stack);
-                    ErrorExit(ERROR_SYNTACTIC, "Line %d: Unexpected symbol in expression", parser -> line_number);
         }
     }
 
@@ -297,7 +324,7 @@ ExpressionReturn *InitExpressionReturn(void) {
 }
 
 void DestroyExpressionReturn(ExpressionReturn *return_value) {
-    if(return_value -> value != NULL) free(return_value -> value);
+    ///if(return_value -> value != NULL) free(return_value -> value); since we will give that pointer to the symbol
     free(return_value);
 }
 

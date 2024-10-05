@@ -6,9 +6,6 @@
 #include "stack.h" // expression stack for infix-to-postfix
 #include "parser.h" // for keeping track of line numbers mostly
 
-// help macros to access symtable, used in the GetIntResult()/GetDoubleResult() functions
-#define GetIntValue(operand, symtable) *(int *)(FindVariableSymbol(symtable, operand -> attribute) -> value)
-#define GetDoubleValue(operand, symtable) *(double *)(FindVariableSymbol(symtable, operand -> attribute) -> value)
 
 typedef struct { // simple precedence table struct
     TOKEN_TYPE PRIORITY_HIGHEST[2]; // * and /
