@@ -16,7 +16,7 @@ void CheckTokenType(Parser *parser, TOKEN_TYPE type)
     if ((token = GetNextToken(&parser->line_number))->token_type != type)
     {
         DestroyToken(token);
-        DestroySymtable(parser->symtable);
+        SymtableStackDestroy(parser->symtable_stack);        
         ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
                   char_types[type], parser->line_number);
     }
@@ -31,7 +31,7 @@ void CheckKeywordType(Parser *parser, KEYWORD_TYPE type)
     if ((token = GetNextToken(&parser->line_number))->keyword_type != type)
     {
         DestroyToken(token);
-        DestroySymtable(parser->symtable);
+        SymtableStackDestroy(parser->symtable_stack);        
         ErrorExit(ERROR_SYNTACTIC, "Expected '%s' keyword at line %d",
                   keyword_types[type], parser->line_number);
     }
@@ -46,7 +46,7 @@ Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type)
     if ((token = GetNextToken(&parser->line_number))->token_type != type)
     {
         DestroyToken(token);
-        DestroySymtable(parser->symtable);
+        SymtableStackDestroy(parser->symtable_stack);        
         ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
                   char_types[type], parser->line_number);
     }
@@ -278,6 +278,9 @@ void Function(Parser *parser)
 // if(expression){}else{}
 void IfElse(Parser *parser)
 {
+    Symtable *symtable = InitSymtable(TABLE_COUNT);
+    SymtableStackPush(parser->symtable_stack, symtable);
+
     CheckTokenType(parser, L_ROUND_BRACKET);
     // expression
     Expression(parser);
@@ -313,6 +316,9 @@ void IfElse(Parser *parser)
 
 void WhileLoop(Parser *parser)
 {
+    Symtable *symtable = InitSymtable(TABLE_COUNT);
+    SymtableStackPush(parser->symtable_stack, symtable);
+
     CheckTokenType(parser, L_ROUND_BRACKET);
     // expression
     Expression(parser);
@@ -321,6 +327,41 @@ void WhileLoop(Parser *parser)
     CheckTokenType(parser, L_CURLY_BRACKET);
     ProgramBody(parser);
     CheckTokenType(parser, R_CURLY_BRACKET);
+}
+
+void VarDeclaration(Parser *parser){
+    Token *token;
+    token = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
+
+    // add to symtable
+    VariableSymbol *var = VariableSymbolInit();
+    var->name = strdup(token->attribute);
+    var->is_const = false;
+    var->value = NULL;
+    
+    //check if the variable is already declared in stack
+    VariableSymbol *var_in_stack = SymtableStackFindVariable(parser->symtable_stack, var->name);
+
+    if(var_in_stack != NULL){
+        ErrorExit(ERROR_SEMANTIC_REDEFINED, "Variable %s already declared", var->name);
+    }
+
+    // insert into symtable on top of the stack
+    InsertVariableSymbol(SymtableStackTop(parser->symtable_stack), var);
+
+
+    DestroyToken(token);
+    CheckTokenType(parser, ASSIGNMENT);
+    // expression
+    TokenVector *postfix = InfixToPostfix(parser);
+    ExpressionReturn *ret_value = EvaluatePostfixExpression(postfix, *parser);
+    
+    // add the computed value to the variable
+    var -> type = ret_value -> type;
+    var -> value = ret_value -> value;
+    PrintResult(ret_value);
+    DestroyExpressionReturn(ret_value);
+    CheckTokenType(parser, SEMICOLON);
 }
 
 // const id = expression;
@@ -334,11 +375,15 @@ void ConstDeclaration(Parser *parser)
     var->name = strdup(token->attribute);
     var->is_const = true;
     var->value = NULL;
-    if (!InsertVariableSymbol(parser->symtable, var))
-    {
-        DestroySymtable(parser->symtable);
+
+    //check if the constant is already declared in stack
+    VariableSymbol *var_in_stack = SymtableStackFindVariable(parser->symtable_stack, var->name);
+    if(var_in_stack != NULL){
         ErrorExit(ERROR_SEMANTIC_REDEFINED, "Variable %s already declared", var->name);
     }
+
+    // insert into symtable on top of the stack
+    InsertVariableSymbol(SymtableStackTop(parser->symtable_stack), var);
 
     DestroyToken(token);
     CheckTokenType(parser, ASSIGNMENT);
@@ -372,18 +417,25 @@ void ProgramBody(Parser *parser)
             else if (token->keyword_type == IF)
             {
                 DestroyToken(token);
+                ++(parser->nested_level);
                 IfElse(parser);
             }
             // start of while loop
             else if (token->keyword_type == WHILE)
             {
                 DestroyToken(token);
+                ++(parser->nested_level);
                 WhileLoop(parser);
             }
             else if (token->keyword_type == CONST)
             {
                 DestroyToken(token);
                 ConstDeclaration(parser);
+            }
+            else if (token->keyword_type == VAR)
+            {
+                DestroyToken(token);
+                VarDeclaration(parser);
             }
             else
             {
@@ -393,6 +445,8 @@ void ProgramBody(Parser *parser)
             break;
         case R_CURLY_BRACKET:
             DestroyToken(token);
+            --(parser->nested_level);
+            SymtableStackPop(parser->symtable_stack);
             ungetc('}', stdin);
             return;
 
@@ -413,7 +467,16 @@ int main()
     parser.line_number = 1;
     parser.has_main = false;
     parser.in_function = false;
+    parser.nested_level = 0;
     parser.symtable = InitSymtable(TABLE_COUNT);
+    parser.symtable_stack = SymtableStackInit();
+
+    //symtable_real is being pushed into a stack 
+    Symtable *symtable_real = InitSymtable(TABLE_COUNT);
+    // push the global symtable
+    SymtableStackPush(parser.symtable_stack, symtable_real);
+    
+
     Header(&parser);
     ProgramBody(&parser);
     printf("\033[1m\033[32m"

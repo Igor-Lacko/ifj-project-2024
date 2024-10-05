@@ -72,6 +72,24 @@ bool SymtableStackIsEmpty(SymtableStack *stack) {
     return (stack -> size) == 0;
 }
 
+//function for finding a variable in the stack
+VariableSymbol *SymtableStackFindVariable(SymtableStack *stack, char *name){
+    SymtableStackNode *current = stack -> top;
+    while(current != NULL){
+        VariableSymbol *var = FindVariableSymbol(current -> table, name);
+        if(var != NULL) return var;
+        current = current -> next;
+    }
+    return NULL;
+}
+
+void SymtableStackPrint(SymtableStack *stack){
+    SymtableStackNode *current = stack -> top;
+    while(current != NULL){
+        PrintTable(current -> table);
+        current = current -> next;
+    }
+}
 
 
 // Expression stack operations

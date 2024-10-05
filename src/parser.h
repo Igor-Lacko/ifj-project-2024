@@ -5,14 +5,17 @@
 #include "scanner.h"
 #include "error.h"
 #include "symtable.h"
+#include "stack.h"
 
 // Parser structure
 typedef struct
 {
+    int nested_level;
     int line_number;
     bool has_main;
     bool in_function;
     Symtable *symtable;
+    SymtableStack *symtable_stack;
 } Parser;
 
 

@@ -74,6 +74,10 @@ void SymtableStackDestroy(SymtableStack *stack);
 // To preserve the ADT type of the stack
 bool SymtableStackIsEmpty(SymtableStack *stack);
 
+// Function for finding a variable in the stack
+VariableSymbol *SymtableStackFindVariable(SymtableStack *stack, char *name);
+
+void SymtableStackPrint(SymtableStack *stack);
 
 
 
