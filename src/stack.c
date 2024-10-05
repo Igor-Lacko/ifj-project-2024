@@ -109,9 +109,7 @@ Token *ExpressionStackPop(ExpressionStack *stack) {
     stack -> top = previous_top -> next; // can also be NULL
     --(stack -> size);
 
-
     free(previous_top);
-
     return token;
 }
 

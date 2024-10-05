@@ -83,7 +83,7 @@ bool IsTokenInString(TokenVector *postfix, Token *token);
  * @param parser For line numbers, etc. 
  * @return Token* Token with an initialized value and type
  */
-ExpressionReturn *EvaluatePosfixExpression(TokenVector *postfix, Symtable *symtable, Parser parser);
+ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Symtable *symtable, Parser parser);
 
 /**
  * @brief Returns an int expression result from an expression between 2 tokens
@@ -100,12 +100,53 @@ int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtab
 // the same, but if one of the operands is a DOUBLE_64
 double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division);
 
+// mostly the same, but for boolean expressions, the float_expression flag indicates whether to convert the values to floats or not
+// @param nullable Flag to set if one of the operands is nullable
+// @param incompatible_type Flag to set in case of type incompatibility
+bool GetBooleanResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool float_expression, bool *nullable, bool *incompatible_type);
+
+/**
+ * @brief Checks if the token is a nullable type, used for checking relational expressions for type incompatibility
+ * 
+ * @param operand The operand to check 
+ * @param symtable The symtable to search in
+ * @return true It is nullable
+ * @return false It is not nullable
+ */
+bool IsNullable(Token *operand, Symtable *symtable);
+
+/**
+ * @brief Checks if the two operands in a relational expression are incompatible
+ * 
+ * @param operand_1 The first operand
+ * @param operand_2 The second operand
+ * @param symtable The symtable to searchl in
+ * @return true They are incompatible
+ * @return false They actually are not incompatible
+ * @note Example of type incompatibility: i > 1.5, where i is an i32 (int) variable
+ * @note The reverse, so f > 2, where f is an f64 (double) variable is valid, since 2 can be safely converted to the value 2.0
+ */
+bool AreTypesIncompatible(Token *operand_1, Token *operand_2, Symtable *symtable);
+
 // Vector functions
 TokenVector *InitTokenVector();
 
 void AppendToken(TokenVector *vector, Token *input_token);
 
 void DestroyTokenVector(TokenVector *vector);
+
+/**
+ * @brief Help function to avoid double frees, utilizes IsTokenInString
+ * 
+ * @param postfix The token vector to search in and destroy
+ * @param stack The stack to search in and destroy
+ */
+void DestroyStackAndVector(TokenVector *postfix, ExpressionStack *stack);
+
+
+/*----------DEBUG FUNCTIONS----------*/
+void PrintPostfix(TokenVector *postfix);
+void PrintResult(ExpressionReturn *return_value);
 
 
 #endif

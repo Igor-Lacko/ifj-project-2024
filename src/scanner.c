@@ -390,13 +390,13 @@ Token *GetNextToken(int *line_number){
         switch(c = (isspace(c)) ? getchar() : c){
             /*operator tokens*/
             case '=': //valid tokens are = and also ==
-                if ((c = getchar()) == '='){
+                if ((c = NextChar()) == '='){
+                    getchar();
                     AllocateAttribute(token, "==");
                     token -> token_type = EQUAL_OPERATOR;
                 }
 
                 else{
-                    ungetc(c, stdin);
                     AllocateAttribute(token, "=");
                     token -> token_type = ASSIGNMENT;
                 }
@@ -437,8 +437,12 @@ Token *GetNextToken(int *line_number){
                     ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token !%c", *line_number, next);
                 }
 
-                AllocateAttribute(token, "!=");
-                token -> token_type = NOT_EQUAL_OPERATOR;
+                else{
+                    AllocateAttribute(token, "!=");
+                    getchar();
+                    token -> token_type = NOT_EQUAL_OPERATOR;
+                }
+
                 return token;
 
             case '<': //< is a valid token, but so is <=
@@ -447,8 +451,12 @@ Token *GetNextToken(int *line_number){
                     token -> token_type = LESS_THAN_OPERATOR;
                 }
 
-                AllocateAttribute(token, "<=");
-                token -> token_type = LESSER_EQUAL_OPERATOR;
+                else{
+                    AllocateAttribute(token, "<=");
+                    getchar(); // consume the = character
+                    token -> token_type = LESSER_EQUAL_OPERATOR;
+                }
+
                 return token;
 
             case '>': //analogous to <
@@ -457,8 +465,12 @@ Token *GetNextToken(int *line_number){
                     token -> token_type = LARGER_THAN_OPERATOR;
                 }
 
-                AllocateAttribute(token, ">=");
-                token -> token_type = LARGER_EQUAL_OPERATOR;
+                else{
+                    AllocateAttribute(token, ">=");
+                    getchar();
+                    token -> token_type = LARGER_EQUAL_OPERATOR;
+                }
+
                 return token;
 
             /*bracket tokens and array symbol*/

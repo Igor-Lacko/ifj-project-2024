@@ -55,6 +55,9 @@ typedef enum
     COLON_TOKEN,
     EOF_TOKEN,
 
+    // special token used in expression evaluation for type compatibility with the stack
+    BOOLEAN_TOKEN
+
 } TOKEN_TYPE;
 
 // keyword enum
