@@ -7,6 +7,7 @@
 #include "parser.h"
 #include "symtable.h"
 #include "expression_parser.h"
+#include "codegen.h"
 
 // checks if the next token is of the expected type
 void CheckTokenType(Parser *parser, TOKEN_TYPE type)
@@ -51,6 +52,42 @@ Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type)
                   char_types[type], parser->line_number);
     }
     return token;
+}
+
+bool DoesNextTokenMatch(Parser *parser, TOKEN_TYPE type)
+{
+    Token *token;
+    if ((token = GetNextToken(&parser->line_number))->token_type != type)
+    {
+        DestroyToken(token);
+        return false;
+    }
+
+    DestroyToken(token);
+    return true;
+}
+
+void SkipBlock(Parser *parser)
+{
+    int l_bracket_count = 1; // since we have loaded the first '{' character already
+    int r_bracket_count = 0; // if this matches l_bracket_count, we are done
+
+    while(l_bracket_count != r_bracket_count)
+    {
+        Token *token = GetNextToken(&parser->line_number);
+
+        if(token->token_type == L_CURLY_BRACKET) l_bracket_count ++;
+        else if(token->token_type == R_CURLY_BRACKET) r_bracket_count ++;
+
+        else if(token -> token_type == EOF_TOKEN) // block not ended correctly
+        {
+            SymtableStackDestroy(parser->symtable_stack);
+            ErrorExit(ERROR_SYNTACTIC, "Expected '}' at line %d", parser->line_number);
+        }
+    }
+
+    // return the '}' to the input stream
+    ungetc('}', stdin);
 }
 
 void ProgramBody(Parser *parser);
@@ -288,95 +325,38 @@ void IfElse(Parser *parser)
     CheckTokenType(parser, L_ROUND_BRACKET);
     // expression
     TokenVector *postfix = InfixToPostfix(parser);
-    ExpressionReturn *return_value = EvaluatePostfixExpression(postfix, *parser);
     CheckTokenType(parser, R_ROUND_BRACKET);
 
-    bool if_block = true; // flag to indicate whether to do the if else block
-
-    // null value or false boolean expression cause the else block to be executed
-    if(return_value -> type == NULL_DATA_TYPE) if_block = false;
-    if(return_value -> type == BOOLEAN && *(bool *)(return_value -> value) == false) if_block = false;
-
-
-    Token *token;
-    token = GetNextToken(&parser->line_number);
-    if (token->token_type == VERTICAL_BAR_TOKEN) // null-if block , the value can't be boolean
+    Token *token = GetNextToken(&parser->line_number);
+    if(token -> token_type == L_CURLY_BRACKET)
     {
+        ProgramBody(parser); // if block
+        CheckTokenType(parser, R_CURLY_BRACKET);
+        CheckKeywordType(parser, ELSE);
+        CheckTokenType(parser, L_CURLY_BRACKET);
+        ProgramBody(parser); // else block
+        CheckTokenType(parser, R_CURLY_BRACKET);
+    }
 
-        DestroyToken(token);
-
-        if(return_value -> type == BOOLEAN){ // invalid expression type, can't assign to variable
-            DestroyToken(token);
-            DestroySymtable(parser -> symtable);
-            DestroyExpressionReturn(return_value);
-            ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Invalid expression type 'boolean' in the If-Else |ID| block");
-        }
-
-        VariableSymbol *symbol; // should not be there
-        Token *id = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
-        if((symbol = FindVariableSymbol(parser -> symtable, id -> attribute)) == NULL) { // redefinition of variable
-            DestroyToken(token);
-            DestroyToken(id);
-            DestroySymtable(parser -> symtable);
-            DestroyExpressionReturn(return_value);
-            ErrorExit(ERROR_SEMANTIC_REDEFINED, "Line %d: Redefinition of variable");
-        }
-
-        // create a new symbol
-        symbol = VariableSymbolInit();
-        symbol -> name = id -> attribute;
-        symbol -> type = return_value -> type;
-        symbol -> nullable = false;
-        symbol -> is_const = false;
-        switch(symbol -> type) { //add value depending on the type
-            case INT32_TYPE:
-                symbol -> value = (int *)(return_value -> value);
-                break;
-
-            case DOUBLE64_TYPE:
-                symbol -> value = (double *)(return_value -> value);
-                break;
-
-            case U8_ARRAY_TYPE:
-                symbol -> value = (char **)(return_value -> value);
-                break;
-
-            default:
-                //THIS SHOULD NEVER HAPPEN!
-                ErrorExit(ERROR_INTERNAL, "Invalid switch case!!!");
-        }
-
-        InsertVariableSymbol(parser->symtable, symbol);
+    else if(token -> token_type == VERTICAL_BAR_TOKEN)
+    {
         CheckTokenType(parser, VERTICAL_BAR_TOKEN);
-
-        if(if_block){
-            ProgramBody(parser);
-            CheckTokenType(parser, R_CURLY_BRACKET);
+        Token *id = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
+        VariableSymbol *var = SymtableStackFindVariable(parser->symtable_stack, id->attribute);
+        if(var != NULL)
+        {
+            SymtableStackDestroy(parser -> symtable_stack);
+            ErrorExit(ERROR_SEMANTIC_REDEFINED, "Line %d: redefined variable");
         }
 
-        else{
-            //code that skips if block
-            ProgramBody(parser);
-        }
     }
-    else if (token->token_type == L_CURLY_BRACKET)
-    {
-        DestroyToken(token);
-    }
+
     else
     {
         DestroyToken(token);
-        DestroySymtable(parser->symtable);
-        ErrorExit(ERROR_SYNTACTIC, "Expected '|' or '{' at line %d", parser->line_number);
+        SymtableStackDestroy(parser->symtable_stack);
+        ErrorExit(ERROR_SYNTACTIC, "Expected '{' or '|' in if block on line %d", parser->line_number);
     }
-
-    if(if_block) ProgramBody(parser);
-    CheckTokenType(parser, R_CURLY_BRACKET);
-    CheckKeywordType(parser, ELSE); 
-    CheckTokenType(parser, L_CURLY_BRACKET);
-    // code that skips else block
-    if(!if_block) ProgramBody(parser);
-    CheckTokenType(parser, R_CURLY_BRACKET);
 }
 
 void WhileLoop(Parser *parser)
@@ -419,15 +399,7 @@ void VarDeclaration(Parser *parser)
 
     DestroyToken(token);
     CheckTokenType(parser, ASSIGNMENT);
-    // expression
-    TokenVector *postfix = InfixToPostfix(parser);
-    ExpressionReturn *ret_value = EvaluatePostfixExpression(postfix, *parser);
-
-    // add the computed value to the variable
-    var->type = ret_value->type;
-    var->value = ret_value->value;
-    PrintResult(ret_value);
-    DestroyExpressionReturn(ret_value);
+    // expressi
     CheckTokenType(parser, SEMICOLON);
 }
 
@@ -478,8 +450,7 @@ void ConstDeclaration(Parser *parser)
             DestroySymtable(parser->symtable);
             ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
         }
-        var->type = token->keyword_type == I32 ? INT32_TYPE : token->keyword_type == F64 ? DOUBLE64_TYPE
-                                                                                         : U8_ARRAY_TYPE;
+        var->type = token->keyword_type == I32 ? INT32_TYPE : token->keyword_type == F64 ? DOUBLE64_TYPE : U8_ARRAY_TYPE;
         DestroyToken(token);
     }
     // else if (token->token_type != ASSIGNMENT)
@@ -488,27 +459,19 @@ void ConstDeclaration(Parser *parser)
     //     DestroySymtable(parser->symtable);
     //     ErrorExit(ERROR_SYNTACTIC, "Expected '=' at line %d", parser->line_number);
     // }
-    PrintToken(token);
 
-    // PrintToken(GetNextToken(&parser->line_number));
 
     // expression
     TokenVector *postfix = InfixToPostfix(parser);
-    ExpressionReturn *ret_value = EvaluatePostfixExpression(postfix, *parser);
-    var->value = ret_value->value;
 
-    printf("var type: %d, ret_value type: %d\n", var->type, ret_value->type);
     // check if the types are compatible
     if (var->type != ret_value->type && var->type != VOID_TYPE)
     {
-        DestroyExpressionReturn(ret_value);
         DestroySymtable(parser->symtable);
         ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Incompatible types at line %d", parser->line_number);
     }
 
     DestroyExpressionReturn(ret_value);
-
-    PrintResult(ret_value);
     CheckTokenType(parser, SEMICOLON);
 }
 
@@ -556,11 +519,12 @@ void ProgramBody(Parser *parser)
                 // ErrorExit(ERROR_SYNTACTIC, "Unexpected at line %d", *line_number);
             }
             break;
+
         case R_CURLY_BRACKET:
             DestroyToken(token);
             --(parser->nested_level);
             SymtableStackPrint(parser->symtable_stack);
-            SymtableStackPop(parser->symtable_stack);
+            SymtableStackRemoveTop(parser->symtable_stack);
             ungetc('}', stdin);
             return;
 
@@ -577,6 +541,7 @@ void ProgramBody(Parser *parser)
 
 int main()
 {
+    printf(".IFJcode24\n"); // initial codegen instruction
     Parser parser;
     parser.line_number = 1;
     parser.has_main = false;
@@ -588,8 +553,8 @@ int main()
     Header(&parser);
     ProgramBody(&parser);
     printf("\033[1m\033[32m"
-           "SYNTAX OK\n"
-           "\033[0m");
+        "SYNTAX OK\n"
+        "\033[0m");
 
     // check if the main function is present
     if (!parser.has_main)
@@ -599,7 +564,7 @@ int main()
     }
     // PrintTable(parser.symtable);
     SymtableStackPrint(parser.symtable_stack);
-    printf("symstack lenght: %ld\n", parser.symtable_stack->size);
+    printf("symstack length: %ld\n", parser.symtable_stack->size);
     // SymtableStackDestroy(parser.symtable_stack);
     return 0;
 }

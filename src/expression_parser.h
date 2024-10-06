@@ -6,8 +6,6 @@
 #include "stack.h" // expression stack for infix-to-postfix
 #include "parser.h" // for keeping track of line numbers mostly
 
-#define EPSILON 1e-7 // rounding error with float results, used to check for division by zero
-
 
 typedef struct { // simple precedence table struct
     TOKEN_TYPE PRIORITY_HIGHEST[2]; // * and /
@@ -26,11 +24,6 @@ typedef enum { // helper enum for operator priority (probably only used once)
     MIDDLE = 2,
     LOWEST = 1
 } OPERATOR_PRIORITY;
-
-typedef struct { // struct for expression results
-    DATA_TYPE type;
-    void *value;
-} ExpressionReturn;
 
 /**
  * @brief Initializes a precedence table
@@ -59,12 +52,6 @@ int ComparePriority(TOKEN_TYPE operator_1, TOKEN_TYPE operator_2);
  */
 TokenVector *InfixToPostfix(Parser *parser);
 
-// Expression return structure constructor
-ExpressionReturn *InitExpressionReturn(void);
-
-// Expression return structure destructor
-void DestroyExpressionReturn(ExpressionReturn *return_value);
-
 /**
  * @brief Used when freeing operand tokens in the EvaluatePostfixExpression function. Checks if the token can be freed
  * 
@@ -82,7 +69,7 @@ bool IsTokenInString(TokenVector *postfix, Token *token);
  * @param parser For line numbers, symtable, et 
  * @return Token* Token with an initialized value and type
  */
-ExpressionReturn *EvaluatePostfixExpression(TokenVector *postfix, Parser parser);
+DATA_TYPE EvaluatePostfixExpression(TokenVector *postfix, Parser parser);
 
 /**
  * @brief Returns an int expression result from an expression between 2 tokens
@@ -146,7 +133,5 @@ void DestroyStackAndVector(TokenVector *postfix, ExpressionStack *stack);
 
 /*----------DEBUG FUNCTIONS----------*/
 void PrintPostfix(TokenVector *postfix);
-void PrintResult(ExpressionReturn *return_value);
-
 
 #endif

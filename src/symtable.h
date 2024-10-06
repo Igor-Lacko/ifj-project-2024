@@ -33,7 +33,7 @@ typedef struct
     DATA_TYPE type;
     bool is_const;
     bool nullable;
-    void *value;
+    bool defined;
 } VariableSymbol;
 
 // structure of a function symbol

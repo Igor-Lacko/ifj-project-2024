@@ -14,6 +14,7 @@ typedef struct
     int line_number;
     bool has_main;
     bool in_function;
+    bool skipping; // help flag to see if we only check syntax in non-executed blocks
     Symtable *symtable;
     SymtableStack *symtable_stack;
 } Parser;
@@ -45,6 +46,16 @@ void CheckKeywordType(Parser *parser, KEYWORD_TYPE type);
  * @return Token* The checked token.
  */
 Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type);
+
+// A similar variant that returns true if it finds a match, false if it doesn't
+bool DoesNextTokenMatch(Parser *parser, TOKEN_TYPE type);
+
+/**
+ * @brief Skips the entire block structure beginning with the nearest '{' character (used in if-else, while, etc...)
+ * 
+ * @param parser Parser instance
+ */
+void SkipBlock(Parser *parser);
 
 /**
  * @brief Parses the program header.

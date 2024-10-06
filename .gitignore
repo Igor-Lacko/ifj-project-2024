@@ -10,7 +10,7 @@
 # Test files
 *test*
 *Test*
-.zig
+*.zig
 
 # Linker output
 *.ilk
@@ -58,8 +58,8 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-#assignment
-zadani.pdf
+#assignment and school files
+*.pdf
 
 #vscode files
 *vscode*
