@@ -541,14 +541,14 @@ void ProgramBody(Parser *parser)
 
 int main()
 {
-    printf(".IFJcode24\n"); // initial codegen instruction
-    Parser parser;
-    parser.line_number = 1;
-    parser.has_main = false;
-    parser.in_function = false;
-    parser.nested_level = 0;
-    parser.symtable = InitSymtable(TABLE_COUNT);
-    parser.symtable_stack = SymtableStackInit();
+    // initial codegen instructions
+    printf(".IFJcode24\n");
+    InitRegisters();
+
+    // parser instance
+    Parser parser = {.line_number = 1, .has_main = false, .in_function = false, 
+    .nested_level = 0, 
+    .symtable = InitSymtable(TABLE_COUNT), .symtable_stack = SymtableStackInit()};
 
     Header(&parser);
     ProgramBody(&parser);
@@ -562,10 +562,8 @@ int main()
         DestroySymtable(parser.symtable);
         ErrorExit(ERROR_SEMANTIC_UNDEFINED, "Main function not found");
     }
-    // PrintTable(parser.symtable);
-    SymtableStackPrint(parser.symtable_stack);
-    printf("symstack length: %ld\n", parser.symtable_stack->size);
-    // SymtableStackDestroy(parser.symtable_stack);
+
+    SymtableStackDestroy(parser.symtable_stack);
     return 0;
 }
 

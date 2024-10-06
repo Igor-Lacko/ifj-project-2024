@@ -23,8 +23,9 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
  * @param operand_1 First operand
  * @param operand_2 Second operand
  * @param operator Operation to be performed
+ * @note We use a register structure here: The operands are in the registers R1 and R2
  */
-void IntExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator);
+void IntExpression(Parser *parser, TOKEN_TYPE operator);
 
 /**
  * @brief Similar to IntExpression, but throws an error in case of a compatibility error (so float variable @ int)
@@ -36,6 +37,7 @@ void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_T
  */
 void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator);
 
-
+// Initial codegen that prints the IFJCode24 for defining some global registers
+void InitRegisters();
 
 #endif
