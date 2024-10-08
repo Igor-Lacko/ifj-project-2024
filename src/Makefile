@@ -1,10 +1,10 @@
 CC= gcc
 CFLAGS= -Wall -Wextra -pedantic -Werror
 
-HEADERS = scanner.h vector.h error.h parser.h symtable.h stack.h expression_parser.h
+HEADERS = scanner.h vector.h error.h parser.h symtable.h stack.h expression_parser.h codegen.h
 
-MODULES = scanner.o vector.o error.o parser.o symtable.o stack.o expression_parser.o
-DEBUG_MODULES = scanner-d.o vector-d.o error-d.o parser-d.o symtable-d.o stack-d.o expression_parser-d.o
+MODULES = scanner.o vector.o error.o parser.o symtable.o stack.o expression_parser.o codegen.o
+DEBUG_MODULES = scanner-d.o vector-d.o error-d.o parser-d.o symtable-d.o stack-d.o expression_parser-d.o codegen-d.o
 
 #----CURRENT DEBUG FILE----#
 DEBUG_FILE = ../test_files/expressions.ifj24

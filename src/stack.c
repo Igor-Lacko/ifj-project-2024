@@ -88,6 +88,9 @@ bool SymtableStackIsEmpty(SymtableStack *stack)
 // function for finding a variable in the stack
 VariableSymbol *SymtableStackFindVariable(SymtableStack *stack, char *name)
 {
+    // For expression intermediate results which don't have a name
+    if(name == NULL) return NULL;
+
     SymtableStackNode *current = stack->top;
     while (current != NULL)
     {

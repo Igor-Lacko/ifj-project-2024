@@ -121,44 +121,6 @@ bool IsNullable(Token *operand, Symtable *symtable)
     return true;      // nullable variable
 }
 
-bool AreTypesIncompatible(Token *operand_1, Token *operand_2, Symtable *symtable)
-{
-    if (operand_1->token_type != IDENTIFIER_TOKEN && operand_2->token_type != IDENTIFIER_TOKEN)
-        return false; // constants, we know their value
-
-    // help var symbols
-    VariableSymbol *symbol_1 = NULL, *symbol_2 = NULL;
-
-    // get the symbols (if they exist)
-    if (operand_1->token_type == IDENTIFIER_TOKEN)
-        symbol_1 = FindVariableSymbol(symtable, operand_1->attribute);
-    if (operand_2->token_type == IDENTIFIER_TOKEN)
-        symbol_2 = FindVariableSymbol(symtable, operand_2->attribute);
-
-    // they are incompatible if they are symbols of different types, or if one is a int variable and the other is a float constant
-    // the first case
-    if (symbol_1 != NULL && symbol_2 != NULL)
-    {
-        if (symbol_1->type != symbol_2->type)
-            return true;
-    }
-
-    // the second case
-    else if (symbol_1 != NULL)
-    { // only symbol_1 is an variable
-        if (symbol_1->type == INT32_TYPE && operand_2->token_type == DOUBLE_64)
-            return true;
-    }
-
-    else if (symbol_2 != NULL)
-    { // only symbol 2 is an variable
-        if (symbol_2->type == INT32_TYPE && operand_1->token_type == DOUBLE_64)
-            return true;
-    }
-
-    return false; // both are constants, we can safely compare them by either normal float/int comparision or converting the int operand to float
-}
-
 TokenVector *InfixToPostfix(Parser *parser)
 {
     int line_start = parser->line_number; // In case we encounter a newline, multi-line expressions are (probably not supported)
@@ -291,6 +253,12 @@ TokenVector *InfixToPostfix(Parser *parser)
             DestroyToken(top);
             break;
 
+        case EOF_TOKEN:
+            fprintf(stderr, RED "Error in syntax analysis: Line %d: Expression not ended correctly\n" RESET, parser->line_number);
+            DestroyToken(token);
+            DestroyStackAndVector(postfix, stack);
+            exit(ERROR_SYNTACTIC);
+
         default:
             fprintf(stderr, RED "Error in syntax analysis: Line %d: Unexpected symbol in expression\n" RESET, parser->line_number);
             DestroyToken(token);
@@ -334,4 +302,20 @@ void DestroyStackAndVector(TokenVector *postfix, ExpressionStack *stack)
 
     DestroyTokenVector(postfix);
     ExpressionStackDestroy(stack);
+}
+
+void PrintPostfix(TokenVector *postfix)
+{
+    if(postfix == NULL)
+    {
+        printf("Recieved NULL TokenVector, printing nothing\n");
+        return;
+    }
+
+    for(int i = 0; i < postfix->length; i++)
+    {
+        printf("%s", postfix->token_string[i]->attribute);
+    }
+
+    printf("\n");
 }

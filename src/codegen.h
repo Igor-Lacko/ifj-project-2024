@@ -6,6 +6,14 @@
 #include "expression_parser.h"
 #include "symtable.h"
 
+// Enum for IFJCode24 frames
+typedef enum
+{
+    GLOBAL_FRAME,
+    LOCAL_FRAME,
+    TEMPORARY_FRAME
+} FRAME;
+
 /**
  * @brief Generates IFJ24 code for the given expression in postfix form
  * 
@@ -17,27 +25,33 @@
 DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, VariableSymbol *var);
 
 /**
- * @brief Generates code for a int expression given by operand_1 @ operand_2, where @ is the operator
+ * @brief Generates code for a int expression given by R1 @ R2, where @ is the operator
  * 
- * @param parser For line numbers and symtable
- * @param operand_1 First operand
- * @param operand_2 Second operand
  * @param operator Operation to be performed
  * @note We use a register structure here: The operands are in the registers R1 and R2
  */
-void IntExpression(Parser *parser, TOKEN_TYPE operator);
+void IntExpression(TOKEN_TYPE operator);
 
 /**
- * @brief Similar to IntExpression, but throws an error in case of a compatibility error (so float variable @ int)
+ * @brief Similar to IntExpression, but throws an error in case of a compatibility error (so int variable @ float)
+ * @note Here we actually need access to the operands to check for compatibility
  */
-void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator);
+void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *are_incompatible);
 
 /**
  * @brief Boolean version of FloatExpression, also can throw an error
  */
-void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator);
+void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *are_incompatible);
 
 // Initial codegen that prints the IFJCode24 for defining some global registers
 void InitRegisters();
+
+/**
+ * @brief Defines a IFJCode24 variable, basically just a nicely named wrapper for fprintf
+ * 
+ * @param name The variable name
+ * @param frame The frame/scope to define the variable for
+ */
+void DefineVariable(const char *name, FRAME frame);
 
 #endif

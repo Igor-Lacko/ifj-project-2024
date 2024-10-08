@@ -183,7 +183,6 @@ void Parameters(Parser *parser, char *function_name)
             // add to symtable
             VariableSymbol *var = VariableSymbolInit();
             var->name = strdup(token->attribute);
-            var->value = NULL;
             var->is_const = false;
 
             DestroyToken(token);
@@ -325,6 +324,7 @@ void IfElse(Parser *parser)
     CheckTokenType(parser, L_ROUND_BRACKET);
     // expression
     TokenVector *postfix = InfixToPostfix(parser);
+    (void) postfix;
     CheckTokenType(parser, R_ROUND_BRACKET);
 
     Token *token = GetNextToken(&parser->line_number);
@@ -383,7 +383,6 @@ void VarDeclaration(Parser *parser)
     VariableSymbol *var = VariableSymbolInit();
     var->name = strdup(token->attribute);
     var->is_const = false;
-    var->value = NULL;
     var->type = VOID_TYPE;
 
     // check if the variable is already declared in stack
@@ -413,8 +412,10 @@ void ConstDeclaration(Parser *parser)
     VariableSymbol *var = VariableSymbolInit();
     var->name = strdup(token->attribute);
     var->is_const = true;
-    var->value = NULL;
     var->type = VOID_TYPE;
+
+    // Define a variable in IFJCode24
+    DefineVariable(var->name, LOCAL_FRAME);
 
     // check if the variable is already declared in stack
     VariableSymbol *var_in_stack = SymtableStackFindVariable(parser->symtable_stack, var->name);
@@ -452,26 +453,33 @@ void ConstDeclaration(Parser *parser)
         }
         var->type = token->keyword_type == I32 ? INT32_TYPE : token->keyword_type == F64 ? DOUBLE64_TYPE : U8_ARRAY_TYPE;
         DestroyToken(token);
-    }
-    // else if (token->token_type != ASSIGNMENT)
-    // {
-    //     DestroyToken(token);
-    //     DestroySymtable(parser->symtable);
-    //     ErrorExit(ERROR_SYNTACTIC, "Expected '=' at line %d", parser->line_number);
-    // }
 
+        CheckTokenType(parser, ASSIGNMENT);
+    }
+
+    else if (token->token_type != ASSIGNMENT)
+    {
+        DestroyToken(token);
+        SymtableStackDestroy(parser->symtable_stack);
+        ErrorExit(ERROR_SYNTACTIC, "Expected '=' at line %d", parser->line_number);
+    }
+
+    DestroyToken(token);
 
     // expression
     TokenVector *postfix = InfixToPostfix(parser);
-
-    // check if the types are compatible
-    if (var->type != ret_value->type && var->type != VOID_TYPE)
+    DATA_TYPE expr_type;
+    if((expr_type = GeneratePostfixExpression(parser, postfix, var)) != var->type && var->type != VOID_TYPE)
     {
-        DestroySymtable(parser->symtable);
-        ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Incompatible types at line %d", parser->line_number);
+        // assignment to invalid type case
+        SymtableStackDestroy(parser->symtable_stack);
+        if(token != NULL) DestroyToken(token);
+        ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Incompatible type in assignment to variable", parser->line_number);
     }
 
-    DestroyExpressionReturn(ret_value);
+    // if the variable doesn't have a type yet, derive it from the expression (TODO: Add check for invalid types, etc.)
+    if(var->type == VOID_TYPE) var->type = expr_type;
+
     CheckTokenType(parser, SEMICOLON);
 }
 
@@ -537,7 +545,7 @@ void ProgramBody(Parser *parser)
     DestroyToken(token);
 }
 
-#ifndef IFJ24_DEBUG // not for debugs
+#ifdef IFJ24_DEBUG // not for debugs
 
 int main()
 {
@@ -550,6 +558,8 @@ int main()
     .nested_level = 0, 
     .symtable = InitSymtable(TABLE_COUNT), .symtable_stack = SymtableStackInit()};
 
+    SymtableStackPush(parser.symtable_stack, parser.symtable);
+
     Header(&parser);
     ProgramBody(&parser);
     printf("\033[1m\033[32m"
@@ -559,7 +569,7 @@ int main()
     // check if the main function is present
     if (!parser.has_main)
     {
-        DestroySymtable(parser.symtable);
+        SymtableStackDestroy(parser.symtable_stack);
         ErrorExit(ERROR_SEMANTIC_UNDEFINED, "Main function not found");
     }
 

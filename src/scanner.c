@@ -25,6 +25,7 @@ void DestroyToken(Token *token){
         free(token -> attribute);
 
     free(token);
+    token = NULL;
 }
 
 

@@ -138,6 +138,8 @@ VariableSymbol *VariableSymbolInit(void)
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
 
+    variable_symbol->type = VOID_TYPE; // Default
+
     return variable_symbol;
 }
 
@@ -173,8 +175,6 @@ void DestroyVariableSymbol(VariableSymbol *variable_symbol)
 
     if (variable_symbol->name != NULL)
         free(variable_symbol->name);
-    if (variable_symbol->value != NULL)
-        free(variable_symbol->value);
 
     free(variable_symbol);
 }
@@ -301,8 +301,6 @@ void PrintTable(Symtable *symtable)
             else
             {
                 printf("Variable: %s\n", ((VariableSymbol *)current->symbol)->name);
-                if (((VariableSymbol *)current->symbol)->value != NULL)
-                    printf("Int Value: %d\n", (*(int *)((VariableSymbol *)current->symbol)->value));
             }
             current = current->next;
         }
