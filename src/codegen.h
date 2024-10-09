@@ -54,4 +54,11 @@ void InitRegisters();
  */
 void DefineVariable(const char *name, FRAME frame);
 
+/**
+ * @brief Generates code for an if statement
+ * 
+ * @param label Name of the label to pass to the code generator
+ */
+void IfStatement(const char *label);
+
 #endif

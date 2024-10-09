@@ -10,13 +10,15 @@ void InitRegisters()
     // Result registers
     fprintf(stdout, "DEFVAR <GF@R0>\n");
     fprintf(stdout, "DEFVAR <GF@F0>\n");
-    fprintf(stdout, "DEFVAR <GF@B0>\n"); // Special boolean register mostly for conditional jumps
+    fprintf(stdout, "DEFVAR <GF@B0>\n");
 
     // Operand registers
     fprintf(stdout, "DEFVAR <GF@R1>\n");
     fprintf(stdout, "DEFVAR <GF@R2>\n");
     fprintf(stdout, "DEFVAR <GF@F1>\n");
     fprintf(stdout, "DEFVAR <GF@F2>\n");
+    fprintf(stdout, "DEFVAR <GF@B1>\n");
+    fprintf(stdout, "DEFVAR <GF@B2>\n");
 }
 
 void DefineVariable(const char *name, FRAME frame)
@@ -137,7 +139,104 @@ void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_T
 
 void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *are_incompatible)
 {
-    //todo
+    // So that we knpow which registers to use
+    bool has_floats = false;
+
+    // For quicker access to types
+    VariableSymbol *symb1 = NULL, *symb2 = NULL;
+
+    // For quicker printing of the source registers (Either R1/R2 or F1/F2)
+    char op1_reg[8]; char op2_reg[8];
+
+    // Same edge/error cases as with FloatExpression()
+    if(operand_1->token_type == IDENTIFIER_TOKEN && operand_2->token_type == IDENTIFIER_TOKEN)
+    {
+        if((symb1 = SymtableStackFindVariable(parser->symtable_stack, operand_1->attribute))->type != (symb2 = SymtableStackFindVariable(parser->symtable_stack, operand_2->attribute))->type)
+        {
+            *are_incompatible = true;
+            return;
+        }
+
+        else if(symb1->type == DOUBLE64_TYPE || symb2->type == DOUBLE64_TYPE)
+        {
+            has_floats = true;
+        }
+    }
+
+    else if(symb1 != NULL)
+    {
+        if(symb1->type == INT32_TYPE && operand_2->token_type == DOUBLE_64)
+        {
+            *are_incompatible = true;
+            return;
+        }
+    }
+
+    else if(symb2 != NULL)
+    {
+        if(operand_1->token_type == INTEGER_32 && symb2->type == INT32_TYPE)
+        {
+            *are_incompatible = true;
+            return;
+        }
+    }
+
+    // Get the src registers
+    if(has_floats)
+    {
+        strcpy(op1_reg, "<GF@F1>");
+        strcpy(op2_reg, "<GF@F2>");
+    }
+
+    else
+    {
+        strcpy(op1_reg, "<GF@R1>");
+        strcpy(op2_reg, "<GF@R2>");
+    }
+
+    // Convert to floats if needed
+    if(operand_1->token_type == INTEGER_32 && has_floats) fprintf(stdout, "INT2FLOAT <GF@F1> <GF@R1>\n");
+    if(operand_2->token_type == INTEGER_32 && has_floats) fprintf(stdout, "INT2FLOAT <GF@F2> <GF@R2>\n");
+
+    // Perform the given operation
+    switch(operator)
+    {
+        case EQUAL_OPERATOR:
+            fprintf(stdout, "EQ <GF@B0> %s %s\n", op1_reg, op2_reg);
+            break;
+
+        case NOT_EQUAL_OPERATOR:
+            fprintf(stdout, "EQ <GF@B1> %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "NOT <GF@B0> <GF@B1>\n");
+            break;
+
+        case LARGER_THAN_OPERATOR:
+            fprintf(stdout, "GT <GF@B0> %s %s\n", op2_reg, op1_reg);
+            break;
+
+        case LESS_THAN_OPERATOR:
+            fprintf(stdout, "LT <GF@B0> %s %s\n", op2_reg, op1_reg);
+            break;
+
+        case LARGER_EQUAL_OPERATOR:
+            fprintf(stdout, "GT <GF@B1> %s %s\n", op2_reg, op1_reg);
+            fprintf(stdout, "EQ <GF@B2> %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "OR <GF@B0> <GF@B1> <GF@B2>\n");
+            break;
+
+        case LESSER_EQUAL_OPERATOR:
+            fprintf(stdout, "LT <GF@B1> %s %s\n", op2_reg, op1_reg);
+            fprintf(stdout, "EQ <GF@B2> %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "OR <GF@B0> <GF@B1> <GF@B2>\n");
+            break;
+
+        default:
+            // This will never happen, because the codegen calls this only when a boolean operator is encountered
+            // Regardless, it has to be here
+            break;
+    }
+
+    fprintf(stdout, "PUSHS <GF@B0>\n");
 }
 
 DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, VariableSymbol *var)
@@ -180,6 +279,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
         {
             SymtableStackDestroy(parser->symtable_stack);
             DestroyTokenVector(postfix);
+            free(varname);
             ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
         }
 
@@ -208,6 +308,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     fprintf(stdout, RED"Error in semantic analysis: Line %d: Undefined variable '%s'\n"RESET, parser->line_number, token->attribute);
                     SymtableStackDestroy(parser->symtable_stack);
                     DestroyStackAndVector(postfix, stack);
+                    free(varname);
                     exit(ERROR_SEMANTIC_UNDEFINED);
                 }
 
@@ -230,6 +331,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
                     SymtableStackDestroy(parser->symtable_stack);
                     DestroyStackAndVector(postfix, stack);
+                    free(varname);
                     ErrorExit(ERROR_SYNTACTIC, "Line %d: Invalid expression");
                 }
 
@@ -260,6 +362,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
                         SymtableStackDestroy(parser->symtable_stack);
                         DestroyStackAndVector(postfix, stack);
+                        free(varname);
                         exit(ERROR_SEMANTIC_UNDEFINED);
                     }
 
@@ -277,7 +380,6 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     f_token->token_type = DOUBLE_64;
 
                     FloatExpression(parser, op1, op2, token->token_type, &are_incompatible);
-                    AllocateAttribute(f_token, "testtest");
                     ExpressionStackPush(stack, f_token);
                     return_type = DOUBLE64_TYPE;
                     if(are_incompatible)
@@ -288,6 +390,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
                         SymtableStackDestroy(parser->symtable_stack);
                         DestroyStackAndVector(postfix, stack);
+                        free(varname);
                         exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
                     }
                 }
@@ -303,12 +406,14 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                         
                         if(are_incompatible)
                         {
-                        fprintf(stderr, RED"Error in semantic analysis: Line %d: Incompatible operands '%s' and '%s'\n"RESET, parser->line_number, op1->attribute, op2->attribute);
-                        if(!IsTokenInString(postfix, op1)) DestroyToken(op1);
-                        if(!IsTokenInString(postfix, op2)) DestroyToken(op2);
-                        SymtableStackDestroy(parser->symtable_stack);
-                        DestroyStackAndVector(postfix, stack);
-                        exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+                            fprintf(stderr, RED"Error in semantic analysis: Line %d: Incompatible operands '%s' and '%s'\n"RESET, parser->line_number, op1->attribute, op2->attribute);
+                            if(!IsTokenInString(postfix, op1)) DestroyToken(op1);
+                            if(!IsTokenInString(postfix, op2)) DestroyToken(op2);
+
+                            SymtableStackDestroy(parser->symtable_stack);
+                            DestroyStackAndVector(postfix, stack);
+                            free(varname);
+                            exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
                         }
                     }
                 }
@@ -324,13 +429,14 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                         
                         if(are_incompatible)
                         {
-                        fprintf(stderr, RED"Error in semantic analysis: Line %d: Incompatible operands '%s' and '%s'\n"RESET, parser->line_number, op1->attribute, op2->attribute);
-                        if(!IsTokenInString(postfix, op1)) DestroyToken(op1);
-                        if(!IsTokenInString(postfix, op2)) DestroyToken(op2);
+                            fprintf(stderr, RED"Error in semantic analysis: Line %d: Incompatible operands '%s' and '%s'\n"RESET, parser->line_number, op1->attribute, op2->attribute);
+                            if(!IsTokenInString(postfix, op1)) DestroyToken(op1);
+                            if(!IsTokenInString(postfix, op2)) DestroyToken(op2);
 
-                        SymtableStackDestroy(parser->symtable_stack);
-                        DestroyStackAndVector(postfix, stack);
-                        exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+                            SymtableStackDestroy(parser->symtable_stack);
+                            DestroyStackAndVector(postfix, stack);
+                            free(varname);
+                            exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
                         }
                     }
                 }
@@ -358,9 +464,9 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                 // Has to be the end of a expression
                 if(postfix->token_string[++i]->token_type != SEMICOLON)
                 {
-                    free(varname);
                     SymtableStackDestroy(parser->symtable_stack);
                     DestroyStackAndVector(postfix, stack);
+                    free(varname);
                     ErrorExit(ERROR_SYNTACTIC, "Line %d: Invalid expression");
                 }
 
@@ -374,9 +480,9 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     if(op1 != NULL && IsTokenInString(postfix, op1)) DestroyToken(op1);
                     if(op2 != NULL && IsTokenInString(postfix, op2)) DestroyToken(op2);
 
-                    free(varname);
                     SymtableStackDestroy(parser->symtable_stack);
                     DestroyStackAndVector(postfix, stack);
+                    free(varname);
                     ErrorExit(ERROR_SYNTACTIC, "Line %d: Invalid expression");
                 }
 
@@ -389,13 +495,13 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                         if(!IsTokenInString(postfix, op1)) DestroyToken(op1);
                         if(!IsTokenInString(postfix, op2)) DestroyToken(op2);
 
-                        free(varname);
                         SymtableStackDestroy(parser->symtable_stack);
                         DestroyStackAndVector(postfix, stack);
+                        free(varname);
                         exit(ERROR_SEMANTIC_UNDEFINED);
                     }
 
-                    else if(sym1->type == DOUBLE_64) op1_float = true;
+                    else if(sym1->type == DOUBLE64_TYPE) op1_float = true;
                 }
 
                 else if(op2->token_type == IDENTIFIER_TOKEN)
@@ -406,9 +512,9 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                         if(!IsTokenInString(postfix, op1)) DestroyToken(op1);
                         if(!IsTokenInString(postfix, op2)) DestroyToken(op2);
 
-                        free(varname);
                         SymtableStackDestroy(parser->symtable_stack);
                         DestroyStackAndVector(postfix, stack);
+                        free(varname);
                         exit(ERROR_SEMANTIC_UNDEFINED);
                     }
 
@@ -422,8 +528,14 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
                 Token *b_token = InitToken();
                 b_token->token_type = BOOLEAN_TOKEN;
-                BoolExpression(parser, op1, op2, token, &are_incompatible);
-                return BOOLEAN; // todo 
+                BoolExpression(parser, op1, op2, token->token_type, &are_incompatible);
+                ExpressionStackPush(stack, b_token);
+
+                // Dispose of the old operands
+                if(!IsTokenInString(postfix, op1)) DestroyToken(op1);
+                if(!IsTokenInString(postfix, op2)) DestroyToken(op2);
+
+                break;
 
             case SEMICOLON:
                 // The result of the expression is on top of the stack
@@ -442,6 +554,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                 PrintToken(token);
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroyStackAndVector(postfix, stack);
+                free(varname);
                 ErrorExit(ERROR_SYNTACTIC, "Line %d: Invalid symbol in expression");
                 break;
         }
