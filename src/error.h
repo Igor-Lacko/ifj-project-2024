@@ -20,6 +20,9 @@
 #define ERROR_SEMANTIC_OTHER 10             // other semantic errors
 /*End of semantic error codes*/
 
+// Debug macro
+#define NOT_IMPLEMENTED fprintf(stderr, "Error: This feautre is not implemented yet!"); exit(ERROR_INTERNAL);
+
 #define ERROR_INTERNAL 99 // internal compiler error, for example a failed malloc call... etc.
 
 #define RED "\033[1m\033[31m"
@@ -34,5 +37,8 @@
  * @param ... The function accepts variable arguments for printing, like printf/fprintf using vfprintf
  */
 void ErrorExit(int error_code, const char *message, ...);
+
+// Similar to ErrorExit, but doesn't end the program
+void PrintError(const char *message, ...);
 
 #endif

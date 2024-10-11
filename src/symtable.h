@@ -44,6 +44,8 @@ typedef struct
     VariableSymbol **parameters;
     void *return_value;
     DATA_TYPE return_type;
+    bool was_called;
+    bool was_defined;
 } FunctionSymbol;
 
 // structure of a symbol linked list node

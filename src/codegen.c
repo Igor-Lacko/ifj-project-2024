@@ -5,20 +5,24 @@
 #include "codegen.h"
 #include "expression_parser.h"
 
+// Extern label counters
+int if_label_count = 0;
+int while_label_count = 0;
+
 void InitRegisters()
 {
     // Result registers
-    fprintf(stdout, "DEFVAR <GF@R0>\n");
-    fprintf(stdout, "DEFVAR <GF@F0>\n");
-    fprintf(stdout, "DEFVAR <GF@B0>\n");
+    fprintf(stdout, "DEFVAR GF@R0\n");
+    fprintf(stdout, "DEFVAR GF@F0\n");
+    fprintf(stdout, "DEFVAR GF@B0\n");
 
     // Operand registers
-    fprintf(stdout, "DEFVAR <GF@R1>\n");
-    fprintf(stdout, "DEFVAR <GF@R2>\n");
-    fprintf(stdout, "DEFVAR <GF@F1>\n");
-    fprintf(stdout, "DEFVAR <GF@F2>\n");
-    fprintf(stdout, "DEFVAR <GF@B1>\n");
-    fprintf(stdout, "DEFVAR <GF@B2>\n");
+    fprintf(stdout, "DEFVAR GF@R1\n");
+    fprintf(stdout, "DEFVAR GF@R2\n");
+    fprintf(stdout, "DEFVAR GF@F1\n");
+    fprintf(stdout, "DEFVAR GF@F2\n");
+    fprintf(stdout, "DEFVAR GF@B1\n");
+    fprintf(stdout, "DEFVAR GF@B2\n");
 }
 
 void DefineVariable(const char *name, FRAME frame)
@@ -26,15 +30,16 @@ void DefineVariable(const char *name, FRAME frame)
     switch(frame)
     {
         case GLOBAL_FRAME:
-            fprintf(stdout, "DEFVAR <GF@%s>\n", name);
+            fprintf(stdout, "DEFVAR GF@%s\n", name);
             break;
 
         case LOCAL_FRAME:
-            fprintf(stdout, "DEFVAR <LF@%s>\n", name);
+            fprintf(stdout, "DEFVAR LF@%s\n", name);
             break;
 
         case TEMPORARY_FRAME:
-            fprintf(stdout, "DEFVAR <TF@%s>\n", name);
+            fprintf(stdout, "DEFVAR TF@%s\n", name);
+            break;
     }
 }
 
@@ -45,19 +50,19 @@ void IntExpression(TOKEN_TYPE operator)
     switch(operator)
     {
         case MULTIPLICATION_OPERATOR:
-            fprintf(stdout, "MUL <GF@R0> <GF@R1> <GF@R2>\n");
+            fprintf(stdout, "MUL GF@R0 GF@R1 GF@R2\n");
             break;
 
         case DIVISION_OPERATOR:
-            fprintf(stdout, "IDIV <GF@R0> <GF@R2> <GF@R1>\n");
+            fprintf(stdout, "IDIV GF@R0 GF@R2 GF@R1\n");
             break;
 
         case ADDITION_OPERATOR:
-            fprintf(stdout, "ADD <GF@R0> <GF@R1> <GF@R2>\n");
+            fprintf(stdout, "ADD GF@R0 GF@R1 GF@R2\n");
             break;
 
         case SUBSTRACTION_OPERATOR:
-            fprintf(stdout, "SUB <GF@R0> <GF@R2> <GF@R1>\n");
+            fprintf(stdout, "SUB GF@R0 GF@R2 GF@R1\n");
             break;
 
         default:
@@ -65,7 +70,7 @@ void IntExpression(TOKEN_TYPE operator)
             break;
     }
 
-    fprintf(stdout, "PUSHS <GF@R0>\n");
+    fprintf(stdout, "PUSHS GF@R0\n");
 }
 
 void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *are_incompatible)
@@ -106,27 +111,27 @@ void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_T
     }
 
     // See if one of the operands isn't an int literal and if yes, convert it
-    if(operand_1->token_type == INTEGER_32) fprintf(stdout, "INT2FLOAT <GF@F1> <GF@R1>\n");
-    if(operand_2->token_type == INTEGER_32) fprintf(stdout, "INT2FLOAT <GF@F2> <GF@R2>\n");
+    if(operand_1->token_type == INTEGER_32) fprintf(stdout, "INT2FLOAT GF@F1 GF@R1\n");
+    if(operand_2->token_type == INTEGER_32) fprintf(stdout, "INT2FLOAT GF@F2 GF@R2\n");
 
     // Perform the given operation
     // At the start, operand 1 is in F1, operand 2 is in F2
     switch(operator)
     {
         case MULTIPLICATION_OPERATOR:
-            fprintf(stdout, "MUL <GF@F0> <GF@F1> <GF@F2>\n");
+            fprintf(stdout, "MUL GF@F0 GF@F1 GF@F2\n");
             break;
 
         case DIVISION_OPERATOR:
-            fprintf(stdout, "DIV <GF@F0> <GF@F2> <GF@F1>\n");
+            fprintf(stdout, "DIV GF@F0 GF@F2 GF@F1\n");
             break;
 
         case ADDITION_OPERATOR:
-            fprintf(stdout, "ADD <GF@F0> <GF@F1> <GF@F2>\n");
+            fprintf(stdout, "ADD GF@F0 GF@F1 GF@F2\n");
             break;
 
         case SUBSTRACTION_OPERATOR:
-            fprintf(stdout, "SUB <GF@F0> <GF@F2> <GF@F1>\n");
+            fprintf(stdout, "SUB GF@F0 GF@F2 GF@F1\n");
             break;
 
         default:
@@ -134,7 +139,7 @@ void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_T
             break;
     }
 
-    fprintf(stdout, "PUSHS <GF@F0>\n");
+    fprintf(stdout, "PUSHS GF@F0\n");
 }
 
 void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *are_incompatible)
@@ -184,50 +189,50 @@ void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TY
     // Get the src registers
     if(has_floats)
     {
-        strcpy(op1_reg, "<GF@F1>");
-        strcpy(op2_reg, "<GF@F2>");
+        strcpy(op1_reg, "GF@F1");
+        strcpy(op2_reg, "GF@F2");
     }
 
     else
     {
-        strcpy(op1_reg, "<GF@R1>");
-        strcpy(op2_reg, "<GF@R2>");
+        strcpy(op1_reg, "GF@R1");
+        strcpy(op2_reg, "GF@R2");
     }
 
     // Convert to floats if needed
-    if(operand_1->token_type == INTEGER_32 && has_floats) fprintf(stdout, "INT2FLOAT <GF@F1> <GF@R1>\n");
-    if(operand_2->token_type == INTEGER_32 && has_floats) fprintf(stdout, "INT2FLOAT <GF@F2> <GF@R2>\n");
+    if(operand_1->token_type == INTEGER_32 && has_floats) fprintf(stdout, "INT2FLOAT GF@F1 GF@R1\n");
+    if(operand_2->token_type == INTEGER_32 && has_floats) fprintf(stdout, "INT2FLOAT GF@F2 GF@R2\n");
 
     // Perform the given operation
     switch(operator)
     {
         case EQUAL_OPERATOR:
-            fprintf(stdout, "EQ <GF@B0> %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "EQ GF@B0 %s %s\n", op1_reg, op2_reg);
             break;
 
         case NOT_EQUAL_OPERATOR:
-            fprintf(stdout, "EQ <GF@B1> %s %s\n", op1_reg, op2_reg);
-            fprintf(stdout, "NOT <GF@B0> <GF@B1>\n");
+            fprintf(stdout, "EQ GF@B1 %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "NOT GF@B0 GF@B1\n");
             break;
 
         case LARGER_THAN_OPERATOR:
-            fprintf(stdout, "GT <GF@B0> %s %s\n", op2_reg, op1_reg);
+            fprintf(stdout, "GT GF@B0 %s %s\n", op2_reg, op1_reg);
             break;
 
         case LESS_THAN_OPERATOR:
-            fprintf(stdout, "LT <GF@B0> %s %s\n", op2_reg, op1_reg);
+            fprintf(stdout, "LT GF@B0 %s %s\n", op2_reg, op1_reg);
             break;
 
         case LARGER_EQUAL_OPERATOR:
-            fprintf(stdout, "GT <GF@B1> %s %s\n", op2_reg, op1_reg);
-            fprintf(stdout, "EQ <GF@B2> %s %s\n", op1_reg, op2_reg);
-            fprintf(stdout, "OR <GF@B0> <GF@B1> <GF@B2>\n");
+            fprintf(stdout, "GT GF@B1 %s %s\n", op2_reg, op1_reg);
+            fprintf(stdout, "EQ GF@B2 %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "OR GF@B0 GF@B1 GF@B2\n");
             break;
 
         case LESSER_EQUAL_OPERATOR:
-            fprintf(stdout, "LT <GF@B1> %s %s\n", op2_reg, op1_reg);
-            fprintf(stdout, "EQ <GF@B2> %s %s\n", op1_reg, op2_reg);
-            fprintf(stdout, "OR <GF@B0> <GF@B1> <GF@B2>\n");
+            fprintf(stdout, "LT GF@B1 %s %s\n", op2_reg, op1_reg);
+            fprintf(stdout, "EQ GF@B2 %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "OR GF@B0 GF@B1 GF@B2\n");
             break;
 
         default:
@@ -236,7 +241,7 @@ void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TY
             break;
     }
 
-    fprintf(stdout, "PUSHS <GF@B0>\n");
+    fprintf(stdout, "PUSHS GF@B0\n");
 }
 
 DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, VariableSymbol *var)
@@ -269,7 +274,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
         }
 
         // define a new variable
-        fprintf(stdout, "DEFVAR <LF@tempvar>\n");
+        fprintf(stdout, "DEFVAR LF@tempvar\n");
         strcpy(varname, "tempvar");
     }
 
@@ -299,13 +304,13 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
         {
             case INTEGER_32: case DOUBLE_64: // operand tokens, push them to the stack
                 ExpressionStackPush(stack, token);
-                fprintf(stdout, "PUSHS <%s>\n",token->attribute);
+                fprintf(stdout, "PUSHS LF@%s\n",token->attribute);
                 break;
 
             case IDENTIFIER_TOKEN: // identifier token, the same as for operands just check type/and if are defined
                 if((sym1 = SymtableStackFindVariable(parser->symtable_stack, token->attribute)) == NULL)
                 {
-                    fprintf(stdout, RED"Error in semantic analysis: Line %d: Undefined variable '%s'\n"RESET, parser->line_number, token->attribute);
+                    fprintf(stderr, RED"Error in semantic analysis: Line %d: Undefined variable '%s'\n"RESET, parser->line_number, token->attribute);
                     SymtableStackDestroy(parser->symtable_stack);
                     DestroyStackAndVector(postfix, stack);
                     free(varname);
@@ -315,7 +320,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                 else
                 {
                     ExpressionStackPush(stack, token);
-                    fprintf(stdout, "PUSHS <LF@%s>\n",token->attribute);
+                    fprintf(stdout, "PUSHS LF@%s\n",token->attribute);
                     break;
                 }
 
@@ -369,8 +374,8 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     else if(sym2->type == DOUBLE64_TYPE) op2_float = true;
                 }
 
-                (op1->token_type != DOUBLE_64 || op1_float) ? fprintf(stdout, "POPS <GF@R1>\n") : fprintf(stdout, "POPS <GF@F1>\n"); // R1/F1 = Second operand (popped from the stack first)
-                (op2->token_type != DOUBLE_64 || op2_float) ? fprintf(stdout, "POPS <GF@R2>\n") : fprintf(stdout, "POPS <GF@F2>\n"); // R2/F2 = First operand
+                (op1->token_type != DOUBLE_64 || op1_float) ? fprintf(stdout, "POPS GF@R1\n") : fprintf(stdout, "POPS GF@F1\n"); // R1/F1 = Second operand (popped from the stack first)
+                (op2->token_type != DOUBLE_64 || op2_float) ? fprintf(stdout, "POPS GF@R2\n") : fprintf(stdout, "POPS GF@F2\n"); // R2/F2 = First operand
 
                 // call a function depending on the data types
                 if(op1->token_type == DOUBLE_64 || op2->token_type == DOUBLE_64)
@@ -462,7 +467,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
             case LESS_THAN_OPERATOR: case LARGER_THAN_OPERATOR:
             case LESSER_EQUAL_OPERATOR: case LARGER_EQUAL_OPERATOR:
                 // Has to be the end of a expression
-                if(postfix->token_string[++i]->token_type != SEMICOLON)
+                if(postfix->token_string[i + 1]->token_type != SEMICOLON)
                 {
                     SymtableStackDestroy(parser->symtable_stack);
                     DestroyStackAndVector(postfix, stack);
@@ -521,8 +526,8 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     else if(sym2->type == DOUBLE64_TYPE) op2_float = true;
                 }
 
-                (op1->token_type != DOUBLE_64 || op1_float) ? fprintf(stdout, "POPS <GF@R1>\n") : fprintf(stdout, "POPS <GF@F1>\n"); // R1/F1 = Second operand (popped from the stack first)
-                (op2->token_type != DOUBLE_64 || op2_float) ? fprintf(stdout, "POPS <GF@R2>\n") : fprintf(stdout, "POPS <GF@F2>\n"); // R2/F2 = First operand
+                (op1->token_type != DOUBLE_64 || op1_float) ? fprintf(stdout, "POPS GF@R1\n") : fprintf(stdout, "POPS GF@F1\n"); // R1/F1 = Second operand (popped from the stack first)
+                (op2->token_type != DOUBLE_64 || op2_float) ? fprintf(stdout, "POPS GF@R2\n") : fprintf(stdout, "POPS GF@F2\n"); // R2/F2 = First operand
 
                 op1_float = false; op2_float = false;
 
@@ -539,7 +544,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
             case SEMICOLON:
                 // The result of the expression is on top of the stack
-                fprintf(stdout, "POPS <LF@%s>\n", varname);
+                fprintf(stdout, "POPS LF@%s\n", varname);
 
                 // Clear the registers
                 fprintf(stdout, "CLEARS\n");
@@ -562,4 +567,169 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
     // The function shouldn't ever get here, but this has to be here anyway
     return return_type;
+}
+
+void IfLabel(FRAME frame)
+{
+    switch (frame)
+    {
+    case GLOBAL_FRAME:
+        fprintf(stdout, "LABEL GF@if%d\n", ++if_label_count);
+        break;
+    
+    case LOCAL_FRAME:
+        fprintf(stdout, "LABEL LF@if%d\n", ++if_label_count);
+        break;
+
+    case TEMPORARY_FRAME:
+        fprintf(stdout, "LABEL TF@if%d\n", ++if_label_count);
+        break;
+    }
+}
+
+void ElseLabel(FRAME frame)
+{
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            fprintf(stdout, "LABEL GF@else%d\n", if_label_count);
+            break;
+
+        case LOCAL_FRAME:
+            fprintf(stdout, "LABEL LF@else%d\n", if_label_count);
+            break;
+
+        case TEMPORARY_FRAME:
+            fprintf(stdout, "LABEL TF@else%d\n", if_label_count);
+            break;
+    }
+}
+
+void EndIfLabel(FRAME frame)
+{
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            fprintf(stdout, "LABEL GF@endif%d\n", if_label_count);
+            break;
+
+        case LOCAL_FRAME:
+            fprintf(stdout, "LABEL LF@endif%d\n", if_label_count);
+            break;
+
+        case TEMPORARY_FRAME:
+            fprintf(stdout, "LABEL TF@endif%d\n", if_label_count);
+            break;
+    }
+}
+
+void WhileLabel(FRAME frame)
+{
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            fprintf(stdout, "LABEL GF@while%d\n", ++while_label_count);
+            break;
+
+        case LOCAL_FRAME:
+            fprintf(stdout, "LABEL LF@while%d\n", ++while_label_count);
+            break;
+
+        case TEMPORARY_FRAME:
+            fprintf(stdout, "LABEL TF@while%d\n", ++while_label_count);
+            break;
+    }
+}
+
+void EndWhileLabel(FRAME frame)
+{
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            fprintf(stdout, "LABEL GF@endwhile%d\n", while_label_count);
+            break;
+
+        case LOCAL_FRAME:
+            fprintf(stdout, "LABEL LF@endwhile%d\n", while_label_count);
+            break;
+
+        case TEMPORARY_FRAME:
+            fprintf(stdout, "LABEL TF@endwhile%d\n", while_label_count);
+            break;
+    }
+}
+
+
+void Move(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame)
+{
+    switch(dst_frame)
+    {
+        case GLOBAL_FRAME:
+            switch(src_frame)
+            {
+                case GLOBAL_FRAME:
+                    fprintf(stdout, "MOVE GF@%s GF@%s\n", dst, src);
+                    break;
+
+                case LOCAL_FRAME:
+                    fprintf(stdout, "MOVE GF@%s LF@%s\n", dst, src);
+                    break;
+
+                case TEMPORARY_FRAME:
+                    fprintf(stdout, "MOVE GF@%s TF@%s\n", dst, src);
+                    break;
+            }
+            break;
+
+        case LOCAL_FRAME:
+            switch(src_frame)
+            {
+                case GLOBAL_FRAME:
+                    fprintf(stdout, "MOVE LF@%s GF@%s\n", dst, src);
+                    break;
+
+                case LOCAL_FRAME:
+                    fprintf(stdout, "MOVE LF@%s LF@%s\n", dst, src);
+                    break;
+
+                case TEMPORARY_FRAME:
+                    fprintf(stdout, "MOVE LF@%s TF@%s\n", dst, src);
+                    break;
+            }
+            break;
+
+        case TEMPORARY_FRAME:
+            switch(src_frame)
+            {
+                case GLOBAL_FRAME:
+                    fprintf(stdout, "MOVE TF@%s GF@%s\n", dst, src);
+                    break;
+
+                case LOCAL_FRAME:
+                    fprintf(stdout, "MOVE TF@%s LF@%s\n", dst, src);
+                    break;
+
+                case TEMPORARY_FRAME:
+                    fprintf(stdout, "MOVE TF@%s TF@%s\n", dst, src);
+                    break;
+            }
+            break;
+    }
+}
+
+void Jump(const char *label_name, FRAME frame)
+{
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            fprintf(stdout, "JMP GF@%s\n", label_name);
+            break;
+
+        case LOCAL_FRAME:
+            fprintf(stdout, "JMP LF@%s\n", label_name);
+            break;
+
+        case TEMPORARY_FRAME:
+            fprintf(stdout, "JMP TF@%s\n", label_name);
+    }
 }

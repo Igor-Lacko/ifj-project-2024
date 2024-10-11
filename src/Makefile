@@ -7,7 +7,10 @@ MODULES = scanner.o vector.o error.o parser.o symtable.o stack.o expression_pars
 DEBUG_MODULES = scanner-d.o vector-d.o error-d.o parser-d.o symtable-d.o stack-d.o expression_parser-d.o codegen-d.o
 
 #----CURRENT DEBUG FILE----#
-DEBUG_FILE = ../test_files/expressions.ifj24
+DEBUG_FILE = ../test_files/test.ifj24
+
+#----CURRENT OUTPUT FILE----#
+OUTPUT_FILE = ../test_outputs/testifj24.out
 
 TARGETS = ifj24 ifj24debug
 

@@ -67,31 +67,6 @@ bool DoesNextTokenMatch(Parser *parser, TOKEN_TYPE type)
     return true;
 }
 
-void SkipBlock(Parser *parser)
-{
-    int l_bracket_count = 1; // since we have loaded the first '{' character already
-    int r_bracket_count = 0; // if this matches l_bracket_count, we are done
-
-    while(l_bracket_count != r_bracket_count)
-    {
-        Token *token = GetNextToken(&parser->line_number);
-
-        if(token->token_type == L_CURLY_BRACKET) l_bracket_count ++;
-        else if(token->token_type == R_CURLY_BRACKET) r_bracket_count ++;
-
-        else if(token -> token_type == EOF_TOKEN) // block not ended correctly
-        {
-            SymtableStackDestroy(parser->symtable_stack);
-            ErrorExit(ERROR_SYNTACTIC, "Expected '}' at line %d", parser->line_number);
-        }
-    }
-
-    // return the '}' to the input stream
-    ungetc('}', stdin);
-}
-
-void ProgramBody(Parser *parser);
-
 // const ifj = @import("ifj24.zig");
 void Header(Parser *parser)
 {
@@ -157,11 +132,10 @@ void Expression(Parser *parser)
 }
 
 // checks all parameters
-void Parameters(Parser *parser, char *function_name)
+void ParametersDefinition(Parser *parser, FunctionSymbol *func)
 {
     Token *token;
     int param_count = 0;
-    FunctionSymbol *func = FindFunctionSymbol(parser->symtable, function_name);
 
     // loops through all parameters
     while (1)
@@ -174,20 +148,32 @@ void Parameters(Parser *parser, char *function_name)
         {
             DestroyToken(token);
             DestroySymtable(parser->symtable);
-            ErrorExit(ERROR_SYNTACTIC, "Didnt you forget ) at line %d ?", parser->line_number);
+            ErrorExit(ERROR_SYNTACTIC, "Didn't you forget ) at line %d ?", parser->line_number);
         }
 
         // id : data_type
         if (token->token_type == IDENTIFIER_TOKEN)
         {
-            // add to symtable
             VariableSymbol *var = VariableSymbolInit();
             var->name = strdup(token->attribute);
             var->is_const = false;
 
             DestroyToken(token);
 
-            // TODO: possible var leak
+            // add to symtable/check for redefinition 
+            if(!InsertVariableSymbol(parser->symtable, var))
+            {
+                PrintError("Error in semantic analysis: Line %d: Multiple parameters with name '%s' in function '%s'", 
+                parser->line_number, var->name, func->name);
+
+                // free resources
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroyVariableSymbol(var);
+
+                exit(ERROR_SEMANTIC_REDEFINED);
+            }
+
+            // TODO: possible var leak (???? Explain pls)
             CheckTokenType(parser, COLON_TOKEN);
 
             if ((token = GetNextToken(&parser->line_number))->token_type != KEYWORD && (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8))
@@ -201,25 +187,32 @@ void Parameters(Parser *parser, char *function_name)
             // add parameter data type to the function
             switch (token->keyword_type)
             {
-            case I32:
-                var->type = INT32_TYPE;
-                break;
-            case F64:
-                var->type = DOUBLE64_TYPE;
-                break;
-            case U8:
-                var->type = U8_ARRAY_TYPE;
-                break;
-            default:
-                var->type = VOID_TYPE;
-                break;
+                case I32:
+                    var->type = INT32_TYPE;
+                    break;
+                case F64:
+                    var->type = DOUBLE64_TYPE;
+                    break;
+                case U8:
+                    var->type = U8_ARRAY_TYPE;
+                    break;
+                default:
+                    var->type = VOID_TYPE;
+                    break;
             }
             DestroyToken(token);
 
             // add parameter to the function symbol
-            func->parameters = realloc(func->parameters, (param_count + 1) * sizeof(VariableSymbol *));
-            func->parameters[param_count] = var;
-            param_count++;
+            if(!func->was_called)
+            {
+                func->parameters = realloc(func->parameters, (param_count + 1) * sizeof(VariableSymbol *));
+                func->parameters[param_count ++] = var;
+            }
+
+            else
+            {
+                CHECK_PARAM(var->type, func->parameters[param_count ++]->type)
+            }
 
             // checks if there is another parameter
             if ((token = GetNextToken(&parser->line_number))->token_type != COMMA_TOKEN)
@@ -246,33 +239,53 @@ void Parameters(Parser *parser, char *function_name)
 // pub fn id ( seznam_parametrů ) návratový_typ {
 // sekvence_příkazů
 // }
-void Function(Parser *parser)
+void FunctionDefinition(Parser *parser)
 {
     CheckKeywordType(parser, FN);
     Token *token;
     token = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
 
-    // add an empty function to the symtable
-    FunctionSymbol *func = FunctionSymbolInit();
-    func->name = strdup(token->attribute);
-    func->num_of_parameters = 0;
-    func->parameters = NULL;
-    func->return_type = VOID_TYPE;
-    func->return_value = NULL;
+    // flag for checking return/params of main function
+    bool is_main = false;
+
+    FunctionSymbol *func;
+
+    // Check if the function exists already (so if it was called, which can happen, or redefined, which is an error)
+    if((func = FindFunctionSymbol(parser->global_symtable, token->attribute)) == NULL)
+    {
+        func = FunctionSymbolInit();
+        func->name = strdup(token->attribute);
+        InsertFunctionSymbol(parser->global_symtable, func);
+    }
+
+    // the function already exists in some scope
+    else
+    {
+        if(func->was_defined)
+        {
+            PrintError("Error in semantic analysis: Line %d: Redefinition of function %s",
+            parser->line_number, func->name);
+            SymtableStackDestroy(parser->symtable_stack);
+            DestroySymtable(parser->global_symtable);
+            DestroyToken(token);
+            exit(ERROR_SEMANTIC_REDEFINED);
+        }
+    }
     DestroyToken(token);
 
-    if (!InsertFunctionSymbol(parser->symtable, func))
-    {
-        DestroySymtable(parser->symtable);
-        ErrorExit(ERROR_SEMANTIC_REDEFINED, "Function %s already declared", func->name);
-    }
+    // Generate a function label and create a new temporary frame
+    FUNCTIONLABEL(func->name)
+
 
     // check if the main function is present
     if (!strcmp(func->name, "main"))
+    {
         parser->has_main = true;
+        is_main = true;
+    }
 
     CheckTokenType(parser, L_ROUND_BRACKET);
-    Parameters(parser, func->name); // params with )
+    ParametersDefinition(parser, func); // params with )
 
     if ((token = GetNextToken(&parser->line_number))->token_type != KEYWORD || (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8 && token->keyword_type != VOID))
     {
@@ -282,28 +295,33 @@ void Function(Parser *parser)
     }
 
     // set the return type
+    DATA_TYPE return_type;
     switch (token->keyword_type)
     {
-    case I32:
-        func->return_type = INT32_TYPE;
-        break;
-    case F64:
-        func->return_type = DOUBLE64_TYPE;
-        break;
-    case U8:
-        func->return_type = U8_ARRAY_TYPE;
-        break;
-    default:
-        func->return_type = VOID_TYPE;
-        break;
+        case I32:
+            return_type = INT32_TYPE;
+            break;
+        case F64:
+            return_type = DOUBLE64_TYPE;
+            break;
+        case U8:
+            return_type = U8_ARRAY_TYPE;
+            break;
+        default:
+            return_type = VOID_TYPE;
+            break;
     }
+    CHECK_RETURN_VALUE
     DestroyToken(token);
 
+    // Check for correct return type/params in case of main
+    if(is_main && (func->return_type != VOID_TYPE || func->num_of_parameters != 0))
+    {
+        SymtableStackDestroy(parser->symtable_stack);
+        ErrorExit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION, "Main function has incorrect return type or parameters");
+    }
+
     CheckTokenType(parser, L_CURLY_BRACKET);
-    // symtable_real is being pushed into a stack
-    Symtable *symtable_real = InitSymtable(TABLE_COUNT);
-    // push the global symtable
-    SymtableStackPush(parser->symtable_stack, symtable_real);
 
     parser->in_function = true;
 
@@ -318,6 +336,8 @@ void Function(Parser *parser)
 // if(expression){}else{}
 void IfElse(Parser *parser)
 {
+    IfLabel(LOCAL_FRAME);
+
     Symtable *symtable = InitSymtable(TABLE_COUNT);
     SymtableStackPush(parser->symtable_stack, symtable);
 
@@ -357,6 +377,20 @@ void IfElse(Parser *parser)
         SymtableStackDestroy(parser->symtable_stack);
         ErrorExit(ERROR_SYNTACTIC, "Expected '{' or '|' in if block on line %d", parser->line_number);
     }
+
+    // If block
+    ProgramBody(parser);
+    CheckTokenType(parser, R_CURLY_BRACKET);
+
+    // Else block
+    CheckKeywordType(parser, ELSE);
+    ElseLabel(LOCAL_FRAME);
+    CheckTokenType(parser, L_CURLY_BRACKET);
+    ProgramBody(parser);
+
+    // If-Else finish
+    CheckTokenType(parser, R_CURLY_BRACKET);
+    EndIfLabel(LOCAL_FRAME);
 }
 
 void WhileLoop(Parser *parser)
@@ -464,7 +498,7 @@ void ConstDeclaration(Parser *parser)
         ErrorExit(ERROR_SYNTACTIC, "Expected '=' at line %d", parser->line_number);
     }
 
-    DestroyToken(token);
+    else DestroyToken(token);
 
     // expression
     TokenVector *postfix = InfixToPostfix(parser);
@@ -483,11 +517,140 @@ void ConstDeclaration(Parser *parser)
     CheckTokenType(parser, SEMICOLON);
 }
 
+void FunctionCall(Parser *parser, FunctionSymbol *fun, const char *fun_name)
+{
+    CREATEFRAME
+    // Check if the function exists
+    if(fun == NULL)
+    {
+        fun = FunctionSymbolInit();
+        fun->name = fun_name;
+        fun->was_defined = false;
+    }
+    Token *token;
+    CheckTokenType(parser, L_ROUND_BRACKET);
+    ParametersOnCall(parser, fun);
+    PUSHFRAME
+
+    // Empty last param
+    if((token = GetNextToken(&parser->line_number))->token_type == COMMA_TOKEN)
+        CheckTokenType(parser, R_ROUND_BRACKET);
+
+    else if(token->token_type != R_ROUND_BRACKET)
+    {
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroyToken(token);
+        ErrorExit(ERROR_SYNTACTIC, "Expected ')' on line %d");
+    }
+
+    CheckTokenType(parser, SEMICOLON);
+    FUNCTIONCALL(fun->name)
+}
+
+// TODO: Revise this to include
+void ParametersOnCall(Parser *parser, FunctionSymbol *fun)
+{
+    // void param function
+    if(!fun->num_of_parameters) return;
+
+    Token *token; // The first curly bracket was read already
+    int params_read = 0;
+    VariableSymbol *var; // In case of variable parameters
+    char *param_name;
+
+    // Read the parameters until the counter matches the required number of parameters
+    while(params_read < fun->num_of_parameters)
+    {
+        DATA_TYPE required_type = fun->parameters[params_read ++]->type;
+
+        // Allocate space for a string with the name param@ where @ is the number of the param
+        param_name = malloc((snprintf(NULL, 0, "param%d", params_read) + 1) * sizeof(char));
+        if(param_name == NULL)
+        {
+            SymtableStackDestroy(parser->symtable_stack);
+            DestroySymtable(parser->global_symtable);
+            ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+        }
+
+        // Save the param name to the string
+        sprintf(param_name, "param%d", params_read);
+
+        // Define a new variable
+        DefineVariable(param_name, TEMPORARY_FRAME);
+
+        switch((token = GetNextToken(&parser->line_number))->token_type)
+        {
+            case IDENTIFIER_TOKEN:
+                // Undefined parameter
+                if(!(var = FindVariableSymbol(parser->symtable, token->attribute)))
+                {
+                    PrintError("Error in semantic analysis: Line %d: Undefined variable '%s' in list of parameters for function '%s'",
+                    token->attribute, fun->name);
+                    DestroyToken(token);
+                    SymtableStackDestroy(parser->symtable_stack);
+                    DestroySymtable(parser->global_symtable);
+                    free(param_name);
+                    exit(ERROR_SEMANTIC_UNDEFINED);
+                }
+
+                // Wrong type of parameter
+                else if(var->type != required_type) INVALID_PARAM_TYPE
+                else if(params_read != fun->num_of_parameters - 1) CheckTokenType(parser, COMMA_TOKEN);
+                Move(param_name, var->name, TEMPORARY_FRAME, LOCAL_FRAME);
+                free(param_name);
+                param_name = NULL;
+                break;
+
+            case INTEGER_32:
+                if(required_type != INT32_TYPE) INVALID_PARAM_TYPE
+                if(params_read != fun->num_of_parameters - 1) CheckTokenType(parser, COMMA_TOKEN);
+                Move(param_name, token->attribute, TEMPORARY_FRAME, LOCAL_FRAME);
+                free(param_name);
+                param_name = NULL;
+                break;
+
+            case DOUBLE_64:
+                if(required_type != DOUBLE64_TYPE) INVALID_PARAM_TYPE
+                if(params_read != fun->num_of_parameters - 1) CheckTokenType(parser, COMMA_TOKEN);
+                Move(param_name, token->attribute, TEMPORARY_FRAME, LOCAL_FRAME);
+                free(param_name);
+                param_name = NULL;
+                break;
+
+            case LITERAL_TOKEN:
+                if(required_type != U8_ARRAY_TYPE) INVALID_PARAM_TYPE
+                if(params_read != fun->num_of_parameters - 1) CheckTokenType(parser, COMMA_TOKEN);
+                Move(param_name, token->attribute, TEMPORARY_FRAME, LOCAL_FRAME);
+                free(param_name);
+                param_name = NULL;
+                break;
+
+            case R_ROUND_BRACKET:
+                DestroyToken(token);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                free(param_name);
+                ErrorExit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION, "Not enough of parameters in function call");
+                break; // Does gcc recognize that ErrorExit() ends the program? We may never know
+
+            default:
+                DestroyToken(token);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                free(param_name);
+                ErrorExit(ERROR_SYNTACTIC, "Line %d: Unexpected symbol in function parameters");
+        }
+    }
+
+    if(param_name != NULL) free(param_name);
+}
+
 void ProgramBody(Parser *parser)
 {
     Token *token;
-    while ((token = GetNextToken(&parser->line_number))->token_type != EOF_TOKEN)
+    while (true) 
     {
+        token = GetNextToken(&parser->line_number);
         switch (token->token_type)
         {
         case KEYWORD:
@@ -495,7 +658,7 @@ void ProgramBody(Parser *parser)
             if (token->keyword_type == PUB)
             {
                 DestroyToken(token);
-                Function(parser);
+                FunctionDefinition(parser);
             }
             // start of if-else block
             else if (token->keyword_type == IF)
@@ -536,6 +699,18 @@ void ProgramBody(Parser *parser)
             ungetc('}', stdin);
             return;
 
+        case IDENTIFIER_TOKEN:
+            CheckTokenType(parser, L_ROUND_BRACKET);
+            FunctionCall(parser, FindFunctionSymbol(parser->global_symtable, token->attribute), token->attribute);
+            CheckTokenType(parser, R_ROUND_BRACKET);
+            CheckTokenType(parser, SEMICOLON);
+            DestroyToken(token);
+            break;
+
+        case EOF_TOKEN:
+            DestroyToken(token);
+            return;
+
         default:
             // ErrorExit(ERROR_SYNTACTIC, "Unexpected token at line %d", *line_number);
             DestroyToken(token);
@@ -550,13 +725,14 @@ void ProgramBody(Parser *parser)
 int main()
 {
     // initial codegen instructions
-    printf(".IFJcode24\n");
+    IFJCODE24
     InitRegisters();
+    Jump("main", GLOBAL_FRAME);
 
     // parser instance
     Parser parser = {.line_number = 1, .has_main = false, .in_function = false, 
     .nested_level = 0, 
-    .symtable = InitSymtable(TABLE_COUNT), .symtable_stack = SymtableStackInit()};
+    .symtable = InitSymtable(TABLE_COUNT), .global_symtable = InitSymtable(TABLE_COUNT) ,.symtable_stack = SymtableStackInit()};
 
     SymtableStackPush(parser.symtable_stack, parser.symtable);
 
@@ -570,10 +746,14 @@ int main()
     if (!parser.has_main)
     {
         SymtableStackDestroy(parser.symtable_stack);
+        DestroySymtable(parser.global_symtable);
         ErrorExit(ERROR_SEMANTIC_UNDEFINED, "Main function not found");
     }
 
+
     SymtableStackDestroy(parser.symtable_stack);
+    DestroySymtable(parser.global_symtable);
+    IFJ24SUCCESS
     return 0;
 }
 

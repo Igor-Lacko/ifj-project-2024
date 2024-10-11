@@ -14,11 +14,44 @@ typedef struct
     int line_number;
     bool has_main;
     bool in_function;
-    bool skipping; // help flag to see if we only check syntax in non-executed blocks
-    Symtable *symtable;
+    Symtable *symtable; // Current symtable (top of the stack), local variables
+    Symtable *global_symtable; // Only for functions
     SymtableStack *symtable_stack;
 } Parser;
 
+// Help macro to free resources in case of invalid param
+#define INVALID_PARAM_TYPE \
+{   PrintError("Error in semantic analysis: Line %d: Invalid parameter type for function call for function '%s'",\
+    fun->name);\
+    DestroyToken(token);\
+    SymtableStackDestroy(parser->symtable_stack);\
+    DestroySymtable(parser->global_symtable);\
+    exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
+}
+
+// Help macro to check if the parameter matches the previous function usage (definition/call) in case it already exists
+#define CHECK_PARAM(type1, type2) do{\
+    if(type1 != type2)\
+    {\
+        PrintError("Error in semantic analysis: Invalid parameters for function %s", func->name);\
+        DestroyToken(token);\
+        SymtableStackDestroy(parser->symtable_stack);\
+        DestroySymtable(parser->global_symtable);\
+        exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
+    }\
+} while(0);
+
+// Same but for return type
+#define CHECK_RETURN_VALUE do{\
+    if(func->was_called && func->return_type != return_type){\
+        PrintError("Error in semantic analysis: Invalid return value for function %s", func->name);\
+        DestroyToken(token);\
+        SymtableStackDestroy(parser->symtable_stack);\
+        DestroySymtable(parser->global_symtable);\
+        exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
+    }\
+    func->return_type = return_type;\
+} while(0);
 
 // Function declarations
 
@@ -51,13 +84,6 @@ Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type);
 bool DoesNextTokenMatch(Parser *parser, TOKEN_TYPE type);
 
 /**
- * @brief Skips the entire block structure beginning with the nearest '{' character (used in if-else, while, etc...)
- * 
- * @param parser Parser instance
- */
-void SkipBlock(Parser *parser);
-
-/**
  * @brief Parses the program header.
  *
  * @param parser Pointer to the parser structure.
@@ -75,16 +101,34 @@ void Expression(Parser *parser);
  * @brief Parses all function parameters.
  *
  * @param parser Pointer to the parser structure.
- * @param function_name Name of the function.
+ * @param func Symbol representing the function for which the parameters are read.
  */
-void Parameters(Parser *parser, char *function_name);
+void ParametersDefinition(Parser *parser, FunctionSymbol *func);
 
 /**
- * @brief Parses a function declaration and body.
+ * @brief Parses a function definition and body.
  *
  * @param parser Pointer to the parser structure.
  */
-void Function(Parser *parser);
+void FunctionDefinition(Parser *parser);
+
+/**
+ * @brief A function call, checks if the params fit and calls codegen on the fly.
+ * 
+ * @param parser Pointer to the parser structure.
+ * @param fun The function to be called.
+ * @param fun_name For cases where the function is not declared yet. NULL if fun != NULL
+ * @note here we are assuming that fun is a valid function which is contained in the symtable
+ */
+void FunctionCall(Parser *parser, FunctionSymbol *fun, const char *fun_name);
+
+/**
+ * @brief Parses the parameters for a function call.
+ * 
+ * @param parser Pointer to the parser structure.
+ * @param fun The function to be called.
+ */
+void ParametersOnCall(Parser *parser, FunctionSymbol *fun);
 
 /**
  * @brief Parses an if-else block.
