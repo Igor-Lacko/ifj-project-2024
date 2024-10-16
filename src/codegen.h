@@ -21,7 +21,9 @@
 // Macros for working with functions
 #define FUNCTIONCALL(fun_label) fprintf(stdout, "CALL GF@%s\n", fun_label);
 #define FUNCTIONLABEL(fun_label) fprintf(stdout, "LABEL GF@%s\n", fun_label);
-#define RETURN fprintf(stdout, "RETURN\n");
+#define FUNCTION_RETURN fprintf(stdout, "RETURN\n");
+#define NEWPARAM(order) fprintf(stdout, "DEFVAR TF@PARAM%d\n", order); // Defines a new parameter on the temporary frame
+#define SETPARAM(order, value) fprintf(stdout, "MOVE TF@PARAM%d %s\n", order, value); // Sets the current parameter to "value" (a literal/number or a variable on the local frame)
 
 // Macros for working with the data stack
 #define CLEARS fprintf(stdout, "CLEARS\n");

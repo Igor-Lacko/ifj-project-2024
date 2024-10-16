@@ -7,7 +7,7 @@ MODULES = scanner.o vector.o error.o parser.o symtable.o stack.o expression_pars
 DEBUG_MODULES = scanner-d.o vector-d.o error-d.o parser-d.o symtable-d.o stack-d.o expression_parser-d.o codegen-d.o
 
 #----CURRENT DEBUG FILE----#
-DEBUG_FILE = ../test_files/test.ifj24
+TEST_FILE = ../test_files/test.ifj24
 
 #----CURRENT OUTPUT FILE----#
 OUTPUT_FILE = ../test_outputs/testifj24.out
@@ -27,7 +27,7 @@ run: all
 	./ifj24
 
 run-debug: debug
-	./ifj24debug < $(DEBUG_FILE)
+	./ifj24debug < $(TEST_FILE) > $(OUTPUT_FILE)
 
 #----RULES----#
 %.o : %.c

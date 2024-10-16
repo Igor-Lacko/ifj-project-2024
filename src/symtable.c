@@ -150,8 +150,6 @@ void DestroyFunctionSymbol(FunctionSymbol *function_symbol)
 
     if (function_symbol->name != NULL)
         free(function_symbol->name);
-    if (function_symbol->return_value != NULL)
-        free(function_symbol->return_value);
 
     // free all parameters
     for (int i = 0; i < function_symbol->num_of_parameters; i++)

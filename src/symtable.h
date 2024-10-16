@@ -23,7 +23,8 @@ typedef enum
     DOUBLE64_TYPE,
     BOOLEAN,
     VOID_TYPE,
-    NULL_DATA_TYPE
+    NULL_DATA_TYPE,
+    UNKNOWN_DATA_TYPE
 } DATA_TYPE;
 
 // structure of a variable symbol
@@ -42,10 +43,10 @@ typedef struct
     char *name;
     int num_of_parameters;
     VariableSymbol **parameters;
-    void *return_value;
     DATA_TYPE return_type;
     bool was_called;
     bool was_defined;
+    bool has_return; // to check for errors
 } FunctionSymbol;
 
 // structure of a symbol linked list node

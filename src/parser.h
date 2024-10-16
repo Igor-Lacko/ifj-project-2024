@@ -14,6 +14,7 @@ typedef struct
     int line_number;
     bool has_main;
     bool in_function;
+    FunctionSymbol *current_function;
     Symtable *symtable; // Current symtable (top of the stack), local variables
     Symtable *global_symtable; // Only for functions
     SymtableStack *symtable_stack;
@@ -21,13 +22,13 @@ typedef struct
 
 // Help macro to free resources in case of invalid param
 #define INVALID_PARAM_TYPE \
-{   PrintError("Error in semantic analysis: Line %d: Invalid parameter type for function call for function '%s'",\
-    fun->name);\
+do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type for function call for function '%s'",\
+    func->name);\
     DestroyToken(token);\
     SymtableStackDestroy(parser->symtable_stack);\
     DestroySymtable(parser->global_symtable);\
     exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
-}
+} while(0);
 
 // Help macro to check if the parameter matches the previous function usage (definition/call) in case it already exists
 #define CHECK_PARAM(type1, type2) do{\
@@ -41,6 +42,16 @@ typedef struct
     }\
 } while(0);
 
+// Prints error in case of invalid param count
+#define INVALID_PARAM_COUNT do{\
+    PrintError("Error in semantic analysis: Line %d: Invalid parameter count when calling function '%s': Expected %d, got %d",\
+    func->name, func->num_of_parameters, loaded);\
+    DestroyToken(token);\
+    SymtableStackDestroy(parser->symtable_stack);\
+    DestroySymtable(parser->global_symtable);\
+    exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
+} while(0);
+
 // Same but for return type
 #define CHECK_RETURN_VALUE do{\
     if(func->was_called && func->return_type != return_type){\
@@ -51,6 +62,17 @@ typedef struct
         exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
     }\
     func->return_type = return_type;\
+} while(0);
+
+// Help macro to realloc a function's params
+#define LENGHTEN_PARAMS do{\
+    if((func->parameters = realloc(func->parameters, loaded * sizeof(VariableSymbol *))) == NULL)\
+    {\
+        DestroyToken(token);\
+        SymtableStackDestroy(parser->symtable_stack);\
+        DestroySymtable(parser->global_symtable);\
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");\
+    }\
 } while(0);
 
 // Function declarations
@@ -120,7 +142,14 @@ void FunctionDefinition(Parser *parser);
  * @param fun_name For cases where the function is not declared yet. NULL if fun != NULL
  * @note here we are assuming that fun is a valid function which is contained in the symtable
  */
-void FunctionCall(Parser *parser, FunctionSymbol *fun, const char *fun_name);
+void FunctionCall(Parser *parser, FunctionSymbol *fun, const char *fun_name, DATA_TYPE expected_return);
+
+/**
+ * @brief Called upon encountering a return keyword, checks if the usage is valid or not
+ * 
+ * @param parser 
+ */
+void FunctionReturn(Parser *parser);
 
 /**
  * @brief Parses the parameters for a function call.
@@ -128,7 +157,7 @@ void FunctionCall(Parser *parser, FunctionSymbol *fun, const char *fun_name);
  * @param parser Pointer to the parser structure.
  * @param fun The function to be called.
  */
-void ParametersOnCall(Parser *parser, FunctionSymbol *fun);
+void ParametersOnCall(Parser *parser, FunctionSymbol *func);
 
 /**
  * @brief Parses an if-else block.
