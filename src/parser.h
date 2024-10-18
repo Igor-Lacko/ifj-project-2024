@@ -78,6 +78,16 @@ do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type f
 // Function declarations
 
 /**
+ * @brief Initializes a parser structure so that main isn't as bloated.
+ */
+Parser InitParser();
+
+/**
+ * @brief Also exists for the sole purpose of removing some bloat from main.
+ */
+void ProgramBegin(Parser *parser);
+
+/**
  * @brief Checks if the next token matches the expected token type.
  *
  * @param parser Pointer to the parser structure.

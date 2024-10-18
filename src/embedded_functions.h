@@ -19,16 +19,17 @@ extern DATA_TYPE embedded_parameters[EMBEDDED_FUNCTION_COUNT][MAXPARAM_EMBEDDED_
 
 /**
  * @brief Checks if we have a embedded function as the next set of tokens
- * 
- * @note The 'ifj' identifier was already read and it is not a variable
- * 
+ *
+ * @note The 'ifj' identifier was already read and it is assumed to not be a variable
+ * @note The previous note can cause problems if it IS a variable. Create UngetToken() maybe?
+ *
  * @param var: For type checking in assignments, NULL if the function is not being assigned
  */
-FunctionSymbol *IsEmbeddedFunction(VariableSymbol *var, Parser parser);
+FunctionSymbol *IsEmbeddedFunction(Parser *parser);
 
 /**
- * @brief Called at the start of a program, inserts all embedded functions into the global symtable 
+ * @brief Called at the start of a program, inserts all embedded functions into the global symtable
  */
-void InsertEmbeddedFunctions(Parser parser);
+void InsertEmbeddedFunctions(Parser *parser);
 
 #endif
