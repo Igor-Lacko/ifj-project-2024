@@ -102,9 +102,6 @@ void CheckKeywordType(Parser *parser, KEYWORD_TYPE type);
  */
 Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type);
 
-// A similar variant that returns true if it finds a match, false if it doesn't
-bool DoesNextTokenMatch(Parser *parser, TOKEN_TYPE type);
-
 /**
  * @brief Parses the program header.
  *

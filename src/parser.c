@@ -8,6 +8,7 @@
 #include "symtable.h"
 #include "expression_parser.h"
 #include "codegen.h"
+#include "embedded_functions.h"
 
 // checks if the next token is of the expected type
 void CheckTokenType(Parser *parser, TOKEN_TYPE type)
@@ -269,6 +270,11 @@ void FunctionDefinition(Parser *parser)
     }
     DestroyToken(token);
 
+    // Create a new symtable at the top of the stack
+    Symtable *local_symtable = InitSymtable(TABLE_COUNT);
+    SymtableStackPush(parser->symtable_stack, local_symtable);
+    parser->symtable = local_symtable;
+
     // Generate a function label and create a new temporary frame
     FUNCTIONLABEL(func->name)
 
@@ -321,11 +327,6 @@ void FunctionDefinition(Parser *parser)
 
     parser->in_function = true;
 
-    // Create a new symtable at the top of the stack
-    Symtable *local_symtable = InitSymtable(TABLE_COUNT);
-    SymtableStackPush(parser->symtable_stack, local_symtable);
-    parser->symtable = local_symtable;
-
     ProgramBody(parser); // function body
 
     parser->in_function = false;
@@ -346,7 +347,7 @@ void IfElse(Parser *parser)
     CheckTokenType(parser, L_ROUND_BRACKET);
     // expression
     TokenVector *postfix = InfixToPostfix(parser);
-    (void) postfix;
+    (void) postfix; // Can't handle expressions yet
     CheckTokenType(parser, R_ROUND_BRACKET);
 
     Token *token = GetNextToken(&parser->line_number);
@@ -751,15 +752,16 @@ void FunctionReturn(Parser *parser)
     else
     {
         VariableSymbol *var = VariableSymbolInit();
-        if((var->name = malloc(snprintf(NULL, 0, "LF@%sRETURN") + 1)) == NULL)
+        if((var->name = malloc(snprintf(NULL, 0, "LF@%sRETURN", parser->current_function->name) + 1)) == NULL)
         {
             SymtableStackDestroy(parser->symtable_stack);
             DestroySymtable(parser->global_symtable);
             ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
         }
-        sprintf(var, "GF@%sRETURN", parser->current_function->name);
+        sprintf(var->name, "GF@%sRETURN", parser->current_function->name);
         TokenVector *postfix = InfixToPostfix(parser);
         DATA_TYPE return_type = GeneratePostfixExpression(parser, postfix, var);
+        (void) postfix; (void) return_type;
 
         // TODO: give it to the variable
         DestroyVariableSymbol(var);
@@ -859,6 +861,8 @@ int main()
     Parser parser = {.line_number = 1, .has_main = false, .in_function = false, 
     .nested_level = 0, 
     .symtable = InitSymtable(TABLE_COUNT), .global_symtable = InitSymtable(TABLE_COUNT) ,.symtable_stack = SymtableStackInit()};
+
+    InsertEmbeddedFunctions(parser);
 
     SymtableStackPush(parser.symtable_stack, parser.symtable);
 

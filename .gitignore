@@ -64,3 +64,6 @@ dkms.conf
 #vscode files
 *vscode*
 .json*
+
+#TODO
+TODO.txt

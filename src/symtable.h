@@ -19,12 +19,14 @@ typedef enum
 typedef enum
 {
     U8_ARRAY_TYPE,
+    U8_ARRAY_NULLABLE_TYPE,
     INT32_TYPE,
+    INT32_NULLABLE_TYPE,
     DOUBLE64_TYPE,
+    DOUBLE64_NULLABLE_TYPE,
     BOOLEAN,
     VOID_TYPE,
-    NULL_DATA_TYPE,
-    UNKNOWN_DATA_TYPE
+    TERM_TYPE // For example ifj.write(term) --> can be a float, integer or even null
 } DATA_TYPE;
 
 // structure of a variable symbol
@@ -46,7 +48,6 @@ typedef struct
     DATA_TYPE return_type;
     bool was_called;
     bool was_defined;
-    bool has_return; // to check for errors
 } FunctionSymbol;
 
 // structure of a symbol linked list node
