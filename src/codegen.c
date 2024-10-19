@@ -304,7 +304,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
         {
             case INTEGER_32: case DOUBLE_64: // operand tokens, push them to the stack
                 ExpressionStackPush(stack, token);
-                fprintf(stdout, "PUSHS LF@%s\n",token->attribute);
+                fprintf(stdout, "PUSHS %s\n",token->attribute);
                 break;
 
             case IDENTIFIER_TOKEN: // identifier token, the same as for operands just check type/and if are defined

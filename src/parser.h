@@ -113,6 +113,16 @@ void CheckKeywordType(Parser *parser, KEYWORD_TYPE type);
 Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type);
 
 /**
+ * @brief Upon encountering an ID, the parser checks if it's a valid variable and '=' and returns true if yes
+ */
+VariableSymbol *IsVariableAssignment(Token *token, Parser *parser);
+
+/**
+ * @brief Used in tandem with IsVariableAssignment, checks if it's a function call
+ */
+bool IsFunctionCall(Token *token, Parser *parser);
+
+/**
  * @brief Parses the program header.
  *
  * @param parser Pointer to the parser structure.
@@ -185,7 +195,14 @@ void WhileLoop(Parser *parser);
  *
  * @param parser Pointer to the parser structure.
  */
-void ConstDeclaration(Parser *parser);
+void VarDeclaration(Parser *parser, bool const);
+
+/**
+ * @brief Generates the code for assignment to the variable passed in as a parameter
+ * 
+ * @param var Also check if it's not a const variable
+ */
+void VariableAssignment(Parser *parser, VariableSymbol *var);
 
 /**
  * @brief Parses the program body (main parsing loop).

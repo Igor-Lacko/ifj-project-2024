@@ -110,6 +110,11 @@ Token *InitToken();
 // Token destructor
 void DestroyToken(Token *token);
 
+/**
+ * @brief Returns the token passed as a parameter to the stream
+ */
+void UngetToken(Token *token);
+
 // Returns the next character from stdin without moving forward (it returns the character back)
 char NextChar();
 
@@ -170,17 +175,9 @@ int ConsumeComment(int *line_number);
 // Similar to ConsumeComment(), skips whitespace, increments the line_number if a '\n' is encountered and returns the first non-whitespace character
 int ConsumeWhitespace(int *line_number);
 
-/*A bit of a special case -- []u8 is always written as such, so check if the next tokens match this pattern
--also u8 by ITSELF is a keyword, so a variable can't be u8 but that is checked by ConsumeIdentifier and then IsKeyword*/
+/* A bit of a special case -- []u8 is always written as such, so check if the next tokens match this pattern
+- also u8 by ITSELF is a keyword, so a variable can't be u8 but that is checked by ConsumeIdentifier and then IsKeyword */
 void ConsumeU8Token(Token *token, int *line_number);
-
-/**
- * @brief Allocates the space for the operator (as a string) and copies it to token -> attribute
- * 
- * @param token Token instance
- * @param operator Operator which is a string
- */
-void AllocateAttribute(Token *token, const char *operator);
 
 // checks if a identifier with a prefix at the start is valid or not (so if it's a keyword)
 bool IsValidPrefix(char *identifier);

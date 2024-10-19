@@ -64,8 +64,10 @@ FunctionSymbol *IsEmbeddedFunction(Parser *parser)
         ErrorExit(ERROR_SEMANTIC_UNDEFINED, "Line %d: Undefined variable \"ifj\"");
     }
 
+    DestroyToken(token); // Get rid of the previous token
+
     // The next token has to be a identifier
-    else if ((token = GetNextToken(&parser->line_number))->token_type != IDENTIFIER_TOKEN)
+    if ((token = GetNextToken(&parser->line_number))->token_type != IDENTIFIER_TOKEN)
     {
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
@@ -77,7 +79,11 @@ FunctionSymbol *IsEmbeddedFunction(Parser *parser)
     for (int i = 0; i < EMBEDDED_FUNCTION_COUNT; i++)
     {
         if (!strcmp(embedded_names[i], token->attribute)) // Match found
-            return FindFunctionSymbol(parser->global_symtable, token->attribute);
+        {
+            FunctionSymbol *func = FindFunctionSymbol(parser->global_symtable, token->attribute);
+            DestroyToken(token);
+            return func;
+        }
     }
 
     // The identifier was not an embedded function
@@ -120,7 +126,7 @@ void InsertEmbeddedFunctions(Parser *parser)
         // Insert the function symbol into the parser's global symtable
         if (!InsertFunctionSymbol(parser->global_symtable, func))
         {
-            // This conditio should never be false, but just in case put this here
+            // This condition should never be false, but just in case put this here
             SymtableStackDestroy(parser->symtable_stack);
             DestroySymtable(parser->global_symtable);
             ErrorExit(ERROR_INTERNAL, "Multiple instances of embedded function in the global symtable. Fix your code!!!");

@@ -143,6 +143,19 @@ VariableSymbol *VariableSymbolInit(void)
     return variable_symbol;
 }
 
+VariableSymbol *VariableSymbolCopy(VariableSymbol *var)
+{
+    VariableSymbol *copy = VariableSymbolInit();
+
+    copy->defined = var->defined;
+    copy->is_const = var->is_const;
+    copy->name = var->name == NULL ? NULL : strdup(var->name);
+    copy->nullable = var->nullable;
+    copy->type = var->type;
+
+    return copy;
+}
+
 void DestroyFunctionSymbol(FunctionSymbol *function_symbol)
 {
     if (function_symbol == NULL)

@@ -105,11 +105,13 @@ void DestroySymtable(Symtable *symtable);
 unsigned long GetSymtableHash(char *symbol_name, unsigned long modulo);
 
 // FunctionSymbol symbol constructor
-// TODO: (goes for all the symbols) work out whether to pass already params here
 FunctionSymbol *FunctionSymbolInit(void);
 
 // VariableSymbol symbol constructor
 VariableSymbol *VariableSymbolInit(void);
+
+// Returns a copy of the variable symbol passed as a param to avoid double frees
+VariableSymbol *VariableSymbolCopy(VariableSymbol *var);
 
 // FunctionSymbol symbol destructor
 void DestroyFunctionSymbol(FunctionSymbol *function_symbol);
