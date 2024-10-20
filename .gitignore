@@ -7,10 +7,6 @@
 *.obj
 *.elf
 
-# Test files
-*test*
-*Test*
-*.zig
 
 # Linker output
 *.ilk
@@ -65,5 +61,4 @@ dkms.conf
 *vscode*
 .json*
 
-#TODO
-TODO.txt
+

@@ -1,0 +1,4 @@
+1. Recognize embedded functions DONE
+2. Assigning function returns to variables
+3. Do the same for embedded functions
+4. Fix memory leaks in ParametersOnCall DONE?
