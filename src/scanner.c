@@ -24,7 +24,10 @@ Token *InitToken()
 void DestroyToken(Token *token)
 {
     if (token->attribute != NULL)
+    {
         free(token->attribute);
+        token->attribute = NULL;
+    }
 
     free(token);
     token = NULL;
@@ -40,10 +43,12 @@ char NextChar()
 void UngetToken(Token *token)
 {
     // TODO: Remove this after being sure the code is fine
-    if (token->attribute == NULL || token == NULL)
+    if (token->attribute == NULL || token == NULL){
         ErrorExit(ERROR_INTERNAL, "Calling UngetToken on a token with no attribute or a null token. Fix your code!");
+    }
 
-    for (int i = (int)(strlen(token->attribute) - 1); i >= 0; i--)
+
+    for (int i = (int)(strlen(token->attribute)) - 1; i >= 0; i--)
         ungetc(token->attribute[i], stdin);
 
     DestroyToken(token);
@@ -334,6 +339,7 @@ void ConsumeImportToken(Token *token, int *line_number)
 
     // token is valid
     token->token_type = IMPORT_TOKEN;
+    token->attribute = strdup("@import");
 }
 
 int ConsumeWhitespace(int *line_number)

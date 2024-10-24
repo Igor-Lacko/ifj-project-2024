@@ -87,7 +87,7 @@ void DestroyList(SymtableListNode *list)
     DestroyNode(list);
 }
 
-Symtable *InitSymtable(size_t size)
+Symtable *InitSymtable(unsigned long size)
 {
     Symtable *symtable;
     if ((symtable = calloc(1, sizeof(Symtable))) == NULL)

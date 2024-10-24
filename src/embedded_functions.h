@@ -3,6 +3,7 @@
 
 #include "symtable.h"
 #include "parser.h"
+#include "codegen.h"
 
 #define EMBEDDED_FUNCTION_COUNT 13
 #define MAXLENGTH_EMBEDDED_FUNCTION 10
@@ -31,5 +32,12 @@ FunctionSymbol *IsEmbeddedFunction(Parser *parser);
  * @brief Called at the start of a program, inserts all embedded functions into the global symtable
  */
 void InsertEmbeddedFunctions(Parser *parser);
+
+/**
+ * @brief Generates code for a embedded function call. Has to be done this way, since each embedded function has a equivalent IFJCode24 counterpart.
+ * 
+ * @param var: Not always needed. Used in case of assignments, etc.
+ */
+void EmbeddedFunctionCall(Parser *parser, FunctionSymbol *func, VariableSymbol *var);
 
 #endif

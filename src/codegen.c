@@ -15,6 +15,7 @@ void InitRegisters()
     fprintf(stdout, "DEFVAR GF@R0\n");
     fprintf(stdout, "DEFVAR GF@F0\n");
     fprintf(stdout, "DEFVAR GF@B0\n");
+    fprintf(stdout, "DEFVAR GF@S0\n");
 
     // Operand registers
     fprintf(stdout, "DEFVAR GF@R1\n");
@@ -23,6 +24,8 @@ void InitRegisters()
     fprintf(stdout, "DEFVAR GF@F2\n");
     fprintf(stdout, "DEFVAR GF@B1\n");
     fprintf(stdout, "DEFVAR GF@B2\n");
+    fprintf(stdout, "DEFVAR GF@S1\n");
+    fprintf(stdout, "DEFVAR GF@S2\n");
 }
 
 void DefineVariable(const char *name, FRAME frame)
@@ -732,4 +735,152 @@ void Jump(const char *label_name, FRAME frame)
         case TEMPORARY_FRAME:
             fprintf(stdout, "JMP TF@%s\n", label_name);
     }
+}
+
+char *GetFrameString(FRAME frame)
+{
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            return strdup("GF@");
+
+        case LOCAL_FRAME:
+            return strdup("LF@");
+
+        case TEMPORARY_FRAME:
+            return strdup("TF@");
+    }
+
+    return NULL; // Shut up GCC please
+}
+
+// In case the variable has term_type, change it after
+void READ(VariableSymbol *var, FRAME frame)
+{
+    char *type;
+    switch(var->type)
+    {
+        case U8_ARRAY_TYPE: case U8_ARRAY_NULLABLE_TYPE:
+            type = strdup("string");
+            break;
+
+        case INT32_TYPE: case INT32_NULLABLE_TYPE:
+            type = strdup("int");
+            break;
+
+        case DOUBLE64_TYPE: case DOUBLE64_NULLABLE_TYPE:
+            type = strdup("float");
+            break;
+
+        case BOOLEAN:
+            type = strdup("bool");
+            break;
+
+        default:
+            ErrorExit(ERROR_INTERNAL, "Calling read on a variable with wrong type. Fix your code!!!");
+    }
+
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            fprintf(stdout, "READ GF@%s %s\n", var->name, type);
+            break;
+
+        case LOCAL_FRAME:
+            fprintf(stdout, "READ LF@%s %s\n", var->name, type);
+            break;
+
+        case TEMPORARY_FRAME:
+            fprintf(stdout, "READ TF@%s %s\n", var->name, type);
+            break;
+    }
+
+    free(type);
+}
+
+
+void INT2FLOAT(VariableSymbol *dst, const char *value, FRAME frame)
+{
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            fprintf(stdout, "INT2FLOAT GF@%s %s", dst->name, value);
+            break;
+
+        case LOCAL_FRAME:
+            fprintf(stdout, "INT2FLOAT LF@%s %s", dst->name, value);
+            break;
+
+        case TEMPORARY_FRAME:
+            fprintf(stdout, "INT2FLOAT TF@%s %s", dst->name, value);
+            break;
+    }
+}
+
+void FLOAT2INT(VariableSymbol *dst, const char *value, FRAME frame)
+{
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            fprintf(stdout, "FLOAT2INT GF@%s %s", dst->name, value);
+            break;
+
+        case LOCAL_FRAME:
+            fprintf(stdout, "FLOAT2INT LF@%s %s", dst->name, value);
+            break;
+
+        case TEMPORARY_FRAME:
+            fprintf(stdout, "FLOAT2INT TF@%s %s", dst->name, value);
+            break;
+    }
+}
+
+void STRLEN(VariableSymbol *dst, const char *str, FRAME frame)
+{
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            fprintf(stdout, "STRLEN GF@%s %s\n", dst->name, str);
+            break;
+
+        case LOCAL_FRAME:
+            fprintf(stdout, "STRLEN LF@%s %s\n", dst->name, str);
+            break;
+
+        case TEMPORARY_FRAME:
+            fprintf(stdout, "STRLEN TF@%s %s\n", dst->name, str);
+            break;
+    }
+}
+
+void CONCAT(VariableSymbol *dst, const char *str1, const char *str2, FRAME frame)
+{
+    switch(frame)
+    {
+        case GLOBAL_FRAME:
+            fprintf(stdout, "CONCAT GF@%s %s %s\n", dst->name, str1, str2);
+            break;
+
+        case LOCAL_FRAME:
+            fprintf(stdout, "CONCAT LF@%s %s %s\n", dst->name, str1, str2);
+            break;
+
+        case TEMPORARY_FRAME:
+            fprintf(stdout, "CONCAT TF@%s %s %s\n", dst->name, str1, str2);
+            break;
+    }
+}
+
+void STRI2INT(VariableSymbol *dst, const char *src, int position, FRAME frame)
+{
+    char *frame_str = GetFrameString(frame);
+    fprintf(stdout, "STRI2INT %s%s %s %d", frame_str, dst->name, src, position);
+    free(frame_str);
+}
+
+void INT2CHAR(VariableSymbol *dst, int ascii_value, FRAME frame)
+{
+    char *frame_str = GetFrameString(frame);
+    fprintf(stdout, "INT2CHAR %s%s %d\n", frame_str, dst->name, ascii_value);
+    free(frame_str);
 }

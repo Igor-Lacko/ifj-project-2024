@@ -102,7 +102,6 @@ void InsertEmbeddedFunctions(Parser *parser)
         FunctionSymbol *func = FunctionSymbolInit();
         func->name = strdup(embedded_names[i]);
         func->return_type = embedded_return_types[i];
-        func->was_defined = true;
         func->was_called = false; // This doesn't really matter with embedded functions
 
         // Create the function's parameters

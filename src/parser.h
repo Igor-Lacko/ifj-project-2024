@@ -13,7 +13,7 @@ typedef struct
     int nested_level;
     int line_number;
     bool has_main;
-    bool in_function;
+    bool parsing_functions;
     FunctionSymbol *current_function;
     Symtable *symtable; // Current symtable (top of the stack), local variables
     Symtable *global_symtable; // Only for functions
@@ -64,16 +64,7 @@ do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type f
     func->return_type = return_type;\
 } while(0);
 
-// Help macro to realloc a function's params
-#define LENGHTEN_PARAMS do{\
-    if((func->parameters = realloc(func->parameters, loaded * sizeof(VariableSymbol *))) == NULL)\
-    {\
-        DestroyToken(token);\
-        SymtableStackDestroy(parser->symtable_stack);\
-        DestroySymtable(parser->global_symtable);\
-        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");\
-    }\
-} while(0);
+
 
 // Function declarations
 
@@ -85,7 +76,7 @@ Parser InitParser();
 /**
  * @brief Also exists for the sole purpose of removing some bloat from main.
  */
-void ProgramBegin(Parser *parser);
+void ProgramBegin();
 
 /**
  * @brief Checks if the next token matches the expected token type.
@@ -113,14 +104,18 @@ void CheckKeywordType(Parser *parser, KEYWORD_TYPE type);
 Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type);
 
 /**
+ * @brief Checks if the next token matches the expected keyword and returns the token.
+ * 
+ * @param parser Pointer to the parser structure.
+ * @param type The expected keyword type.
+ * @return Token* The checked keyword token.
+ */
+Token *CheckAndReturnKeyword(Parser *parser, KEYWORD_TYPE type);
+
+/**
  * @brief Upon encountering an ID, the parser checks if it's a valid variable and '=' and returns true if yes
  */
 VariableSymbol *IsVariableAssignment(Token *token, Parser *parser);
-
-/**
- * @brief Used in tandem with IsVariableAssignment, checks if it's a function call
- */
-bool IsFunctionCall(Token *token, Parser *parser);
 
 /**
  * @brief Parses the program header.
@@ -135,21 +130,6 @@ void Header(Parser *parser);
  * @param parser Pointer to the parser structure.
  */
 void Expression(Parser *parser);
-
-/**
- * @brief Parses all function parameters.
- *
- * @param parser Pointer to the parser structure.
- * @param func Symbol representing the function for which the parameters are read.
- */
-void ParametersDefinition(Parser *parser, FunctionSymbol *func);
-
-/**
- * @brief Parses a function definition and body.
- *
- * @param parser Pointer to the parser structure.
- */
-void FunctionDefinition(Parser *parser);
 
 /**
  * @brief A function call, checks if the params fit and calls codegen on the fly.
@@ -203,6 +183,15 @@ void VarDeclaration(Parser *parser, bool const);
  * @param var Also check if it's not a const variable
  */
 void VariableAssignment(Parser *parser, VariableSymbol *var);
+
+/**
+ * @brief Generates code for assigning a function return to variable, for example var a : i32 = Sum(10, 20, 30, 40);
+ * 
+ * @param parser Parser instance.
+ * @param var Symbol representing the variable to be assigned to.
+ * @param func Symbol representing the function whose return value will be assigned to the variable.
+ */
+void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *func);
 
 /**
  * @brief Parses the program body (main parsing loop).

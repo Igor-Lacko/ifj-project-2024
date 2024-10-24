@@ -6,6 +6,7 @@
 
 #include <stdbool.h>
 
+
 #define TABLE_COUNT 1009 // first prime over 1000, todo: change this
 
 // symbol type enumeration
@@ -47,7 +48,6 @@ typedef struct
     VariableSymbol **parameters;
     DATA_TYPE return_type;
     bool was_called;
-    bool was_defined;
 } FunctionSymbol;
 
 // structure of a symbol linked list node
@@ -89,7 +89,7 @@ void PopNode(int *symtable_size, SymtableListNode *list);
 void DestroyList(SymtableListNode *list);
 
 // symtable constructor with the specified size of linked lists
-Symtable *InitSymtable(size_t size);
+Symtable *InitSymtable(unsigned long size);
 
 // symtable destructor, calls DestroyList on every SymtableLinkedList
 void DestroySymtable(Symtable *symtable);
@@ -99,9 +99,9 @@ void DestroySymtable(Symtable *symtable);
  *
  * @param symbol_name name of the symbol, used as an input to the hash function
  * @param modulo size of the symtable, the index into the symtable is H(x) % size
+ * @note This function is from http://www.cse.yorku.ca/~oz/hash.html -- sdbm variant - also used in my IJC project :)
  * @return unsigned long index into the symtable
  */
-/*This function is from http://www.cse.yorku.ca/~oz/hash.html -- sdbm variant - also used in my IJC project :)*/
 unsigned long GetSymtableHash(char *symbol_name, unsigned long modulo);
 
 // FunctionSymbol symbol constructor

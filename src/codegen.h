@@ -28,6 +28,9 @@
 // Macros for working with the data stack
 #define CLEARS fprintf(stdout, "CLEARS\n");
 
+// I/O instruction macros
+#define WRITE(symb) fprintf(stdout, "WRITE %s\n", symb);
+
 // Macros for IFJCode24 exits
 #define IFJ24SUCCESS fprintf(stdout, "EXIT 0\n");
 
@@ -120,4 +123,27 @@ void Move(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame);
  * @param frame Frame scope.
  */
 void Jump(const char *label_name, FRAME frame);
+
+// Makes the print instructions a bit less bloated
+char *GetFrameString(FRAME frame);
+
+// Calls the READ instruction to read a symbol of type var->type to var at frame "frame"
+void READ(VariableSymbol *var, FRAME frame);
+
+// Conversion instructions
+void INT2FLOAT(VariableSymbol *dst, const char *value, FRAME frame);
+void FLOAT2INT(VariableSymbol *dst, const char *value, FRAME frame);
+
+// Calls the STRLEN instruction
+void STRLEN(VariableSymbol *dst, const char *str, FRAME frame);
+
+// Calls the CONCAT instruction
+void CONCAT(VariableSymbol *dst, const char *str1, const char *str2, FRAME frame);
+
+// Calls the STR2INT instruction.
+void STRI2INT(VariableSymbol *dst, const char *src, int position, FRAME frame);
+
+// Calls the INT2CHAR instruction
+void INT2CHAR(VariableSymbol *dst, int ascii_value, FRAME frame);
+
 #endif
