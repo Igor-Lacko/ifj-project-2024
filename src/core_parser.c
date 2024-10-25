@@ -4,7 +4,7 @@
 
 #include "scanner.h"
 #include "error.h"
-#include "parser.h"
+#include "core_parser.h"
 #include "symtable.h"
 #include "codegen.h"
 #include "embedded_functions.h"
@@ -35,8 +35,8 @@ void ProgramBegin()
 {
     // initial codegen instructions
     IFJCODE24
-    InitRegisters();
-    Jump("main", GLOBAL_FRAME);
+    InitRegisters(); // registers exist in main
+    JUMP("main")
 }
 
 // checks if the next token is of the expected type
@@ -130,6 +130,24 @@ bool IsFunctionCall(Token *token, Parser *parser)
     }
 
     return false;
+}
+
+void PrintStream()
+{
+    int c;
+    while((c=getchar()) != EOF) putchar(c);
+    exit(SUCCESS);
+}
+
+void PrintStreamTokens(Parser *parser)
+{
+    Token *token;
+    while((token=GetNextToken(&parser->line_number))->token_type != EOF_TOKEN)
+    {
+        PrintToken(token);
+        DestroyToken(token);
+    }
+    exit(SUCCESS);
 }
 
 // const ifj = @import("ifj24.zig");
@@ -371,7 +389,6 @@ void FunctionCall(Parser *parser, FunctionSymbol *func, const char *fun_name, DA
 
     CheckTokenType(parser, L_ROUND_BRACKET);
     ParametersOnCall(parser, func);
-    PUSHFRAME
     FUNCTIONCALL(func->name)
     func->was_called = true;
 }
@@ -383,6 +400,25 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
     //VariableSymbol *symb1; // for identifier parameter checking
     (void)func;
     (void)parser;
+}
+
+void FunctionDefinition(Parser *parser)
+{
+    // These next few lines should ALWAYS run succesfully, since the function parser already checks them
+    CheckKeywordType(parser, FN);
+    Token *token = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
+    FunctionSymbol *func = FindFunctionSymbol(parser->global_symtable, token->attribute);
+    DestroyToken(token);
+
+    // Generate code for the function label
+    FUNCTIONLABEL(func->name)
+    PUSHFRAME
+
+    // Skip all tokens until the function body begins (so after '{')
+    while((token=GetNextToken(&parser->line_number))->token_type != L_CURLY_BRACKET)
+        DestroyToken(token);
+
+    ProgramBody(parser);
 }
 
 void FunctionReturn(Parser *parser)
@@ -522,10 +558,11 @@ void ProgramBody(Parser *parser)
         switch (token->token_type)
         {
         case KEYWORD:
-            // start of function declaration
+            // start of function declaration, either skip it or throw an error
             if (token->keyword_type == PUB)
             {
                 DestroyToken(token);
+                ++(parser->nested_level);
                 FunctionDefinition(parser);
             }
             // start of if-else block
@@ -575,6 +612,7 @@ void ProgramBody(Parser *parser)
             // Can be a embedded function, or a defined function, or a called function, or a reassignment to a variable
             if (!strcmp(token->attribute, "ifj"))
             {
+                printf("looking man\n");
                 func = IsEmbeddedFunction(parser);
                 FunctionCall(parser, func, func->name, VOID_TYPE); // Void type since we aren't assigning the result anywhere
             }
@@ -621,19 +659,14 @@ void ProgramBody(Parser *parser)
     DestroyToken(token);
 }
 
-#ifdef IFJ24_DEBUG
 
 int main()
 {    
     // parser instance
     Parser parser = InitParser();
-    ProgramBegin(&parser);
+    //ProgramBegin(&parser);
     ParseFunctions(&parser);
     UngetStream(&parser);
-    PrintTable(parser.global_symtable);
-    SymtableStackDestroy(parser.symtable_stack);
-    DestroySymtable(parser.global_symtable);
-    return 0;
     Header(&parser);
 
     ProgramBody(&parser);
@@ -655,4 +688,3 @@ int main()
     return 0;
 }
 
-#endif

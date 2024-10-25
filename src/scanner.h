@@ -92,8 +92,9 @@ typedef enum
 typedef struct
 {
     TOKEN_TYPE token_type;
-    KEYWORD_TYPE keyword_type; // KEYWORD_TYPE.NONE if token_type != KEYWORD
-    char *attribute;           // null if the token has no attributre (e.g operators)
+    KEYWORD_TYPE keyword_type;  // KEYWORD_TYPE.NONE if token_type != KEYWORD
+    char *attribute;            // String representation of the token
+    int line_number;            // Useful when ungetting tokens
 } Token;
 
 /**

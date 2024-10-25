@@ -78,6 +78,12 @@ Parser InitParser();
  */
 void ProgramBegin();
 
+// Debug function, prints stdin and exits the program
+void PrintStream();
+
+// Debug function, calls print token on all tokens in the stream and exits the program
+void PrintStreamTokens(Parser *parser);
+
 /**
  * @brief Checks if the next token matches the expected token type.
  *
@@ -147,6 +153,13 @@ void FunctionCall(Parser *parser, FunctionSymbol *fun, const char *fun_name, DAT
  * @param parser 
  */
 void FunctionReturn(Parser *parser);
+
+/**
+ * @brief Generates code for a function definition.
+ * 
+ * @param parser Pointer to the parser structure.
+ */
+void FunctionDefinition(Parser *parser);
 
 /**
  * @brief Parses the parameters for a function call.

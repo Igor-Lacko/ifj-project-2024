@@ -2,7 +2,7 @@
 #define CODEGEN_H
 
 // Includes
-#include "parser.h"
+#include "core_parser.h"
 #include "expression_parser.h"
 #include "symtable.h"
 
@@ -19,11 +19,11 @@
 #define POPFRAME fprintf(stdout, "POPFRAME\n");
 
 // Macros for working with functions
-#define FUNCTIONCALL(fun_label) fprintf(stdout, "CALL GF@%s\n", fun_label);
-#define FUNCTIONLABEL(fun_label) fprintf(stdout, "LABEL GF@%s\n", fun_label);
+#define FUNCTIONCALL(fun_label) fprintf(stdout, "CALL %s\n", fun_label);
+#define FUNCTIONLABEL(fun_label) fprintf(stdout, "LABEL %s\n", fun_label);
 #define FUNCTION_RETURN fprintf(stdout, "RETURN\n");
-#define NEWPARAM(order) fprintf(stdout, "DEFVAR TF@PARAM%d\n", order); // Defines a new parameter on the temporary frame
-#define SETPARAM(order, value) fprintf(stdout, "MOVE TF@PARAM%d %s\n", order, value); // Sets the current parameter to "value" (a literal/number or a variable on the local frame)
+#define NEWPARAM(order) fprintf(stdout, "DEFVAR LF@PARAM%d\n", order); // Defines a new parameter on the local frame (already pushed from the temporary)
+#define SETPARAM(order, value) fprintf(stdout, "MOVE LF@PARAM%d %s\n", order, value); // Sets the current parameter to "value" (a literal/number or a variable on the local frame)
 
 // Macros for working with the data stack
 #define CLEARS fprintf(stdout, "CLEARS\n");
@@ -33,6 +33,9 @@
 
 // Macros for IFJCode24 exits
 #define IFJ24SUCCESS fprintf(stdout, "EXIT 0\n");
+
+// Macros for working with labels
+#define JUMP(label) fprintf(stdout, "JUMP %s\n", label);
 
 
 /*
@@ -115,14 +118,6 @@ void EndWhileLabel(FRAME frame);
  * @param src_frame Source frame type.
  */
 void Move(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame);
-
-/**
- * @brief Generates code for a unconditional jump to label_name.
- * 
- * @param label_name Label to be jumped to.
- * @param frame Frame scope.
- */
-void Jump(const char *label_name, FRAME frame);
 
 // Makes the print instructions a bit less bloated
 char *GetFrameString(FRAME frame);

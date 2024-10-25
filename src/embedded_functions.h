@@ -2,7 +2,7 @@
 #define EMBEDDED_FUNCTIONS_H
 
 #include "symtable.h"
-#include "parser.h"
+#include "core_parser.h"
 #include "codegen.h"
 
 #define EMBEDDED_FUNCTION_COUNT 13

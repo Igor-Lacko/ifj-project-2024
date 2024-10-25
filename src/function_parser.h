@@ -1,19 +1,20 @@
 #ifndef FUNCTION_PARSER_H
 #define FUNCTION_PARSER_G
 
-#include "parser.h"
+#include "core_parser.h"
 #include "expression_parser.h"
 
 
 extern TokenVector *tokens;
+extern int first_token_line;
 
 
 /**
- * @brief Parses a function definition.
+ * @brief Parses a function definition. DOES NOT generate code! That is the core parser's task
  *
  * @param parser Pointer to the parser structure.
  */
-void FunctionDefinition(Parser *parser);
+void ParseFunctionDefinition(Parser *parser);
 
 /**
  * @brief Parses all function parameters.
@@ -21,7 +22,7 @@ void FunctionDefinition(Parser *parser);
  * @param parser Pointer to the parser structure.
  * @param func Symbol representing the function for which the parameters are read.
  */
-void ParametersDefinition(Parser *parser, FunctionSymbol *func);
+void ParseParameters(Parser *parser, FunctionSymbol *func);
 
 /**
  * @brief Essentialy acts as a main function for the function parser. Parses all functions and adds them and their types/parameters to the symtable.

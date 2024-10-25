@@ -3,14 +3,14 @@
 #include <string.h>
 
 #include "function_parser.h"
-#include "codegen.h"
 
 TokenVector *tokens = NULL;
+int first_token_line = 0;
 
 // pub fn id ( seznam_parametrů ) návratový_typ {
 // sekvence_příkazů
 // }
-void FunctionDefinition(Parser *parser)
+void ParseFunctionDefinition(Parser *parser)
 {
     Token *token;
     token = CheckAndReturnKeyword(parser, FN);
@@ -47,9 +47,6 @@ void FunctionDefinition(Parser *parser)
     SymtableStackPush(parser->symtable_stack, local_symtable);
     parser->symtable = local_symtable;
 
-    // Generate a function label and create a new temporary frame
-    FUNCTIONLABEL(func->name)
-
     // check if the main function is present
     if (!strcmp(func->name, "main"))
     {
@@ -59,7 +56,7 @@ void FunctionDefinition(Parser *parser)
 
     token = CheckAndReturnToken(parser, L_ROUND_BRACKET);
     AppendToken(tokens, token);
-    ParametersDefinition(parser, func); // params with )
+    ParseParameters(parser, func); // params with )
 
     if ((token = GetNextToken(&parser->line_number))->token_type != KEYWORD || (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8 && token->keyword_type != VOID))
     {
@@ -103,7 +100,7 @@ void FunctionDefinition(Parser *parser)
 }
 
 // checks all parameters
-void ParametersDefinition(Parser *parser, FunctionSymbol *func)
+void ParseParameters(Parser *parser, FunctionSymbol *func)
 {
     Token *token;
     int param_count = 0;
@@ -185,11 +182,6 @@ void ParametersDefinition(Parser *parser, FunctionSymbol *func)
                 func->parameters[param_count++] = VariableSymbolCopy(var); // To avoid double frees since the symbol would be in the local and global symtable both
             }
 
-            else
-            {
-                CHECK_PARAM(var->type, func->parameters[param_count++]->type)
-            }
-
             // checks if there is another parameter
             if ((token = GetNextToken(&parser->line_number))->token_type != COMMA_TOKEN)
             {
@@ -210,15 +202,7 @@ void ParametersDefinition(Parser *parser, FunctionSymbol *func)
             ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", parser->line_number);
         }
     }
-    if (func->was_called && param_count != func->num_of_parameters)
-    {
-        PrintError("Invalid number of parameters for function \"%s\": Given %d, expected %d",
-                   func->name, func->num_of_parameters, param_count);
-        DestroyToken(token);
-        SymtableStackDestroy(parser->symtable_stack);
-        DestroySymtable(parser->global_symtable);
-        exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
-    }
+
     func->num_of_parameters = param_count;
 }
 
@@ -227,7 +211,11 @@ void ParseFunctions(Parser *parser)
     // The token vector to store the tokens
     tokens = InitTokenVector();
 
-    Token *token;
+    // Get the line number of the first token
+    Token *token = GetNextToken(&parser->line_number);
+    first_token_line = parser->line_number;
+    UngetToken(token);
+
     while ((token = GetNextToken(&parser->line_number))->token_type != EOF_TOKEN)
     {
         // Reserve the new token
@@ -237,18 +225,16 @@ void ParseFunctions(Parser *parser)
         if (token->token_type == R_CURLY_BRACKET)
         {
             parser->nested_level--;
-            printf("decrementing nested level on line %d\n", parser->line_number);
         }
         else if (token->token_type == L_CURLY_BRACKET)
         {
             parser->nested_level++;
-            printf("incrementing nested level on line %d\n", parser->line_number);
         }
 
         if (token->keyword_type == PUB)
         {
             // Parse the function definition
-            FunctionDefinition(parser);
+            ParseFunctionDefinition(parser);
 
             // Nested level has to be 0: IFJ24 doesn't support nesting function definitions inside other blocks
             if (parser->nested_level != 0)
@@ -271,12 +257,23 @@ void ParseFunctions(Parser *parser)
 
 void UngetStream(Parser *parser)
 {
+    int current_line = parser->line_number;
     for (int i = tokens->length - 1; i >= 0; i--)
     {
+        while(current_line != tokens->token_string[i]->line_number)
+        {
+            current_line--;
+            ungetc('\n', stdin);
+        }
+
+        current_line = tokens->token_string[i]->line_number;
         UngetToken(tokens->token_string[i]);
         tokens->token_string[i] = NULL;
+        if(i != 0) ungetc(' ', stdin); // So that tokens don't get meshed together
     }
 
+
+
     DestroyTokenVector(tokens);
-    parser->line_number = 1; // TODO: adjust for case where the first token isn't on line 1
+    parser->line_number = first_token_line;
 }

@@ -5,7 +5,7 @@
 #include "vector.h"
 #include "scanner.h"
 #include "stack.h"
-#include "parser.h"
+#include "core_parser.h"
 #include "string.h"
 #include "math.h"
 

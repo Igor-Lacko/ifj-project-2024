@@ -56,9 +56,9 @@ dkms.conf
 
 #assignment and school files
 *.pdf
+*ifjcode24_examples/
 
 #vscode files
 *vscode*
 .json*
-
 

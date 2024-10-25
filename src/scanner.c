@@ -47,7 +47,6 @@ void UngetToken(Token *token)
         ErrorExit(ERROR_INTERNAL, "Calling UngetToken on a token with no attribute or a null token. Fix your code!");
     }
 
-
     for (int i = (int)(strlen(token->attribute)) - 1; i >= 0; i--)
         ungetc(token->attribute[i], stdin);
 
@@ -249,12 +248,15 @@ void ConsumeIdentifier(Token *token, int *line_number)
         token->token_type = KEYWORD;
         token->keyword_type = keyword_type;
     }
+
+    token->line_number = *line_number;
 }
 
 void ConsumeLiteral(Token *token, int *line_number)
 {
     int c;
     Vector *vector = InitVector();
+    AppendChar(vector, '"');
 
     // loop until we encounter another " character
     while ((c = getchar()) != '"' && c != '\n' && c != EOF)
@@ -284,6 +286,7 @@ void ConsumeLiteral(Token *token, int *line_number)
     }
 
     // terminate the string
+    AppendChar(vector, '"');
     AppendChar(vector, '\0');
 
     // either a valid end of a string, or throw an error in case of newline/end of file
@@ -392,6 +395,7 @@ void ConsumeU8Token(Token *token, int *line_number)
 
     strcpy(token->attribute, actual_token);
 
+    token->line_number = *line_number;
     token->token_type = KEYWORD;
     token->keyword_type = U8;
 }
@@ -464,21 +468,25 @@ Token *GetNextToken(int *line_number)
                 token->token_type = ASSIGNMENT;
             }
 
+            token->line_number = *line_number;
             return token;
 
         case '+':
             token->attribute = strdup("+");
             token->token_type = ADDITION_OPERATOR;
+            token->line_number = *line_number;
             return token;
 
         case '-':
             token->attribute = strdup("-");
             token->token_type = SUBSTRACTION_OPERATOR;
+            token->line_number = *line_number;
             return token;
 
         case '*':
             token->attribute = strdup("*");
             token->token_type = MULTIPLICATION_OPERATOR;
+            token->line_number = *line_number;
             return token;
 
         case '/': // can also signal the start of a comment
@@ -486,6 +494,7 @@ Token *GetNextToken(int *line_number)
             {
                 token->attribute = strdup("/");
                 token->token_type = DIVISION_OPERATOR;
+                token->line_number = *line_number;
                 return token;
             }
 
@@ -507,6 +516,7 @@ Token *GetNextToken(int *line_number)
             {
                 token->attribute = strdup("!=");
                 getchar();
+                token->line_number = *line_number;
                 token->token_type = NOT_EQUAL_OPERATOR;
             }
 
@@ -526,6 +536,7 @@ Token *GetNextToken(int *line_number)
                 token->token_type = LESSER_EQUAL_OPERATOR;
             }
 
+            token->line_number = *line_number;
             return token;
 
         case '>': // analogous to <
@@ -542,27 +553,32 @@ Token *GetNextToken(int *line_number)
                 token->token_type = LARGER_EQUAL_OPERATOR;
             }
 
+            token->line_number = *line_number;
             return token;
 
         /*bracket tokens and array symbol*/
         case '(':
             token->attribute = strdup("(");
             token->token_type = L_ROUND_BRACKET;
+            token->line_number = *line_number;
             return token;
 
         case ')':
             token->attribute = strdup(")");
             token->token_type = R_ROUND_BRACKET;
+            token->line_number = *line_number;
             return token;
 
         case '{':
             token->attribute = strdup("{");
             token->token_type = L_CURLY_BRACKET;
+            token->line_number = *line_number;
             return token;
 
         case '}':
             token->attribute = strdup("}");
             token->token_type = R_CURLY_BRACKET;
+            token->line_number = *line_number;
             return token;
 
         case '[': // A bit of a special case, []u8 is a keyword that can't be mistaken for a identifier but u8 can but u8 by itself is a invalid token
@@ -573,6 +589,7 @@ Token *GetNextToken(int *line_number)
         case '|':
             token->attribute = strdup("|");
             token->token_type = VERTICAL_BAR_TOKEN;
+            token->line_number = *line_number;
             return token;
 
         /*special symbols*/
@@ -591,42 +608,50 @@ Token *GetNextToken(int *line_number)
 
         case EOF:
             token->token_type = EOF_TOKEN;
+            token->line_number = *line_number;
             return token;
 
         case ';':
             token->attribute = strdup(";");
             token->token_type = SEMICOLON;
+            token->line_number = *line_number;
             return token;
 
         case '_':
             ungetc(c, stdin);
             ConsumeIdentifier(token, line_number);
+            token->line_number = *line_number;
             return token;
 
         case '@':
             ungetc(c, stdin);
             ConsumeImportToken(token, line_number);
+            token->line_number = *line_number;
             return token;
 
         case ':':
             token->attribute = strdup(":");
             token->token_type = COLON_TOKEN;
+            token->line_number = *line_number;
             return token;
 
         case '.':
             token->attribute = strdup(".");
             token->token_type = DOT_TOKEN;
+            token->line_number = *line_number;
             return token;
 
         case ',':
             token->attribute = strdup(",");
             token->token_type = COMMA_TOKEN;
+            token->line_number = *line_number;
             return token;
 
         /*Beginning of a string*/
         case '"':
             token->token_type = LITERAL_TOKEN;
             ConsumeLiteral(token, line_number);
+            token->line_number = *line_number;
             return token;
 
         /*multiple 0's are an invalid token*/
@@ -637,6 +662,7 @@ Token *GetNextToken(int *line_number)
             ungetc(c, stdin);
             ConsumeNumber(token, line_number);
 
+            token->line_number = *line_number;
             return token;
 
         /*call GetSymbolType to determine next token*/
@@ -650,10 +676,12 @@ Token *GetNextToken(int *line_number)
             /*beginning of a identifier*/
             case CHARACTER:
                 ConsumeIdentifier(token, line_number);
+                token->line_number = *line_number;
                 return token;
 
             case NUMBER:
                 ConsumeNumber(token, line_number);
+                token->line_number = *line_number;
                 return token;
 
             case WHITESPACE:
@@ -787,5 +815,5 @@ void PrintToken(Token *token)
     default:
         printf("PrintToken() default case");
     }
-    printf(" ");
+    printf(" Line number: %d\n", token->line_number);
 }

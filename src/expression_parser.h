@@ -4,7 +4,7 @@
 #include "scanner.h" // tokens
 #include "vector.h" // vectors for infix-to-postfix
 #include "stack.h" // expression stack for infix-to-postfix
-#include "parser.h" // for keeping track of line numbers mostly
+#include "core_parser.h" // for keeping track of line numbers mostly
 
 
 typedef struct { // simple precedence table struct

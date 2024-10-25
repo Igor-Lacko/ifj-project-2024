@@ -720,23 +720,6 @@ void Move(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame)
     }
 }
 
-void Jump(const char *label_name, FRAME frame)
-{
-    switch(frame)
-    {
-        case GLOBAL_FRAME:
-            fprintf(stdout, "JMP GF@%s\n", label_name);
-            break;
-
-        case LOCAL_FRAME:
-            fprintf(stdout, "JMP LF@%s\n", label_name);
-            break;
-
-        case TEMPORARY_FRAME:
-            fprintf(stdout, "JMP TF@%s\n", label_name);
-    }
-}
-
 char *GetFrameString(FRAME frame)
 {
     switch(frame)
