@@ -306,8 +306,11 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
         switch(token->token_type)
         {
             case INTEGER_32: case DOUBLE_64: // operand tokens, push them to the stack
+                if(token->token_type == DOUBLE_64) return_type = DOUBLE64_TYPE;
+                char *type_string = GetTypeStringToken(token->token_type);
                 ExpressionStackPush(stack, token);
-                fprintf(stdout, "PUSHS %s\n",token->attribute);
+                PUSHS(token->attribute, token->token_type, LOCAL_FRAME);
+                free(type_string);
                 break;
 
             case IDENTIFIER_TOKEN: // identifier token, the same as for operands just check type/and if are defined
@@ -357,7 +360,11 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                         exit(ERROR_SEMANTIC_UNDEFINED);
                     }
 
-                    else if(sym1->type == INT32_TYPE) op1_float = true;
+                    else if(sym1->type == DOUBLE64_TYPE || sym1->type == DOUBLE64_NULLABLE_TYPE)
+                    {
+                        return_type = DOUBLE64_TYPE;
+                        op1_float = true;
+                    }
                 }
 
                 else if(op2->token_type == IDENTIFIER_TOKEN)
@@ -374,7 +381,11 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                         exit(ERROR_SEMANTIC_UNDEFINED);
                     }
 
-                    else if(sym2->type == DOUBLE64_TYPE) op2_float = true;
+                    else if(sym2->type == DOUBLE64_TYPE || sym2->type == DOUBLE64_NULLABLE_TYPE)
+                    {
+                        return_type = DOUBLE64_TYPE;
+                        op2_float = true;
+                    }
                 }
 
                 (op1->token_type != DOUBLE_64 || op1_float) ? fprintf(stdout, "POPS GF@R1\n") : fprintf(stdout, "POPS GF@F1\n"); // R1/F1 = Second operand (popped from the stack first)
@@ -383,6 +394,9 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                 // call a function depending on the data types
                 if(op1->token_type == DOUBLE_64 || op2->token_type == DOUBLE_64)
                 {
+                    // Change the return type
+                    return_type = DOUBLE64_TYPE;
+
                     // To push the result
                     Token *f_token = InitToken();
                     f_token->token_type = DOUBLE_64;
@@ -529,6 +543,8 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     else if(sym2->type == DOUBLE64_TYPE) op2_float = true;
                 }
 
+                if(op1_float || op2_float) return_type = DOUBLE64_TYPE;
+
                 (op1->token_type != DOUBLE_64 || op1_float) ? fprintf(stdout, "POPS GF@R1\n") : fprintf(stdout, "POPS GF@F1\n"); // R1/F1 = Second operand (popped from the stack first)
                 (op2->token_type != DOUBLE_64 || op2_float) ? fprintf(stdout, "POPS GF@R2\n") : fprintf(stdout, "POPS GF@F2\n"); // R2/F2 = First operand
 
@@ -674,65 +690,41 @@ void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame)
     }
 
     char *type_string = GetTypeStringToken(type);
-    fprintf(stdout, "PUSHS %s%s\n", type_string, attribute);
+    fprintf(stdout, "PUSHS %s", type_string);
+
+    // White space handling for string literals
+    if(type == LITERAL_TOKEN) WriteStringLiteral(attribute);
+    else fprintf(stdout, "%s", attribute);
+
+    // Print the exponent in case of a float token
+    type == DOUBLE_64 ? fprintf(stdout, "p+0\n") : fprintf(stdout, "\n");
     free(type_string);
 }
 
-void MOVE(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame)
+void MOVE(const char *dst, const char *src, FRAME dst_frame)
 {
-    switch(dst_frame)
-    {
-        case GLOBAL_FRAME:
-            switch(src_frame)
-            {
-                case GLOBAL_FRAME:
-                    fprintf(stdout, "MOVE GF@%s GF@%s\n", dst, src);
-                    break;
+    char *frame_str = GetFrameString(dst_frame);
+    fprintf(stdout, "MOVE %s%s %s\n", frame_str, dst, src);
+    free(frame_str);
+}
 
-                case LOCAL_FRAME:
-                    fprintf(stdout, "MOVE GF@%s LF@%s\n", dst, src);
-                    break;
+void SETPARAM(int order, const char *value, TOKEN_TYPE type, FRAME frame)
+{
+    // Initial print of the target parameter variable
+    fprintf(stdout, "MOVE TF@param%d ", order);
 
-                case TEMPORARY_FRAME:
-                    fprintf(stdout, "MOVE GF@%s TF@%s\n", dst, src);
-                    break;
-            }
-            break;
+    // Prefix is either GF@/LF@/TF@ or the type of the token (int@, float@0x, string@, bool@)
+    char *prefix = type == IDENTIFIER_TOKEN ? GetFrameString(frame) : GetTypeStringToken(type);
+    fprintf(stdout, "%s", prefix);
 
-        case LOCAL_FRAME:
-            switch(src_frame)
-            {
-                case GLOBAL_FRAME:
-                    fprintf(stdout, "MOVE LF@%s GF@%s\n", dst, src);
-                    break;
+    // If the token is a string literal, call the WriteStringLiteral function to handle whitespaces accordingly
+    if(type == LITERAL_TOKEN) WriteStringLiteral(value); // Why can't i use the ternary operator here :(((
+    else fprintf(stdout, "%s", value);
 
-                case LOCAL_FRAME:
-                    fprintf(stdout, "MOVE LF@%s LF@%s\n", dst, src);
-                    break;
+    // If the token is a float, print the exponent, other than that just a newline
+    type == DOUBLE_64 ? fprintf(stdout, "p+0\n") : fprintf(stdout, "\n");
 
-                case TEMPORARY_FRAME:
-                    fprintf(stdout, "MOVE LF@%s TF@%s\n", dst, src);
-                    break;
-            }
-            break;
-
-        case TEMPORARY_FRAME:
-            switch(src_frame)
-            {
-                case GLOBAL_FRAME:
-                    fprintf(stdout, "MOVE TF@%s GF@%s\n", dst, src);
-                    break;
-
-                case LOCAL_FRAME:
-                    fprintf(stdout, "MOVE TF@%s LF@%s\n", dst, src);
-                    break;
-
-                case TEMPORARY_FRAME:
-                    fprintf(stdout, "MOVE TF@%s TF@%s\n", dst, src);
-                    break;
-            }
-            break;
-    }
+    free(prefix);
 }
 
 char *GetFrameString(FRAME frame)
@@ -760,7 +752,7 @@ char *GetTypeStringToken(TOKEN_TYPE type)
             return strdup("int@");
 
         case DOUBLE_64:
-            return strdup("float@");
+            return strdup("float@0x");
 
         case LITERAL_TOKEN:
             return strdup("string@");
@@ -777,13 +769,13 @@ char *GetTypeStringSymbol(DATA_TYPE type)
 {
     switch(type)
     {
-        case INT32_TYPE:
+        case INT32_TYPE: case INT32_NULLABLE_TYPE:
             return strdup("int@");
 
-        case DOUBLE64_TYPE:
-            return strdup("float@");
+        case DOUBLE64_TYPE: case DOUBLE64_NULLABLE_TYPE:
+            return strdup("float@0x");
 
-        case U8_ARRAY_TYPE:
+        case U8_ARRAY_TYPE: case U8_ARRAY_NULLABLE_TYPE:
             return strdup("string@");
 
         case BOOLEAN:
@@ -923,4 +915,57 @@ void INT2CHAR(VariableSymbol *dst, int ascii_value, FRAME frame)
     char *frame_str = GetFrameString(frame);
     fprintf(stdout, "INT2CHAR %s%s %d\n", frame_str, dst->name, ascii_value);
     free(frame_str);
+}
+
+void WriteStringLiteral(const char *str)
+{
+    for(int i = 0; i < (int)strlen(str); i++)
+    {
+        switch(str[i])
+        {
+            case '\n':
+                fprintf(stdout, "\\010");
+                break;
+
+            case '\t':
+                fprintf(stdout, "\\009");
+                break;
+
+            case '\v':
+                fprintf(stdout, "\\011");
+                break;
+
+            case '\b':
+                fprintf(stdout, "\\008");
+                break;
+
+            case '\r':
+                fprintf(stdout, "\\013");
+                break;
+
+            case '\f':
+                fprintf(stdout, "\\012");
+                break;
+
+            case '\\':
+                fprintf(stdout, "\\092");
+                break;
+
+            case '\'':
+                fprintf(stdout, "\\039");
+                break;
+
+            case '\"':
+                fprintf(stdout, "\\034");
+                break;
+
+            case ' ':
+                fprintf(stdout, "\\032");
+                break;
+
+            default:
+                fprintf(stdout, "%c", str[i]);
+                break;
+        }
+    }
 }

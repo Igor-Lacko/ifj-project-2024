@@ -47,8 +47,14 @@ void UngetToken(Token *token)
         ErrorExit(ERROR_INTERNAL, "Calling UngetToken on a token with no attribute or a null token. Fix your code!");
     }
 
+    // Opening double quotes for a string literal
+    if(token->token_type == LITERAL_TOKEN) ungetc('"', stdin);
+
     for (int i = (int)(strlen(token->attribute)) - 1; i >= 0; i--)
         ungetc(token->attribute[i], stdin);
+
+    // Closing double quotes for a string literal
+    if(token->token_type == LITERAL_TOKEN) ungetc('"', stdin);
 
     DestroyToken(token);
 }
@@ -256,7 +262,6 @@ void ConsumeLiteral(Token *token, int *line_number)
 {
     int c;
     Vector *vector = InitVector();
-    AppendChar(vector, '"');
 
     // loop until we encounter another " character
     while ((c = getchar()) != '"' && c != '\n' && c != EOF)
@@ -286,7 +291,6 @@ void ConsumeLiteral(Token *token, int *line_number)
     }
 
     // terminate the string
-    AppendChar(vector, '"');
     AppendChar(vector, '\0');
 
     // either a valid end of a string, or throw an error in case of newline/end of file

@@ -23,7 +23,6 @@
 #define FUNCTIONLABEL(fun_label) fprintf(stdout, "LABEL %s\n", fun_label);
 #define FUNCTION_RETURN fprintf(stdout, "RETURN\n");
 #define NEWPARAM(order) fprintf(stdout, "DEFVAR TF@PARAM%d\n", order); // Defines a new parameter on the temporary frame
-#define SETPARAM(order, value) fprintf(stdout, "MOVE TF@PARAM%d %s\n", order, value); // Sets the current parameter to "value" (a literal/number or a variable on the local frame)
 
 // Macros for working with the data stack
 #define CLEARS fprintf(stdout, "CLEARS\n");
@@ -113,11 +112,10 @@ void EndWhileLabel(FRAME frame);
  * @brief Generates code for moving src to dst.
  * 
  * @param dst Destination variable.
- * @param src Source variable.
+ * @param src Source variable/symbol.
  * @param dst_frame Destination frame type.
- * @param src_frame Source frame type.
  */
-void MOVE(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame);
+void MOVE(const char *dst, const char *src, FRAME dst_frame);
 
 /**
  * @brief Generates code for pushing a symbol to the data stack.
@@ -127,6 +125,16 @@ void MOVE(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame);
  * @param frame Frame type. Ignored if token type is not IDENTIFIER_TOKEN.
  */
 void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame);
+
+/**
+ * @brief Generates code for moving a value to a function's parameter
+ * 
+ * @param order The number/order of the parameter, for example the first param is TF@param0... etc.
+ * @param value The string representation of the value.
+ * @param type Token type.
+ * @param frame Frame type. Ignored if token type is not IDENTIFIER_TOKEN.
+ */
+void SETPARAM(int order, const char *value, TOKEN_TYPE type, FRAME frame);
 
 // Makes the print instructions a bit less bloated
 char *GetFrameString(FRAME frame);
@@ -155,5 +163,10 @@ void STRI2INT(VariableSymbol *dst, const char *src, int position, FRAME frame);
 
 // Calls the INT2CHAR instruction
 void INT2CHAR(VariableSymbol *dst, int ascii_value, FRAME frame);
+
+/**
+ * @brief Writes the string literal passed in as a param in a IFJCode24 compatible way.
+ */
+void WriteStringLiteral(const char *str);
 
 #endif

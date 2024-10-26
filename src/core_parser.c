@@ -367,9 +367,6 @@ void VarDeclaration(Parser *parser, bool is_const)
 // TODO: revamp this to work accordingly with function_parser.c
 void FunctionCall(Parser *parser, FunctionSymbol *func, const char *fun_name, DATA_TYPE expected_return)
 {
-    // print param types
-    for(int i = 0; i < func->num_of_parameters; i++)
-        printf("%d ", func->parameters[i]->type);
     // Invalid return value
     if (func->return_type != expected_return)
     {
@@ -415,7 +412,7 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                     INVALID_PARAM_TYPE
 
                 NEWPARAM(loaded)
-                SETPARAM(loaded++, symb1->name)
+                SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
 
                 DestroyToken(token);
                 break;
@@ -424,7 +421,7 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 if(CheckParamType(func->parameters[loaded]->type, INT32_TYPE))
                 {
                     NEWPARAM(loaded)
-                    SETPARAM(loaded++, token->attribute)
+                    SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
                 }
                 else
                     INVALID_PARAM_TYPE
@@ -436,7 +433,7 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 if(CheckParamType(func->parameters[loaded]->type, DOUBLE64_TYPE))
                 {
                     NEWPARAM(loaded)
-                    SETPARAM(loaded++, token->attribute)
+                    SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
                 }
                 else
                     INVALID_PARAM_TYPE
@@ -448,7 +445,7 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 if(CheckParamType(func->parameters[loaded]->type, U8_ARRAY_TYPE))
                 {
                     NEWPARAM(loaded)
-                    SETPARAM(loaded++, token->attribute)
+                    SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
                 }
                 else
                     INVALID_PARAM_TYPE
@@ -612,8 +609,8 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
 
     if ((expr_type = GeneratePostfixExpression(parser, postfix, var)) != var->type && var->type != VOID_TYPE)
     {
-        PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\"",
-                   parser->line_number, var->name);
+        PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\", expected %d, got %d",
+                   parser->line_number, var->name, var->type, expr_type);
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
         exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
