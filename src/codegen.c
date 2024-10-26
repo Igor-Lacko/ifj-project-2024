@@ -662,8 +662,23 @@ void EndWhileLabel(FRAME frame)
     }
 }
 
+void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame)
+{
+    // If the token is an identifier, push it from the correct frame
+    if(type == IDENTIFIER_TOKEN)
+    {
+        char *frame_string = GetFrameString(frame);
+        fprintf(stdout, "PUSHS %s%s\n", frame_string, attribute);
+        free(frame_string);
+        return;
+    }
 
-void Move(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame)
+    char *type_string = GetTypeStringToken(type);
+    fprintf(stdout, "PUSHS %s%s\n", type_string, attribute);
+    free(type_string);
+}
+
+void MOVE(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame)
 {
     switch(dst_frame)
     {
@@ -735,6 +750,48 @@ char *GetFrameString(FRAME frame)
     }
 
     return NULL; // Shut up GCC please
+}
+
+char *GetTypeStringToken(TOKEN_TYPE type)
+{
+    switch(type)
+    {
+        case INTEGER_32:
+            return strdup("int@");
+
+        case DOUBLE_64:
+            return strdup("float@");
+
+        case LITERAL_TOKEN:
+            return strdup("string@");
+
+        case BOOLEAN_TOKEN:
+            return strdup("bool@");
+
+        default:
+            return NULL;
+    }
+}
+
+char *GetTypeStringSymbol(DATA_TYPE type)
+{
+    switch(type)
+    {
+        case INT32_TYPE:
+            return strdup("int@");
+
+        case DOUBLE64_TYPE:
+            return strdup("float@");
+
+        case U8_ARRAY_TYPE:
+            return strdup("string@");
+
+        case BOOLEAN:
+            return strdup("bool@");
+
+        default:
+            return NULL;
+    }
 }
 
 // In case the variable has term_type, change it after

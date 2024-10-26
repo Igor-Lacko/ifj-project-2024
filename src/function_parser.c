@@ -185,8 +185,12 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
             // checks if there is another parameter
             if ((token = GetNextToken(&parser->line_number))->token_type != COMMA_TOKEN)
             {
-                if (token->token_type == R_ROUND_BRACKET) // no more parameters
+                // no more parameters
+                if (token->token_type == R_ROUND_BRACKET)
+                {
+                    AppendToken(tokens, token);
                     break;
+                }
                 DestroyToken(token);
                 DestroySymtable(parser->symtable);
                 SymtableStackDestroy(parser->symtable_stack);
@@ -239,7 +243,6 @@ void ParseFunctions(Parser *parser)
             // Nested level has to be 0: IFJ24 doesn't support nesting function definitions inside other blocks
             if (parser->nested_level != 0)
             {
-                printf("nested level is %d\n", parser->nested_level);
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroySymtable(parser->global_symtable);
                 DestroyTokenVector(tokens);

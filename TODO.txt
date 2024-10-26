@@ -1,22 +1,23 @@
-1. Assigning function returns to variables: For example const a : i32 = sum(10, 20, 30);
+1. Fix IFJCode24 instructions (need to specify a data type when using a literal, for example int@100)
+
+2. Assigning function returns to variables: For example const a : i32 = sum(10, 20, 30);
 - The same for reassigning to variables, maybe use VariableAssignment for both?
 - Do the same for embedded functions: var a : ?u8[] = ifj.readstr(); // I think the function is called readstr
 
-2. Conditionals: Generate code for expr in if(expr) and labels for if/else/end (else/end are probably enough)
+3. Conditionals: Generate code for expr in if(expr) and labels for if/else/end (else/end are probably enough)
 - Jump to else if the else condition is true
 - Else perform the if cond and then jump to end (label after the else part)
 - Type checking in the if expression
 - if(expr) |expr_result| - type checking, create a new variable in the symtable for expr_result, etc.
 
-3. Loops: Generate code for the boolean expr in while(expr)
+4. Loops: Generate code for the boolean expr in while(expr)
 - Generate a label for while
 - 2 options, jump to while, then evaluate and if false jump to end?
 - Other option is to evaluate at the end, but that works like a do-while loop
 
-4. Symtable: Rework the symtable to use open adressing instead of linked lists (I hate this)
 
-5. Calling embedded functions: Has to be done using the equivalent IFJCode24 instructions
+4. Calling embedded functions: Has to be done using the equivalent IFJCode24 instructions
 
-6. Write instruction: how do %d and %a actually work?
+5. Write instruction: how do %d and %a actually work?
 
-7. MOST IMPORTANT!!! --> go through the input file multiple times for function declarations
+6. Symtable: Rework the symtable to use open adressing instead of linked lists (I hate this) --> Maybe do nod need to do this?

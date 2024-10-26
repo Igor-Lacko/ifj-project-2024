@@ -1,6 +1,0 @@
-LABEL main
-PUSHFRAME
-looking man
-CREATEFRAME
-CALL write
-DEFVAR LF@inp

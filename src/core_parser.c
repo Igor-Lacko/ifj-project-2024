@@ -129,20 +129,23 @@ bool IsFunctionCall(Token *token, Parser *parser)
         return true;
     }
 
+    DestroyToken(braces);
+    DestroyToken(token);
     return false;
 }
 
 void PrintStream()
 {
     int c;
-    while((c=getchar()) != EOF) putchar(c);
+    while ((c = getchar()) != EOF)
+        putchar(c);
     exit(SUCCESS);
 }
 
 void PrintStreamTokens(Parser *parser)
 {
     Token *token;
-    while((token=GetNextToken(&parser->line_number))->token_type != EOF_TOKEN)
+    while ((token = GetNextToken(&parser->line_number))->token_type != EOF_TOKEN)
     {
         PrintToken(token);
         DestroyToken(token);
@@ -364,22 +367,11 @@ void VarDeclaration(Parser *parser, bool is_const)
 // TODO: revamp this to work accordingly with function_parser.c
 void FunctionCall(Parser *parser, FunctionSymbol *func, const char *fun_name, DATA_TYPE expected_return)
 {
-    CREATEFRAME
-    // Check if the function exists
-    if (func == NULL)
-    {
-        func = FunctionSymbolInit();
-        func->name = strdup(fun_name);
-        func->num_of_parameters = -1; // Unspecified number of parameters
-        func->parameters = NULL;
-        func->return_type = expected_return;
-
-        // Create a new value in the symtable
-        (void)InsertFunctionSymbol(parser->global_symtable, func);
-    }
-
+    // print param types
+    for(int i = 0; i < func->num_of_parameters; i++)
+        printf("%d ", func->parameters[i]->type);
     // Invalid return value
-    else if (func->return_type != expected_return)
+    if (func->return_type != expected_return)
     {
         PrintError("Line %d: Invalid return type for function \"%s\"",
                    parser->line_number, fun_name);
@@ -388,18 +380,131 @@ void FunctionCall(Parser *parser, FunctionSymbol *func, const char *fun_name, DA
     }
 
     CheckTokenType(parser, L_ROUND_BRACKET);
+    CREATEFRAME
     ParametersOnCall(parser, func);
     FUNCTIONCALL(func->name)
-    func->was_called = true;
+    CheckTokenType(parser, SEMICOLON);
 }
 
 void ParametersOnCall(Parser *parser, FunctionSymbol *func)
 {
-    //Token *token;
-    //int loaded = 0;
-    //VariableSymbol *symb1; // for identifier parameter checking
-    (void)func;
-    (void)parser;
+    Token *token;
+    int loaded = 0;
+    VariableSymbol *symb1; // for identifier parameter checking
+
+    // Load all parameters
+    while ((token = GetNextToken(&parser->line_number))->token_type != R_ROUND_BRACKET)
+    {
+        if(loaded == func->num_of_parameters) break; // Invalid count checking after the loop is done
+        switch (token->token_type)
+        {
+            // Variable as a parameter
+            case IDENTIFIER_TOKEN:
+                symb1 = SymtableStackFindVariable(parser->symtable_stack, token->attribute);
+                if (symb1 == NULL)
+                {
+                    PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"",
+                                parser->line_number, token->attribute);
+                    SymtableStackDestroy(parser->symtable_stack);
+                    DestroySymtable(parser->global_symtable);
+                    exit(ERROR_SEMANTIC_UNDEFINED);
+                }
+
+                // Check if the parameter type is valid
+                if(!CheckParamType(func->parameters[loaded]->type, symb1->type))
+                    INVALID_PARAM_TYPE
+
+                NEWPARAM(loaded)
+                SETPARAM(loaded++, symb1->name)
+
+                DestroyToken(token);
+                break;
+
+            case INTEGER_32:
+                if(CheckParamType(func->parameters[loaded]->type, INT32_TYPE))
+                {
+                    NEWPARAM(loaded)
+                    SETPARAM(loaded++, token->attribute)
+                }
+                else
+                    INVALID_PARAM_TYPE
+
+                DestroyToken(token);
+                break;
+
+            case DOUBLE_64:
+                if(CheckParamType(func->parameters[loaded]->type, DOUBLE64_TYPE))
+                {
+                    NEWPARAM(loaded)
+                    SETPARAM(loaded++, token->attribute)
+                }
+                else
+                    INVALID_PARAM_TYPE
+
+                DestroyToken(token);
+                break;
+
+            case LITERAL_TOKEN:
+                if(CheckParamType(func->parameters[loaded]->type, U8_ARRAY_TYPE))
+                {
+                    NEWPARAM(loaded)
+                    SETPARAM(loaded++, token->attribute)
+                }
+                else
+                    INVALID_PARAM_TYPE
+
+                DestroyToken(token);
+                break;
+
+            // Any other token type is a syntax error
+            default:
+                PrintError("Error in syntactic analysis: Line %d: Unexpected token \"%s\" in function call",
+                           parser->line_number, token->attribute);
+                DestroyToken(token);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                exit(ERROR_SYNTACTIC);
+        }
+
+        // In the case of the last parameter, check if the next token is a comma/')'
+        if(loaded == func->num_of_parameters)
+        {
+            if((token=GetNextToken(&parser->line_number))->token_type != R_ROUND_BRACKET && token->token_type != COMMA_TOKEN)
+                INVALID_PARAM_COUNT
+
+            else if(token->token_type == COMMA_TOKEN)
+            {
+                DestroyToken(token);
+                CheckTokenType(parser, R_ROUND_BRACKET);
+                break;
+            }
+
+            else{
+                DestroyToken(token);
+                break;
+            }
+        }
+    }
+
+    // Check if the number of parameters isn't lower than the function expects
+    if(loaded < func->num_of_parameters)
+        INVALID_PARAM_COUNT
+}
+
+bool IsTermType(DATA_TYPE type)
+{
+    return (type == INT32_TYPE || type == DOUBLE64_TYPE || type == U8_ARRAY_TYPE
+    || type == INT32_NULLABLE_TYPE || type == DOUBLE64_NULLABLE_TYPE || type == U8_ARRAY_NULLABLE_TYPE
+    || type == TERM_TYPE);
+}
+
+bool CheckParamType(DATA_TYPE param_expected, DATA_TYPE param_got)
+{
+    return (param_expected == param_got ||
+            (param_expected == U8_ARRAY_NULLABLE_TYPE && param_got == U8_ARRAY_TYPE) ||
+            (param_expected == INT32_NULLABLE_TYPE && param_got == INT32_TYPE) ||
+            (param_expected == DOUBLE64_NULLABLE_TYPE && param_got == DOUBLE64_TYPE) ||
+            (param_expected == TERM_TYPE && IsTermType(param_got)));
 }
 
 void FunctionDefinition(Parser *parser)
@@ -415,8 +520,10 @@ void FunctionDefinition(Parser *parser)
     PUSHFRAME
 
     // Skip all tokens until the function body begins (so after '{')
-    while((token=GetNextToken(&parser->line_number))->token_type != L_CURLY_BRACKET)
+    while ((token = GetNextToken(&parser->line_number))->token_type != L_CURLY_BRACKET)
         DestroyToken(token);
+
+    DestroyToken(token); // Destroy the '{' token
 
     ProgramBody(parser);
 }
@@ -492,6 +599,12 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
 
     if (IsFunctionCall(GetNextToken(&parser->line_number), parser))
     {
+        // Get the function name to use as a key into the hash table
+        Token *func_name = GetNextToken(&parser->line_number);
+        FunctionSymbol *func = FindFunctionSymbol(parser->global_symtable, func_name->attribute); // This should always be successful
+        DestroyToken(func_name);
+        FunctionToVariable(parser, var, func);
+        return;
     }
 
     DATA_TYPE expr_type;
@@ -539,12 +652,16 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
         ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Invalid type in assigning to variable");
     }
 
+    // Since we are expecting '(' as the next token, we need to load the params
+    CREATEFRAME
+    ParametersOnCall(parser, func);
+
     /*
         ---- Compatible return type or has to be derived ----
         - The return value is on top of the data stack
         - Note: Default IFJ24 doesn't have booleans, maybe expand this for the BOOLTHEN extension later?
     */
-    fprintf(stdout, "POPS LF@%s\n", var->name);
+    fprintf(stdout, "POPS LF@%s\n", var->name); // TODO: run the IFJCODE24 interpreter on a code using this if it actually works
 }
 
 void ProgramBody(Parser *parser)
@@ -612,7 +729,6 @@ void ProgramBody(Parser *parser)
             // Can be a embedded function, or a defined function, or a called function, or a reassignment to a variable
             if (!strcmp(token->attribute, "ifj"))
             {
-                printf("looking man\n");
                 func = IsEmbeddedFunction(parser);
                 FunctionCall(parser, func, func->name, VOID_TYPE); // Void type since we aren't assigning the result anywhere
             }
@@ -659,12 +775,11 @@ void ProgramBody(Parser *parser)
     DestroyToken(token);
 }
 
-
 int main()
-{    
+{
     // parser instance
     Parser parser = InitParser();
-    //ProgramBegin(&parser);
+    ProgramBegin(&parser);
     ParseFunctions(&parser);
     UngetStream(&parser);
     Header(&parser);
@@ -687,4 +802,3 @@ int main()
     IFJ24SUCCESS
     return 0;
 }
-

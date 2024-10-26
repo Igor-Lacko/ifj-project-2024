@@ -22,8 +22,8 @@
 #define FUNCTIONCALL(fun_label) fprintf(stdout, "CALL %s\n", fun_label);
 #define FUNCTIONLABEL(fun_label) fprintf(stdout, "LABEL %s\n", fun_label);
 #define FUNCTION_RETURN fprintf(stdout, "RETURN\n");
-#define NEWPARAM(order) fprintf(stdout, "DEFVAR LF@PARAM%d\n", order); // Defines a new parameter on the local frame (already pushed from the temporary)
-#define SETPARAM(order, value) fprintf(stdout, "MOVE LF@PARAM%d %s\n", order, value); // Sets the current parameter to "value" (a literal/number or a variable on the local frame)
+#define NEWPARAM(order) fprintf(stdout, "DEFVAR TF@PARAM%d\n", order); // Defines a new parameter on the temporary frame
+#define SETPARAM(order, value) fprintf(stdout, "MOVE TF@PARAM%d %s\n", order, value); // Sets the current parameter to "value" (a literal/number or a variable on the local frame)
 
 // Macros for working with the data stack
 #define CLEARS fprintf(stdout, "CLEARS\n");
@@ -117,10 +117,25 @@ void EndWhileLabel(FRAME frame);
  * @param dst_frame Destination frame type.
  * @param src_frame Source frame type.
  */
-void Move(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame);
+void MOVE(const char *dst, const char *src, FRAME dst_frame, FRAME src_frame);
+
+/**
+ * @brief Generates code for pushing a symbol to the data stack.
+ * 
+ * @param attribute String representation of the token.
+ * @param type Token type.
+ * @param frame Frame type. Ignored if token type is not IDENTIFIER_TOKEN.
+ */
+void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame);
 
 // Makes the print instructions a bit less bloated
 char *GetFrameString(FRAME frame);
+
+// Gets a IFJ24Code data type from a token type
+char *GetTypeStringToken(TOKEN_TYPE type);
+
+// Gets a IFJ24Code data type from a data type
+char *GetTypeStringSymbol(DATA_TYPE type);
 
 // Calls the READ instruction to read a symbol of type var->type to var at frame "frame"
 void READ(VariableSymbol *var, FRAME frame);

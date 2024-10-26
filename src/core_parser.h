@@ -23,23 +23,11 @@ typedef struct
 // Help macro to free resources in case of invalid param
 #define INVALID_PARAM_TYPE \
 do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type for function call for function '%s'",\
-    func->name);\
+    parser->line_number, func->name);\
     DestroyToken(token);\
     SymtableStackDestroy(parser->symtable_stack);\
     DestroySymtable(parser->global_symtable);\
     exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
-} while(0);
-
-// Help macro to check if the parameter matches the previous function usage (definition/call) in case it already exists
-#define CHECK_PARAM(type1, type2) do{\
-    if(type1 != type2)\
-    {\
-        PrintError("Error in semantic analysis: Invalid parameters for function %s", func->name);\
-        DestroyToken(token);\
-        SymtableStackDestroy(parser->symtable_stack);\
-        DestroySymtable(parser->global_symtable);\
-        exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
-    }\
 } while(0);
 
 // Prints error in case of invalid param count
@@ -168,6 +156,16 @@ void FunctionDefinition(Parser *parser);
  * @param fun The function to be called.
  */
 void ParametersOnCall(Parser *parser, FunctionSymbol *func);
+
+/**
+ * @brief Checks if the parameter type is valid for the function call/variable assignment
+ * 
+ * @param param_expected Expected parameter type.
+ * @param param_got Gotten parameter type. Can be valid also if it's an non-nullable type and the expected is nullable.
+ * @return true The parameter type is valid.
+ * @return false The parameter type is invalid.
+ */
+bool CheckParamType(DATA_TYPE param_expected, DATA_TYPE param_got);
 
 /**
  * @brief Parses an if-else block.
