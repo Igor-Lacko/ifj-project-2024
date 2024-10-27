@@ -968,4 +968,4 @@ void WriteStringLiteral(const char *str)
                 break;
         }
     }
-}
+} // hello rudko was here
