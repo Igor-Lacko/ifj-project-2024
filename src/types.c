@@ -52,3 +52,5 @@ DATA_TYPE embedded_parameters[EMBEDDED_FUNCTION_COUNT][MAXPARAM_EMBEDDED_FUNCTIO
 int first_token_line = 1;
 
 TokenVector *stream = NULL;
+
+int stream_index = 0;

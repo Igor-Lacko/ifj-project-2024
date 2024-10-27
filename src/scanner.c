@@ -21,6 +21,18 @@ Token *InitToken()
     return token;
 }
 
+Token *CopyToken(Token *token)
+{
+    Token *copy = InitToken();
+
+    copy->attribute = strdup(token->attribute);
+    copy->token_type = token->token_type;
+    copy->keyword_type = token->keyword_type;
+    copy->line_number = token->line_number;
+
+    return copy;
+}
+
 void DestroyToken(Token *token)
 {
     if (token->attribute != NULL)
@@ -38,28 +50,6 @@ char NextChar()
     int c = getchar();
     ungetc(c, stdin);
     return c;
-}
-
-void UngetToken(Token *token)
-{
-    // TODO: Remove this after being sure the code is fine
-    if (token->attribute == NULL || token == NULL)
-    {
-        ErrorExit(ERROR_INTERNAL, "Calling UngetToken on a token with no attribute or a null token. Fix your code!");
-    }
-
-    // Opening double quotes for a string literal
-    if (token->token_type == LITERAL_TOKEN)
-        ungetc('"', stdin);
-
-    for (int i = (int)(strlen(token->attribute)) - 1; i >= 0; i--)
-        ungetc(token->attribute[i], stdin);
-
-    // Closing double quotes for a string literal
-    if (token->token_type == LITERAL_TOKEN)
-        ungetc('"', stdin);
-
-    DestroyToken(token);
 }
 
 CHAR_TYPE GetCharType(char c)
@@ -441,7 +431,7 @@ bool IsValidPrefix(char *identifier)
     return IsKeyword(identifier + 1) == NONE ? false : true;
 }
 
-Token *GetNextToken(int *line_number)
+Token *LoadTokenFromStream(int *line_number)
 {
     // initial variables
     int c;

@@ -8,7 +8,7 @@
 #define INVALID_PARAM_TYPE \
 do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type for function call for function '%s'",\
     parser->line_number, func->name);\
-    DestroyToken(token);\
+    DestroyTokenVector(stream);\
     SymtableStackDestroy(parser->symtable_stack);\
     DestroySymtable(parser->global_symtable);\
     exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
@@ -18,7 +18,7 @@ do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type f
 #define INVALID_PARAM_COUNT do{\
     PrintError("Error in semantic analysis: Line %d: Invalid parameter count when calling function '%s': Expected %d, got %d",\
     func->name, func->num_of_parameters, loaded);\
-    DestroyToken(token);\
+    DestroyTokenVector(stream);\
     SymtableStackDestroy(parser->symtable_stack);\
     DestroySymtable(parser->global_symtable);\
     exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
@@ -46,12 +46,16 @@ do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type f
 Parser InitParser();
 
 /**
+ * @brief Gets the next token from the stream vector which is already loaded.
+ * 
+ * @return Token* 
+ */
+Token *GetNextToken();
+
+/**
  * @brief Also exists for the sole purpose of removing some bloat from main.
  */
 void ProgramBegin();
-
-// Debug function, prints stdin and exits the program
-void PrintStream();
 
 // Debug function, calls print token on all tokens in the stream and exits the program
 void PrintStreamTokens(Parser *parser);
@@ -62,7 +66,7 @@ void PrintStreamTokens(Parser *parser);
  * @param parser Pointer to the parser structure.
  * @param type The expected token type.
  */
-void CheckTokenType(Parser *parser, TOKEN_TYPE type);
+void CheckTokenTypeStream(Parser *parser, TOKEN_TYPE type);
 
 /**
  * @brief Checks if the next token matches the expected keyword type.
@@ -70,7 +74,7 @@ void CheckTokenType(Parser *parser, TOKEN_TYPE type);
  * @param parser Pointer to the parser structure.
  * @param type The expected keyword type.
  */
-void CheckKeywordType(Parser *parser, KEYWORD_TYPE type);
+void CheckKeywordTypeStream(Parser *parser, KEYWORD_TYPE type);
 
 /**
  * @brief Checks if the next token matches the expected token type and returns the token.
@@ -79,7 +83,7 @@ void CheckKeywordType(Parser *parser, KEYWORD_TYPE type);
  * @param type The expected token type.
  * @return Token* The checked token.
  */
-Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type);
+Token *CheckAndReturnTokenStream(Parser *parser, TOKEN_TYPE type);
 
 /**
  * @brief Checks if the next token matches the expected keyword and returns the token.
@@ -88,7 +92,13 @@ Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type);
  * @param type The expected keyword type.
  * @return Token* The checked keyword token.
  */
-Token *CheckAndReturnKeyword(Parser *parser, KEYWORD_TYPE type);
+Token *CheckAndReturnKeywordStream(Parser *parser, KEYWORD_TYPE type);
+
+// Variants of the 4 functions above, but they check the loaded stream vector instead of the input stream.
+void CheckTokenTypeVector(Parser *parser, TOKEN_TYPE type);
+void CheckKeywordTypeVector(Parser *parser, KEYWORD_TYPE type);
+Token *CheckAndReturnTokenVector(Parser *parser, TOKEN_TYPE type);
+Token *CheckAndReturnKeywordVector(Parser *parser, KEYWORD_TYPE type);
 
 /**
  * @brief Upon encountering an ID, the parser checks if it's a valid variable and '=' and returns true if yes
