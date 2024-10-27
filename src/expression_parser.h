@@ -1,29 +1,7 @@
 #ifndef EXPRESSION_PARSER_H
 #define EXPRESSION_PARSER_H
 
-#include "scanner.h" // tokens
-#include "vector.h" // vectors for infix-to-postfix
-#include "stack.h" // expression stack for infix-to-postfix
-#include "core_parser.h" // for keeping track of line numbers mostly
-
-
-typedef struct { // simple precedence table struct
-    TOKEN_TYPE PRIORITY_HIGHEST[2]; // * and /
-    TOKEN_TYPE PRIORITY_MIDDLE[2]; // + and -
-    TOKEN_TYPE PRIORITY_LOWEST[6]; // ==, !=, >, <, >=, <=
-} PrecedenceTable;
-
-typedef struct { // Same as vector from vector.h, but with tokens
-    Token **token_string; // string of input tokens
-    int length; // current
-    int capacity; // max
-} TokenVector;
-
-typedef enum { // helper enum for operator priority (probably only used once)
-    HIGHEST = 3,
-    MIDDLE = 2,
-    LOWEST = 1
-} OPERATOR_PRIORITY;
+#include "types.h"
 
 /**
  * @brief Initializes a precedence table
@@ -63,36 +41,6 @@ TokenVector *InfixToPostfix(Parser *parser);
 bool IsTokenInString(TokenVector *postfix, Token *token);
 
 /**
- * @brief Evaluates a postfix expression and it's value
- * 
- * @param postfix Vector whose value is the postfix form expression
- * @param parser For line numbers, symtable, et 
- * @return Token* Token with an initialized value and type
- */
-DATA_TYPE EvaluatePostfixExpression(TokenVector *postfix, Parser parser);
-
-/**
- * @brief Returns an int expression result from an expression between 2 tokens
- * 
- * @param operand_1 First operand
- * @param operand_2 Second operand
- * @param operator The operation to be done
- * @param symtable If one of the operands is an identifier, searches the symtable for it's value (assuming the token is included in the symtable since it's checked before)
- * @param zero_division Error flag which the expression parser checks after the function finishes
- * @param type_compatibility Error flag which the expression parser also checks after the function finishes
- * @return int Evaluated result
- */
-int GetIntResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division, bool *type_compatibility);
-
-// the same, but if one of the operands is a DOUBLE_64
-double GetDoubleResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool *zero_division, bool *type_compatibility);
-
-// mostly the same, but for boolean expressions, the float_expression flag indicates whether to convert the values to floats or not
-// @param nullable Flag to set if one of the operands is nullable
-// @param incompatible_type Flag to set in case of type incompatibility
-bool GetBooleanResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, Symtable *symtable, bool float_expression, bool *nullable, bool *incompatible_type);
-
-/**
  * @brief Checks if the token is a nullable type, used for checking relational expressions for type incompatibility
  * 
  * @param operand The operand to check 
@@ -101,26 +49,6 @@ bool GetBooleanResult(Token *operand_1, Token *operand_2, TOKEN_TYPE operator, S
  * @return false It is not nullable
  */
 bool IsNullable(Token *operand, Symtable *symtable);
-
-/**
- * @brief Checks if the two operands in a relational expression are incompatible
- * 
- * @param operand_1 The first operand
- * @param operand_2 The second operand
- * @param symtable The symtable to searchl in
- * @return true They are incompatible
- * @return false They actually are not incompatible
- * @note Example of type incompatibility: i > 1.5, where i is an i32 (int) variable
- * @note The reverse, so f > 2, where f is an f64 (double) variable is valid, since 2 can be safely converted to the value 2.0
- */
-bool AreTypesIncompatible(Token *operand_1, Token *operand_2, Symtable *symtable);
-
-// Vector functions
-TokenVector *InitTokenVector();
-
-void AppendToken(TokenVector *vector, Token *input_token);
-
-void DestroyTokenVector(TokenVector *vector);
 
 /**
  * @brief Help function to avoid double frees, utilizes IsTokenInString

@@ -2,12 +2,12 @@
 #include <stdlib.h>
 
 #include "expression_parser.h"
-#include "vector.h"
-#include "scanner.h"
 #include "stack.h"
 #include "core_parser.h"
-#include "string.h"
-#include "math.h"
+#include "symtable.h"
+#include "vector.h"
+#include "error.h"
+#include "scanner.h"
 
 PrecedenceTable InitPrecedenceTable(void)
 {
@@ -30,58 +30,6 @@ PrecedenceTable InitPrecedenceTable(void)
     table.PRIORITY_LOWEST[5] = LARGER_EQUAL_OPERATOR;
 
     return table;
-}
-
-TokenVector *InitTokenVector()
-{
-    TokenVector *vector;
-    if ((vector = calloc(1, sizeof(TokenVector))) == NULL)
-    {
-        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
-    }
-
-    return vector;
-}
-
-void AppendToken(TokenVector *vector, Token *input_token)
-{
-    if ((vector->length) + 1 > (vector->capacity))
-    {
-        int new_capacity = ALLOC_CHUNK(vector->length); // compute the new capacity
-
-        if ((vector->token_string = realloc(vector->token_string, new_capacity * sizeof(Token *))) == NULL)
-        {
-            DestroyToken(input_token);
-            ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
-        }
-
-        vector->capacity = new_capacity;
-
-        // initalize all pointers in the interval (current, capacity) to NULL
-        for (int i = vector->length; i < vector->capacity; i++)
-        {
-            vector->token_string[i] = NULL;
-        }
-    }
-
-    (vector->token_string)[vector->length++] = input_token;
-}
-
-void DestroyTokenVector(TokenVector *vector)
-{
-    if (vector->length != 0)
-    {
-        for (int i = 0; i < vector->capacity; i++)
-        {
-            if (vector->token_string[i] != NULL)
-            {
-                DestroyToken(vector->token_string[i]);
-            }
-        }
-    }
-
-    free(vector->token_string);
-    free(vector);
 }
 
 int ComparePriority(TOKEN_TYPE operator_1, TOKEN_TYPE operator_2)

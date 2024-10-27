@@ -1,13 +1,7 @@
 #ifndef FUNCTION_PARSER_H
-#define FUNCTION_PARSER_G
+#define FUNCTION_PARSER_H
 
-#include "core_parser.h"
-#include "expression_parser.h"
-
-
-extern TokenVector *tokens;
-extern int first_token_line;
-
+#include "types.h"
 
 /**
  * @brief Parses a function definition. DOES NOT generate code! That is the core parser's task

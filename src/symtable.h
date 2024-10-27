@@ -4,67 +4,8 @@
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
 
-#include <stdbool.h>
+#include "types.h"
 
-
-#define TABLE_COUNT 1009 // first prime over 1000, todo: change this
-
-// symbol type enumeration
-typedef enum
-{
-    FUNCTION_SYMBOL,
-    VARIABLE_SYMBOL
-} SYMBOL_TYPE;
-
-// IFJ24 data types
-typedef enum
-{
-    U8_ARRAY_TYPE,
-    U8_ARRAY_NULLABLE_TYPE,
-    INT32_TYPE,
-    INT32_NULLABLE_TYPE,
-    DOUBLE64_TYPE,
-    DOUBLE64_NULLABLE_TYPE,
-    BOOLEAN,
-    VOID_TYPE,
-    TERM_TYPE // For example ifj.write(term) --> can be a float, integer or even null
-} DATA_TYPE;
-
-// structure of a variable symbol
-typedef struct
-{
-    char *name;
-    DATA_TYPE type;
-    bool is_const;
-    bool nullable;
-    bool defined;
-} VariableSymbol;
-
-// structure of a function symbol
-typedef struct
-{
-    char *name;
-    int num_of_parameters;
-    VariableSymbol **parameters;
-    DATA_TYPE return_type;
-    bool was_called;
-} FunctionSymbol;
-
-// structure of a symbol linked list node
-typedef struct node
-{
-    struct node *next;
-    SYMBOL_TYPE symbol_type;
-    void *symbol;
-} SymtableListNode;
-
-// symtable structure (a hash table --> an array of linked lists)
-typedef struct
-{
-    unsigned long capacity; // the maximum total number of lists
-    unsigned long size;     // so the count of lists we have active (non-NULL/length 0)
-    SymtableListNode *table[TABLE_COUNT];
-} Symtable;
 
 /**
  * @brief Initializes one node of a SymtableLinkedList

@@ -43,18 +43,21 @@ char NextChar()
 void UngetToken(Token *token)
 {
     // TODO: Remove this after being sure the code is fine
-    if (token->attribute == NULL || token == NULL){
+    if (token->attribute == NULL || token == NULL)
+    {
         ErrorExit(ERROR_INTERNAL, "Calling UngetToken on a token with no attribute or a null token. Fix your code!");
     }
 
     // Opening double quotes for a string literal
-    if(token->token_type == LITERAL_TOKEN) ungetc('"', stdin);
+    if (token->token_type == LITERAL_TOKEN)
+        ungetc('"', stdin);
 
     for (int i = (int)(strlen(token->attribute)) - 1; i >= 0; i--)
         ungetc(token->attribute[i], stdin);
 
     // Closing double quotes for a string literal
-    if(token->token_type == LITERAL_TOKEN) ungetc('"', stdin);
+    if (token->token_type == LITERAL_TOKEN)
+        ungetc('"', stdin);
 
     DestroyToken(token);
 }

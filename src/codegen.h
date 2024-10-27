@@ -1,10 +1,7 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
-// Includes
-#include "core_parser.h"
-#include "expression_parser.h"
-#include "symtable.h"
+#include "types.h"
 
 /*
 -----------Macros for IFJCode24 instructions that don't need any frame args or have a predefined frame----------
@@ -41,17 +38,6 @@
 ----------End of help macros-----------
 */
 
-// Enum for IFJCode24 frames
-typedef enum
-{
-    GLOBAL_FRAME,
-    LOCAL_FRAME,
-    TEMPORARY_FRAME
-} FRAME;
-
-// Extern variables to keep track of labels for easier jumping
-extern int if_label_count;
-extern int while_label_count;
 
 /**
  * @brief Generates IFJ24 code for the given expression in postfix form

@@ -4,28 +4,8 @@
 #define STACK_H
 
 
-#include "scanner.h" // Tokens for expression parsing
-#include "symtable.h" // Symtable stack for scope recognition
 
-typedef struct SymStackNode { // Linked list for symtable stack implementation
-    Symtable *table;
-    struct SymStackNode *next;
-} SymtableStackNode;
-
-typedef struct ExprStackNode { // Linked list for expression parser stack implementation
-    Token *token;
-    struct ExprStackNode *next;
-} ExpressionStackNode;
-
-typedef struct { // Stack for symtables
-    unsigned long size;
-    SymtableStackNode *top;
-} SymtableStack;
-
-typedef struct { // Stack for expression parsing
-    unsigned long size;
-    ExpressionStackNode *top;
-} ExpressionStack;
+#include "types.h" // Data types for the stack
 
 
 // ----Symtable stack operations---- //

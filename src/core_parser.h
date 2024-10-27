@@ -1,24 +1,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <stdbool.h>
-#include "scanner.h"
 #include "error.h"
-#include "symtable.h"
-#include "stack.h"
-
-// Parser structure
-typedef struct
-{
-    int nested_level;
-    int line_number;
-    bool has_main;
-    bool parsing_functions;
-    FunctionSymbol *current_function;
-    Symtable *symtable; // Current symtable (top of the stack), local variables
-    Symtable *global_symtable; // Only for functions
-    SymtableStack *symtable_stack;
-} Parser;
+#include "types.h"
 
 // Help macro to free resources in case of invalid param
 #define INVALID_PARAM_TYPE \

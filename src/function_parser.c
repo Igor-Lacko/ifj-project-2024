@@ -3,9 +3,13 @@
 #include <string.h>
 
 #include "function_parser.h"
+#include "error.h"
+#include "core_parser.h"
+#include "symtable.h"
+#include "vector.h"
+#include "stack.h"
+#include "scanner.h"
 
-TokenVector *tokens = NULL;
-int first_token_line = 0;
 
 // pub fn id ( seznam_parametrů ) návratový_typ {
 // sekvence_příkazů
@@ -14,9 +18,9 @@ void ParseFunctionDefinition(Parser *parser)
 {
     Token *token;
     token = CheckAndReturnKeyword(parser, FN);
-    AppendToken(tokens, token);
+    AppendToken(stream, token);
     token = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
-    AppendToken(tokens, token);
+    AppendToken(stream, token);
 
     // flag for checking return/params of main function
     bool is_main = false;
@@ -42,10 +46,6 @@ void ParseFunctionDefinition(Parser *parser)
         exit(ERROR_SEMANTIC_REDEFINED);
     }
 
-    // Create a new symtable at the top of the stack
-    Symtable *local_symtable = InitSymtable(TABLE_COUNT);
-    SymtableStackPush(parser->symtable_stack, local_symtable);
-    parser->symtable = local_symtable;
 
     // check if the main function is present
     if (!strcmp(func->name, "main"))
@@ -55,17 +55,18 @@ void ParseFunctionDefinition(Parser *parser)
     }
 
     token = CheckAndReturnToken(parser, L_ROUND_BRACKET);
-    AppendToken(tokens, token);
+    AppendToken(stream, token);
     ParseParameters(parser, func); // params with )
 
     if ((token = GetNextToken(&parser->line_number))->token_type != KEYWORD || (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8 && token->keyword_type != VOID))
     {
+        SymtableStackDestroy(parser->symtable_stack);
         DestroyToken(token);
-        DestroySymtable(parser->symtable);
+        DestroySymtable(parser->global_symtable);
         ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
     }
 
-    AppendToken(tokens, token);
+    AppendToken(stream, token);
 
     // set the return type
     DATA_TYPE return_type;
@@ -96,7 +97,7 @@ void ParseFunctionDefinition(Parser *parser)
     }
 
     token = CheckAndReturnToken(parser, L_CURLY_BRACKET);
-    AppendToken(tokens, token);
+    AppendToken(stream, token);
 }
 
 // checks all parameters
@@ -111,7 +112,7 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
         token = GetNextToken(&parser->line_number);
         if (token->token_type == R_ROUND_BRACKET) // reached ')' so all parameters are checked
         {
-            AppendToken(tokens, token);
+            AppendToken(stream, token);
             break;
         }
 
@@ -126,37 +127,39 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
         // id : data_type
         if (token->token_type == IDENTIFIER_TOKEN)
         {
-            AppendToken(tokens, token);
+            AppendToken(stream, token);
             VariableSymbol *var = VariableSymbolInit();
             var->name = strdup(token->attribute);
             var->is_const = false;
 
-            // add to symtable/check for redefinition
-            if (!InsertVariableSymbol(parser->symtable, var))
+            for(int i = 0; i < func->num_of_parameters; i++)
             {
-                PrintError("Error in semantic analysis: Line %d: Multiple parameters with name '%s' in function '%s'",
-                           parser->line_number, var->name, func->name);
+                if(!strcmp(func->parameters[i]->name, var->name))
+                {
+                    PrintError("Error in semantic analysis: Line %d: Multiple parameters with name '%s' in function '%s'",
+                               parser->line_number, var->name, func->name);
 
-                // free resources
-                SymtableStackDestroy(parser->symtable_stack);
-                DestroyVariableSymbol(var);
+                    // free resources
+                    SymtableStackDestroy(parser->symtable_stack);
+                    DestroyVariableSymbol(var);
 
-                exit(ERROR_SEMANTIC_REDEFINED);
+                    exit(ERROR_SEMANTIC_REDEFINED);
+                }
             }
 
             // TODO: possible var leak (???? Explain pls)
             token = CheckAndReturnToken(parser, COLON_TOKEN);
-            AppendToken(tokens, token);
+            AppendToken(stream, token);
 
             if ((token = GetNextToken(&parser->line_number))->token_type != KEYWORD && (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8))
             {
                 DestroyToken(token);
                 DestroyVariableSymbol(var);
-                DestroySymtable(parser->symtable);
+                DestroySymtable(parser->global_symtable);
                 ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
             }
 
-            AppendToken(tokens, token);
+            AppendToken(stream, token);
 
             // add parameter data type to the function
             switch (token->keyword_type)
@@ -179,7 +182,7 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
             if (!func->was_called)
             {
                 func->parameters = realloc(func->parameters, (param_count + 1) * sizeof(VariableSymbol *));
-                func->parameters[param_count++] = VariableSymbolCopy(var); // To avoid double frees since the symbol would be in the local and global symtable both
+                func->parameters[param_count++] = var;
             }
 
             // checks if there is another parameter
@@ -188,20 +191,20 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
                 // no more parameters
                 if (token->token_type == R_ROUND_BRACKET)
                 {
-                    AppendToken(tokens, token);
+                    AppendToken(stream, token);
                     break;
                 }
                 DestroyToken(token);
-                DestroySymtable(parser->symtable);
+                DestroySymtable(parser->global_symtable);
                 SymtableStackDestroy(parser->symtable_stack);
                 ErrorExit(ERROR_SYNTACTIC, "Expected ',' or ')' at line %d", parser->line_number);
             }
-            AppendToken(tokens, token);
+            AppendToken(stream, token);
         }
         else
         {
             DestroyToken(token);
-            DestroySymtable(parser->symtable);
+            DestroySymtable(parser->global_symtable);
             SymtableStackDestroy(parser->symtable_stack);
             ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", parser->line_number);
         }
@@ -213,17 +216,16 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
 void ParseFunctions(Parser *parser)
 {
     // The token vector to store the tokens
-    tokens = InitTokenVector();
+    stream = InitTokenVector();
 
     // Get the line number of the first token
     Token *token = GetNextToken(&parser->line_number);
-    first_token_line = parser->line_number;
     UngetToken(token);
 
     while ((token = GetNextToken(&parser->line_number))->token_type != EOF_TOKEN)
     {
         // Reserve the new token
-        AppendToken(tokens, token);
+        AppendToken(stream, token);
 
         // Check the nested level
         if (token->token_type == R_CURLY_BRACKET)
@@ -245,7 +247,7 @@ void ParseFunctions(Parser *parser)
             {
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroySymtable(parser->global_symtable);
-                DestroyTokenVector(tokens);
+                DestroyTokenVector(stream);
                 ErrorExit(ERROR_SEMANTIC_OTHER, "Line %d: Function definition cannot be nested inside another block!!!",
                           parser->line_number);
             }
@@ -261,22 +263,17 @@ void ParseFunctions(Parser *parser)
 void UngetStream(Parser *parser)
 {
     int current_line = parser->line_number;
-    for (int i = tokens->length - 1; i >= 0; i--)
+    for (int i = stream->length - 1; i >= 0; i--)
     {
-        while(current_line != tokens->token_string[i]->line_number)
+        while(current_line != stream->token_string[i]->line_number)
         {
             current_line--;
             ungetc('\n', stdin);
         }
 
-        current_line = tokens->token_string[i]->line_number;
-        UngetToken(tokens->token_string[i]);
-        tokens->token_string[i] = NULL;
+        current_line = stream->token_string[i]->line_number;
+        UngetToken(stream->token_string[i]);
+        stream->token_string[i] = NULL;
         if(i != 0) ungetc(' ', stdin); // So that tokens don't get meshed together
     }
-
-
-
-    DestroyTokenVector(tokens);
-    parser->line_number = first_token_line;
 }

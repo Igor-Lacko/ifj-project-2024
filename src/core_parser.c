@@ -10,6 +10,7 @@
 #include "embedded_functions.h"
 #include "expression_parser.h"
 #include "function_parser.h"
+#include "stack.h"
 
 Parser InitParser()
 {
@@ -18,6 +19,7 @@ Parser InitParser()
             .current_function = NULL,
             .global_symtable = InitSymtable(TABLE_COUNT),
             .has_main = false,
+            .end_of_program = false,
             .line_number = 1,
             .nested_level = 0,
             .symtable = InitSymtable(TABLE_COUNT),
@@ -129,8 +131,8 @@ bool IsFunctionCall(Token *token, Parser *parser)
         return true;
     }
 
-    DestroyToken(braces);
-    DestroyToken(token);
+    UngetToken(braces);
+    UngetToken(token);
     return false;
 }
 
@@ -309,8 +311,8 @@ void VarDeclaration(Parser *parser, bool is_const)
     // Define a variable in IFJCode24
     DefineVariable(var->name, LOCAL_FRAME);
 
-    // check if the variable is already declared in stack
-    VariableSymbol *var_in_stack = SymtableStackFindVariable(parser->symtable_stack, var->name);
+    // check if the variable is already declared in the current symtable
+    VariableSymbol *var_in_stack = FindVariableSymbol(parser->symtable, var->name);
 
     if (var_in_stack != NULL)
     {
@@ -522,6 +524,15 @@ void FunctionDefinition(Parser *parser)
 
     DestroyToken(token); // Destroy the '{' token
 
+    // Create a new symtable for the function's stack frame
+    Symtable *symtable = InitSymtable(TABLE_COUNT);
+    SymtableStackPush(parser->symtable_stack, symtable);
+    parser->symtable = symtable;
+
+    // Add the function parameters to the symtable
+    for(int i = 0; i < func->num_of_parameters; i++)
+        InsertVariableSymbol(symtable, VariableSymbolCopy(func->parameters[i]));
+
     ProgramBody(parser);
 }
 
@@ -627,6 +638,7 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
 
 void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *func)
 {
+
     // Function has no return value
     if (func->return_type == VOID_TYPE)
     {
@@ -650,6 +662,7 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
     }
 
     // Since we are expecting '(' as the next token, we need to load the params
+    CheckTokenType(parser, L_ROUND_BRACKET);
     CREATEFRAME
     ParametersOnCall(parser, func);
 
@@ -780,11 +793,8 @@ int main()
     ParseFunctions(&parser);
     UngetStream(&parser);
     Header(&parser);
-
     ProgramBody(&parser);
-    /*printf("\033[1m\033[32m"
-           "SYNTAX OK\n"
-           "\033[0m");*/
+
 
     // check if the main function is present
     if (!parser.has_main)

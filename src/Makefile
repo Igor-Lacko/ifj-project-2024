@@ -1,13 +1,13 @@
 CC= gcc
 CFLAGS= -Wall -Wextra -pedantic -Werror
 
-HEADERS = scanner.h vector.h error.h core_parser.h symtable.h stack.h expression_parser.h codegen.h embedded_functions.h function_parser.h
+HEADERS = types.h scanner.h vector.h error.h core_parser.h symtable.h stack.h expression_parser.h codegen.h embedded_functions.h function_parser.h
 
-MODULES = scanner.o vector.o error.o core_parser.o symtable.o stack.o expression_parser.o codegen.o embedded_functions.o function_parser.o
-DEBUG_MODULES = scanner-d.o vector-d.o error-d.o core_parser-d.o symtable-d.o stack-d.o expression_parser-d.o codegen-d.o embedded_functions-d.o function_parser-d.o
+MODULES = types.o scanner.o vector.o error.o core_parser.o symtable.o stack.o expression_parser.o codegen.o embedded_functions.o function_parser.o
+DEBUG_MODULES = types-d.o scanner-d.o vector-d.o error-d.o core_parser-d.o symtable-d.o stack-d.o expression_parser-d.o codegen-d.o embedded_functions-d.o function_parser-d.o
 
 #----CURRENT DEBUG FILE----#
-TEST_FILE = ../test_files/factorial_recursive.ifj24
+TEST_FILE = ../test_files/test_small.ifj24
 
 #----CURRENT OUTPUT FILE----#
 OUTPUT_FILE = ../test_outputs/testifj24.ifjcode

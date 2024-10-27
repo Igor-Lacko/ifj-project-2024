@@ -5,7 +5,14 @@ const ifj = @import("ifj24.zig");
 pub fn main() void {
     var a : f64 = 10 + 50 / 2 * 78.5;
     ifj.write("DHASHUJIDHSAUIAHSDUIDASHUI");
-    a = 97 + 100.0;
+    var b : i32 = 4;
+    const c : i32 = double(b);
+}
+
+
+pub fn double(a : i32) i32
+{
+    var b : i32 = a * 2;
 }
 
 

@@ -3,11 +3,11 @@
 #include <string.h>
 
 #include "codegen.h"
+#include "stack.h"
+#include "error.h"
+#include "scanner.h"
+#include "vector.h"
 #include "expression_parser.h"
-
-// Extern label counters
-int if_label_count = 0;
-int while_label_count = 0;
 
 void InitRegisters()
 {

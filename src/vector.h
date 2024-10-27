@@ -3,13 +3,7 @@
 
 #define ALLOC_CHUNK(size) size == 0 ? 1 : size * 2
 
-// Dynamic vector structure
-typedef struct
-{
-    int length;
-    int max_length;
-    char *value;
-} Vector;
+#include "types.h"
 
 /**
  * @brief Appends a character to the vector. If (length + 1) > max_length, calls realloc
@@ -32,5 +26,12 @@ Vector *InitVector();
  * @param vector Vector pointer instance
  */
 void DestroyVector(Vector *vector);
+
+// Token vector functions
+TokenVector *InitTokenVector();
+
+void AppendToken(TokenVector *vector, Token *input_token);
+
+void DestroyTokenVector(TokenVector *vector);
 
 #endif
