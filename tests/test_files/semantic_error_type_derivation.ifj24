@@ -1,0 +1,7 @@
+const ifj = @import("ifj24.zig");
+
+// Type derivation failure
+pub fn main() void {
+    var x; // Type not declared and cannot be derived
+    x = 10; // Cannot infer type
+}

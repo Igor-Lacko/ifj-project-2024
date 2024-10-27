@@ -1,0 +1,10 @@
+const ifj = @import("ifj24.zig");
+
+// Function declaration with incorrect parameter count
+pub fn exampleFunc(a: i32) void {
+    // Do something
+}
+pub fn main() void {
+    exampleFunc(5, "string", 10); // Incorrect number of arguments
+}
+// nefunguje, dava 0 a ma dat 4

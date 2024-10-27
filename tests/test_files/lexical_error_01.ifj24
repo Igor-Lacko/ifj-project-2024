@@ -1,0 +1,3 @@
+const ifj = @import("ifj24.zig");
+// Error: Invalid character '#' in identifier
+var num#ber = 123;

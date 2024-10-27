@@ -1,0 +1,6 @@
+const ifj = @import("ifj24.zig");
+// Error: Type mismatch in assignment (cannot assign f64 to i32)
+pub fn main() void {
+    var integer: i32 = 3.14;
+    return;
+}

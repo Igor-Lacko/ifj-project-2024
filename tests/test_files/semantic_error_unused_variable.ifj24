@@ -1,0 +1,6 @@
+const ifj = @import("ifj24.zig");
+
+// Unused variable
+pub fn main() void {
+    var x: i32 = 5; // x is declared but not used
+}

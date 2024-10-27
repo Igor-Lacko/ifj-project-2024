@@ -1,0 +1,7 @@
+const ifj = @import("ifj24.zig");
+
+// Missing expression in an assignment
+pub fn main() void {
+    var x: i32; // No value assigned
+    x =; // Missing expression
+}
