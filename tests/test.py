@@ -2,7 +2,7 @@ import os
 import subprocess
 
 # Directory with test cases
-test_dir = os.path.expanduser('/home/rudko/ifj2/ifj-project-2024/tests/test_files')
+test_dir = os.path.expanduser('~/ifj-project-2024/tests/test_files')
 
 # Error code macros
 SUCCESS = 0
@@ -20,23 +20,26 @@ INTERNAL_ERROR = 99
 
 # Expected error codes for each test file
 expected_errors = {
-    'lexical_error_01.ifj24': LEXICAL_ERROR,
-    'syntax_error_01.ifj24': SYNTACTIC_ERROR,
-    'syntax_error_02.ifj24': SYNTACTIC_ERROR,
-    'semantic_error_undefined_01.ifj24': SEMANTIC_ERROR_UNDEFINED,
-    'semantic_error_typecount_function.ifj24': SEMANTIC_ERROR_TYPECOUNT_FUNCTION,
-    'semantic_error_redefined.ifj24': SEMANTIC_ERROR_REDEFINED,
-    'semantic_error_missing_expr.ifj24': SEMANTIC_ERROR_MISSING_EXPR,
-    'semantic_error_type_compatibility.ifj24': SEMANTIC_ERROR_TYPE_COMPATIBILITY,
-    'semantic_error_type_derivation.ifj24': SEMANTIC_ERROR_TYPE_DERIVATION,
-    'semantic_error_unused_variable.ifj24': SEMANTIC_ERROR_UNUSED_VARIABLE,
-    #'semantic_error_other.ifj24': SEMANTIC_ERROR_OTHER,
-    'test_small.ifj24': SUCCESS
-    # Add additional entries as needed
+    '1lex_err_01.ifj24': LEXICAL_ERROR,
+    '1lex_err_02.ifj24': LEXICAL_ERROR,
+    '2synt_err_01.ifj24': SYNTACTIC_ERROR,
+    '2synt_err_02.ifj24': SYNTACTIC_ERROR,
+    '3sem_err_undefined_01.ifj24': SEMANTIC_ERROR_UNDEFINED,
+    '4sem_err_func_01.ifj24': SEMANTIC_ERROR_TYPECOUNT_FUNCTION,
+    '5sem_err_redef_01.ifj24': SEMANTIC_ERROR_REDEFINED,
+    '6sem_err_miss_expr_01.ifj24': SEMANTIC_ERROR_MISSING_EXPR,
+    '7sem_err_noncomp_01.ifj24': SEMANTIC_ERROR_TYPE_COMPATIBILITY,
+    '7sem_err_noncomp_02.ifj24': SEMANTIC_ERROR_TYPE_COMPATIBILITY,
+    '8sem_err_type_01.ifj24': SEMANTIC_ERROR_TYPE_DERIVATION,
+    '9sem_err_unused_variable_01.ifj24': SEMANTIC_ERROR_UNUSED_VARIABLE,
+    'test_small.ifj24': SUCCESS,
+    'factorial_iterative.ifj24': SUCCESS,
+    'factorial_recursive.ifj24': SUCCESS,
+    'strings.ifj24': SUCCESS,
 }
 
 # Path to the compiler executable
-compiler_path = '/home/rudko/ifj2/ifj-project-2024/src/ifj24'
+compiler_path = '~/ifj-project-2024/src/ifj24'
 
 
 # Run each test and check output
