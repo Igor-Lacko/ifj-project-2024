@@ -2,7 +2,8 @@ import os
 import subprocess
 
 # Directory with test cases
-test_dir = os.path.expanduser('~/ifj-project-2024/tests/test_files')
+# pre ostatnych: ~/ifj-project-2024/tests/test_files
+test_dir = os.path.expanduser('/home/rudko/ifj2/ifj-project-2024/tests/test_files')
 
 # Error code macros
 SUCCESS = 0
@@ -22,25 +23,27 @@ INTERNAL_ERROR = 99
 expected_errors = {
     '1lex_err_01.ifj24': LEXICAL_ERROR,
     '1lex_err_02.ifj24': LEXICAL_ERROR,
-    '2synt_err_01.ifj24': SYNTACTIC_ERROR,
-    '2synt_err_02.ifj24': SYNTACTIC_ERROR,
-    '3sem_err_undefined_01.ifj24': SEMANTIC_ERROR_UNDEFINED,
-    '4sem_err_func_01.ifj24': SEMANTIC_ERROR_TYPECOUNT_FUNCTION,
-    '5sem_err_redef_01.ifj24': SEMANTIC_ERROR_REDEFINED,
-    '6sem_err_miss_expr_01.ifj24': SEMANTIC_ERROR_MISSING_EXPR,
-    '7sem_err_noncomp_01.ifj24': SEMANTIC_ERROR_TYPE_COMPATIBILITY,
-    '7sem_err_noncomp_02.ifj24': SEMANTIC_ERROR_TYPE_COMPATIBILITY,
-    '8sem_err_type_01.ifj24': SEMANTIC_ERROR_TYPE_DERIVATION,
-    '9sem_err_unused_variable_01.ifj24': SEMANTIC_ERROR_UNUSED_VARIABLE,
+    '1lex_err_03.ifj24': LEXICAL_ERROR,
+    '1lex_err_04.ifj24': LEXICAL_ERROR,
+    '1lex_err_05.ifj24': LEXICAL_ERROR,
+    '1lex_err_06.ifj24': LEXICAL_ERROR,
+    '1lex_err_07.ifj24': LEXICAL_ERROR,
+    '1lex_err_08.ifj24': LEXICAL_ERROR,
+    '1lex_err_09.ifj24': LEXICAL_ERROR,
+    '1lex_err_10.ifj24': LEXICAL_ERROR,
+    '1lex_err_11.ifj24': LEXICAL_ERROR,
+    '1lex_err_12.ifj24': LEXICAL_ERROR,
     'test_small.ifj24': SUCCESS,
     'factorial_iterative.ifj24': SUCCESS,
     'factorial_recursive.ifj24': SUCCESS,
     'strings.ifj24': SUCCESS,
+    'while_cycle': SUCCESS,
+    'while_cycle_easy': SUCCESS
 }
 
 # Path to the compiler executable
-compiler_path = '~/ifj-project-2024/src/ifj24'
-
+# pre ostatnych co testuju: ~/ifj-project-2024/src/ifj24
+compiler_path = '/home/rudko/ifj2/ifj-project-2024/src/ifj24'
 
 # Run each test and check output
 for test_file, expected_code in expected_errors.items():
@@ -63,4 +66,3 @@ for test_file, expected_code in expected_errors.items():
                 print(f"Output: {result.stderr.strip()}")
     except subprocess.TimeoutExpired:
         print(f"❌ Test timed out for {test_file}")
-

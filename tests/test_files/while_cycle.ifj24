@@ -1,0 +1,23 @@
+const ifj = @import("ifj24.zig");
+
+pub fn main() void {
+    var base: f64 = 2.5;
+    var multiplier: f64 = 1.1;
+    var counter: i32 = 10;
+    var result: f64 = 1.0;
+
+    while (counter > 0) {
+        result = result * base;
+
+        var inner_counter: i32 = 5;
+        var temp_result: f64 = result;
+
+        while (inner_counter > 0) {
+            temp_result = temp_result * multiplier;
+            inner_counter = inner_counter - 1;
+        }
+
+        result = temp_result;
+        counter = counter - 1;
+    }
+}
