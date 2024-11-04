@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "shared.h"
 #include "function_parser.h"
 #include "error.h"
 #include "core_parser.h"

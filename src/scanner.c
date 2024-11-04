@@ -738,11 +738,11 @@ void PrintToken(Token *token)
         break;
 
     case LESS_THAN_OPERATOR:
-        printf("Type: <");
+        fprintf(stderr, "Type: <");
         break;
 
     case LARGER_THAN_OPERATOR:
-        printf("Type: >");
+        fprintf(stderr, "Type: >");
         break;
 
     case LESSER_EQUAL_OPERATOR:

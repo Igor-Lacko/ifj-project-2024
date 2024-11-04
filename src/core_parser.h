@@ -50,7 +50,7 @@ Parser InitParser();
  * 
  * @return Token* 
  */
-Token *GetNextToken();
+Token *GetNextToken(Parser *parser);
 
 /**
  * @brief Also exists for the sole purpose of removing some bloat from main.

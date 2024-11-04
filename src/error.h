@@ -21,7 +21,7 @@
 /*End of semantic error codes*/
 
 // Debug macro
-#define NOT_IMPLEMENTED fprintf(stderr, "Error: This feautre is not implemented yet!"); exit(ERROR_INTERNAL);
+#define NOT_IMPLEMENTED fprintf(stderr, "Error: This feature is not implemented yet!"); exit(ERROR_INTERNAL);
 
 #define ERROR_INTERNAL 99 // internal compiler error, for example a failed malloc call... etc.
 

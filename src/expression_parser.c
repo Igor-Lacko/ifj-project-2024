@@ -80,7 +80,7 @@ TokenVector *InfixToPostfix(Parser *parser)
     TokenVector *postfix = InitTokenVector();
     ExpressionStack *stack = ExpressionStackInit();
 
-    while (((token = CopyToken(GetNextToken(&parser->line_number)))->token_type) != SEMICOLON)
+    while (((token = CopyToken(GetNextToken(parser)))->token_type) != SEMICOLON)
     {
         if (parser->line_number > line_start)
         {
@@ -172,9 +172,13 @@ TokenVector *InfixToPostfix(Parser *parser)
             // expression over case
             if (--bracket_count < 0)
             {
-                DestroyToken(token);
+                while (!ExpressionStackIsEmpty(stack))
+                {
+                    Token *top = ExpressionStackPop(stack);
+                    AppendToken(postfix, top);
+                }
                 ExpressionStackDestroy(stack);
-                ungetc(')', stdin);
+                AppendToken(postfix, token);
                 return postfix;
             }
 
@@ -208,7 +212,7 @@ TokenVector *InfixToPostfix(Parser *parser)
             exit(ERROR_SYNTACTIC);
 
         default:
-            fprintf(stderr, RED "Error in syntax analysis: Line %d: Unexpected symbol in expression\n" RESET, parser->line_number);
+            fprintf(stderr, RED "Error in syntax analysis: Line %d: Unexpected symbol '%s' in expression\n" RESET, parser->line_number, token->attribute);
             DestroyToken(token);
             DestroyStackAndVector(postfix, stack);
             exit(ERROR_SYNTACTIC);
@@ -222,8 +226,6 @@ TokenVector *InfixToPostfix(Parser *parser)
     }
 
     AppendToken(postfix, token);
-    ungetc(';', stdin);
-
     ExpressionStackDestroy(stack);
     return postfix;
 }
@@ -256,14 +258,14 @@ void PrintPostfix(TokenVector *postfix)
 {
     if(postfix == NULL)
     {
-        printf("Recieved NULL TokenVector, printing nothing\n");
+        fprintf(stderr, "Recieved NULL TokenVector, printing nothing\n");
         return;
     }
 
     for(int i = 0; i < postfix->length; i++)
     {
-        printf("%s", postfix->token_string[i]->attribute);
+        fprintf(stderr, "%s", postfix->token_string[i]->attribute);
     }
 
-    printf("\n");
+    fprintf(stderr, "\n");
 }

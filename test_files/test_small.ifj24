@@ -3,10 +3,10 @@ const ifj = @import("ifj24.zig");
 
 // Hlavni telo programu - funkce main
 pub fn main() void {
-    var a : f64 = 10 + 50 / 2 * 78.5;
-    ifj.write("DHASHUJIDHSAUIAHSDUIDASHUI");
-    var b : i32 = 4;
-    const c : i32 = double(b);
+    var a : i32 = 5;
+    while(a > 2){
+        a = a - 1;
+    }
 }
 
 

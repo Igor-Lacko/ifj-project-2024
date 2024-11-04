@@ -10,6 +10,10 @@
 // Program header
 #define IFJCODE24 fprintf(stdout, ".IFJcode24\n");
 
+// Variable macros
+#define DEFVAR(frame, name) fprintf(stdout, "DEFVAR %s@%s\n", frame, name);
+#define DEFVAR_WITH_ORDER(frame, name, order) fprintf(stdout, "DEFVAR %s@%s%d\n", frame, name, order);
+
 // Frame creation/destruction macros
 #define CREATEFRAME fprintf(stdout, "CREATEFRAME\n");
 #define PUSHFRAME fprintf(stdout, "PUSHFRAME\n");
@@ -20,6 +24,7 @@
 #define FUNCTIONLABEL(fun_label) fprintf(stdout, "LABEL %s\n", fun_label);
 #define FUNCTION_RETURN fprintf(stdout, "RETURN\n");
 #define NEWPARAM(order) fprintf(stdout, "DEFVAR TF@PARAM%d\n", order); // Defines a new parameter on the temporary frame
+#define DEFPARAM(order) fprintf(stdout, "DEFVAR LF@PARAM%d\n", order); // Defines a new parameter on the local frame (so after the func label)
 
 // Macros for working with the data stack
 #define CLEARS fprintf(stdout, "CLEARS\n");
@@ -32,6 +37,12 @@
 
 // Macros for working with labels
 #define JUMP(label) fprintf(stdout, "JUMP %s\n", label);
+#define JUMP_WITH_ORDER(label, order) fprintf(stdout, "JUMP %s%d\n", label, order);
+#define LABEL(label) fprintf(stdout, "LABEL %s\n", label);
+
+// Conditional macros
+#define JUMPIFEQ(label, symb1, symb2, order) fprintf(stdout, "JUMPIFEQ %s%d %s %s\n", label, order, symb1, symb2);
+#define JUMPIFNEQ(label, symb1, symb2, order) fprintf(stdout, "JUMPIFNEQ %s%d %s %s\n", label, order, symb1, symb2);
 
 
 /*
@@ -45,6 +56,9 @@
  * @param parser Used to check for redefinition, line numbers in case of an error, etc.
  * @param postfix The postfix expression contained in a TokenVector
  * @param var The variable that the expression is being assigned to. If NULL, assume we are in a conditional statement
+ * 
+ * @note Also to expand on the previous statement, if we are expecting a boolean expression, it will be put into B0
+ * 
  * @return DATA_TYPE The data type of the expression, later used to check for errors
  */
 DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, VariableSymbol *var);
@@ -89,10 +103,10 @@ void ElseLabel(FRAME frame);
 void EndIfLabel(FRAME frame);
 
 // The same but for while loops
-void WhileLabel(FRAME frame);
+void WhileLabel();
 
 // The same but for end of whiles
-void EndWhileLabel(FRAME frame);
+void EndWhileLabel();
 
 /**
  * @brief Generates code for moving src to dst.
@@ -132,23 +146,37 @@ char *GetTypeStringToken(TOKEN_TYPE type);
 char *GetTypeStringSymbol(DATA_TYPE type);
 
 // Calls the READ instruction to read a symbol of type var->type to var at frame "frame"
-void READ(VariableSymbol *var, FRAME frame);
+// @param read_type: used if the type of the variable is NONE, in that case the type is dereived from the function's return value
+void READ(VariableSymbol *var, FRAME frame, DATA_TYPE read_type);
+
+// Calls the WRITE instruction to write a symbol to the output
+void WRITEINSTRUCTION(Token *token, FRAME frame);
 
 // Conversion instructions
 void INT2FLOAT(VariableSymbol *dst, const char *value, FRAME frame);
 void FLOAT2INT(VariableSymbol *dst, const char *value, FRAME frame);
 
 // Calls the STRLEN instruction
-void STRLEN(VariableSymbol *dst, const char *str, FRAME frame);
+void STRLEN(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame);
 
 // Calls the CONCAT instruction
-void CONCAT(VariableSymbol *dst, const char *str1, const char *str2, FRAME frame);
+// Comically large amount of arguments, but probably the most simple way to do it :(((
+void CONCAT(VariableSymbol *dst, Token *prefix, Token *postfix, FRAME dst_frame, FRAME prefix_frame, FRAME postfix_frame);
 
 // Calls the STR2INT instruction.
-void STRI2INT(VariableSymbol *dst, const char *src, int position, FRAME frame);
+void STRI2INT(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, FRAME string_frame, FRAME position_frame);
 
 // Calls the INT2CHAR instruction
-void INT2CHAR(VariableSymbol *dst, int ascii_value, FRAME frame);
+void INT2CHAR(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_frame);
+
+// Generates code for the ifj.strcmp embedded function (since it doesn't have an equivalent in IFJCode24)
+void STRCMP(VariableSymbol *var, Token *str1, Token *str2, FRAME dst_frame, FRAME str1_frame, FRAME str2_frame);
+
+// Generates code for the ifj.string embedded function (since it doesn't have an equivalent in IFJCode24)
+void STRING(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame);
+
+// Generates code for the ifj.ord(string, position) embedded function using STRCMP and STRI2INT
+void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, FRAME string_frame, FRAME position_frame);
 
 /**
  * @brief Writes the string literal passed in as a param in a IFJCode24 compatible way.

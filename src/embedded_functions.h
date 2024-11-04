@@ -20,10 +20,21 @@ FunctionSymbol *IsEmbeddedFunction(Parser *parser);
 void InsertEmbeddedFunctions(Parser *parser);
 
 /**
+ * @brief Special version of ParametersOnCall for embedded functions. We aren't genwrating code here, since they have equivalent IFJCode24 instructions.
+ * 
+ * @param parser Pointer to the parser structure.
+ * @param func The symbol representing the embedded function.
+ */
+TokenVector *ParseEmbeddedFunctionParams(Parser *parser, FunctionSymbol *func);
+
+/**
  * @brief Generates code for a embedded function call. Has to be done this way, since each embedded function has a equivalent IFJCode24 counterpart.
  * 
  * @param var: Not always needed. Used in case of assignments, etc.
+ * @note Don't forget to check for a semicolon after the call
+ * @note We are expecting '(' as the next token, so we need to load the parameters
  */
 void EmbeddedFunctionCall(Parser *parser, FunctionSymbol *func, VariableSymbol *var);
+
 
 #endif
