@@ -308,7 +308,9 @@ void WhileLoop(Parser *parser)
         ParseWhileLoop(parser);
 
 
-    else NOT_IMPLEMENTED
+    else ParseNullableWhileLoop(parser);
+
+    parser->nested_level--;
 }
 
 // const/var id = expression;
@@ -744,6 +746,7 @@ void ProgramBody(Parser *parser)
         case R_CURLY_BRACKET:
             --(parser->nested_level);
             SymtableStackRemoveTop(parser->symtable_stack);
+            parser->symtable = SymtableStackTop(parser->symtable_stack);
             return;
 
         case IDENTIFIER_TOKEN:
@@ -831,6 +834,7 @@ int main()
 
     SymtableStackDestroy(parser.symtable_stack);
     DestroySymtable(parser.global_symtable);
+    DestroyTokenVector(stream);
     IFJ24SUCCESS
     return 0;
 }

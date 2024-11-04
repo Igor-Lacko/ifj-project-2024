@@ -5,7 +5,7 @@ const ifj = @import("ifj24.zig");
 pub fn main() void {
     var a : i32 = 5;
     while(a > 2){
-        a = a - 1;
+        a = a + 1;
     }
 }
 

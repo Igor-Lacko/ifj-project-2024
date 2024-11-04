@@ -117,7 +117,8 @@ typedef enum
     DOUBLE64_NULLABLE_TYPE,
     BOOLEAN,
     VOID_TYPE,
-    TERM_TYPE // For example ifj.write(term) --> can be a float, integer or even null
+    TERM_TYPE, // For example ifj.write(term) --> can be a float, integer or even null
+    NULL_DATA_TYPE
 } DATA_TYPE;
 
 // structure of a variable symbol

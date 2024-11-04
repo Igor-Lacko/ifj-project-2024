@@ -41,14 +41,12 @@ TokenVector *InfixToPostfix(Parser *parser);
 bool IsTokenInString(TokenVector *postfix, Token *token);
 
 /**
- * @brief Checks if the token is a nullable type, used for checking relational expressions for type incompatibility
+ * @brief Checks if a variable symbol is of a nullable type
  * 
- * @param operand The operand to check 
- * @param symtable The symtable to search in
- * @return true It is nullable
- * @return false It is not nullable
+ * @note returns are self explanatory i guess
+ * 
  */
-bool IsNullable(Token *operand, Symtable *symtable);
+bool IsNullable(VariableSymbol *var);
 
 /**
  * @brief Help function to avoid double frees, utilizes IsTokenInString

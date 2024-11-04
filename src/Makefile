@@ -30,10 +30,10 @@ run-debug: debug
 	./ifj24debug < $(TEST_FILE) > $(OUTPUT_FILE)
 
 #----RULES----#
-%.o : %.c
+%.o : %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-%-d.o : %.c
+%-d.o : %.c $(HEADERS)
 	$(CC) $(CFLAGS) -g -DIFJ24_DEBUG -c $< -o $@
 
 #----STAGE FOR COMMIT----#

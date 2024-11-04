@@ -94,13 +94,13 @@ void InitRegisters();
 void DefineVariable(const char *name, FRAME frame);
 
 // Generates a label if@ where @ is the index of the label
-void IfLabel(FRAME frame);
+void IfLabel();
 
 // The same but for else
-void ElseLabel(FRAME frame);
+void ElseLabel();
 
 // The same but for the end of if statements
-void EndIfLabel(FRAME frame);
+void EndIfLabel();
 
 // The same but for while loops
 void WhileLabel();

@@ -591,58 +591,19 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
     return return_type;
 }
 
-void IfLabel(FRAME frame)
+void IfLabel()
 {
-    switch (frame)
-    {
-    case GLOBAL_FRAME:
-        fprintf(stdout, "LABEL GF@if%d\n", ++if_label_count);
-        break;
-    
-    case LOCAL_FRAME:
-        fprintf(stdout, "LABEL LF@if%d\n", ++if_label_count);
-        break;
-
-    case TEMPORARY_FRAME:
-        fprintf(stdout, "LABEL TF@if%d\n", ++if_label_count);
-        break;
-    }
+    fprintf(stdout, "LABEL if%d\n", ++if_label_count);
 }
 
-void ElseLabel(FRAME frame)
+void ElseLabel()
 {
-    switch(frame)
-    {
-        case GLOBAL_FRAME:
-            fprintf(stdout, "LABEL GF@else%d\n", if_label_count);
-            break;
-
-        case LOCAL_FRAME:
-            fprintf(stdout, "LABEL LF@else%d\n", if_label_count);
-            break;
-
-        case TEMPORARY_FRAME:
-            fprintf(stdout, "LABEL TF@else%d\n", if_label_count);
-            break;
-    }
+    fprintf(stdout, "LABEL else%d\n", if_label_count);
 }
 
-void EndIfLabel(FRAME frame)
+void EndIfLabel()
 {
-    switch(frame)
-    {
-        case GLOBAL_FRAME:
-            fprintf(stdout, "LABEL GF@endif%d\n", if_label_count);
-            break;
-
-        case LOCAL_FRAME:
-            fprintf(stdout, "LABEL LF@endif%d\n", if_label_count);
-            break;
-
-        case TEMPORARY_FRAME:
-            fprintf(stdout, "LABEL TF@endif%d\n", if_label_count);
-            break;
-    }
+    fprintf(stdout, "LABEL endif%d\n", if_label_count);
 }
 
 void WhileLabel()
