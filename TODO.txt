@@ -1,23 +1,23 @@
-1. Fix IFJCode24 instructions (need to specify a data type when using a literal, for example int@100)
-
-2. Assigning function returns to variables: For example const a : i32 = sum(10, 20, 30);
-- The same for reassigning to variables, maybe use VariableAssignment for both?
-- Do the same for embedded functions: var a : ?u8[] = ifj.readstr(); // I think the function is called readstr
-
-3. Conditionals: Generate code for expr in if(expr) and labels for if/else/end (else/end are probably enough)
+1. Conditionals: Generate code for expr in if(expr) and labels for if/else/end (else/end are probably enough)
 - Jump to else if the else condition is true
 - Else perform the if cond and then jump to end (label after the else part)
 - Type checking in the if expression
 - if(expr) |expr_result| - type checking, create a new variable in the symtable for expr_result, etc.
 
-4. Loops: Generate code for the boolean expr in while(expr)
+2. Loops: Generate code for the boolean expr in while(expr)
 - Generate a label for while
 - 2 options, jump to while, then evaluate and if false jump to end?
 - Other option is to evaluate at the end, but that works like a do-while loop
 
+3. Assigning function returns to variables: For example const a : i32 = sum(10, 20, 30);
+- Push the values to the data stack at the end of functions
 
-4. Calling embedded functions: Has to be done using the equivalent IFJCode24 instructions
+4. Function calling: labels, etc.
 
-5. Write instruction: how do %d and %a actually work?
+5. Symtable: Rework the symtable to use open adressing instead of linked lists (I hate this) --> Maybe do not need to do this?
 
-6. Symtable: Rework the symtable to use open adressing instead of linked lists (I hate this) --> Maybe do nod need to do this?
+6. Ensure the uniqueness of IFJCode24 identifiers to avoid collisions with the source code
+- Maybe check which symbols are allowed in IFJCode24 identifiers but aren't for IFJ24?
+
+7. To expand on point 6, ensure the uniqueness of IFJCode24 identifiers overall?
+- So if a variable is defined multiple times (in different scopes), maybe define it with a number?

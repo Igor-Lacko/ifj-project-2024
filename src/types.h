@@ -6,12 +6,7 @@
 // Symtable size
 #define TABLE_COUNT 1009 // first prime over 1000, todo: change this
 
-// For embedded functions
-#define EMBEDDED_FUNCTION_COUNT 13
-#define MAXLENGTH_EMBEDDED_FUNCTION 10
-#define MAXPARAM_EMBEDDED_FUNCTION 3
 
-// Scanner structures
 // enum for token types
 typedef enum
 {
@@ -122,7 +117,8 @@ typedef enum
     DOUBLE64_NULLABLE_TYPE,
     BOOLEAN,
     VOID_TYPE,
-    TERM_TYPE // For example ifj.write(term) --> can be a float, integer or even null
+    TERM_TYPE, // For example ifj.write(term) --> can be a float, integer or even null
+    NULL_DATA_TYPE
 } DATA_TYPE;
 
 // structure of a variable symbol
@@ -232,23 +228,5 @@ typedef struct
     SymtableStack *symtable_stack;
 } Parser;
 
-// Extern variables to keep track of labels for easier jumping
-extern int if_label_count;
-extern int while_label_count;
-
-// Contains the names of all embedded function names
-extern const char embedded_names[EMBEDDED_FUNCTION_COUNT][MAXLENGTH_EMBEDDED_FUNCTION];
-
-// Contains the return values of all embedded functions
-extern DATA_TYPE embedded_return_types[EMBEDDED_FUNCTION_COUNT];
-
-// Contains the parameters for all embedded functions
-extern DATA_TYPE embedded_parameters[EMBEDDED_FUNCTION_COUNT][MAXPARAM_EMBEDDED_FUNCTION];
-
-// Contains the entire stream stored in a dynamic array of tokens
-extern TokenVector *stream;
-
-// Index to access the stream
-extern int stream_index;
 
 #endif
