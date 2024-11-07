@@ -80,7 +80,7 @@ TokenVector *InfixToPostfix(Parser *parser)
     TokenVector *postfix = InitTokenVector();
     ExpressionStack *stack = ExpressionStackInit();
 
-    while (((token = GetNextToken(&parser->line_number))->token_type) != SEMICOLON)
+    while (((token = CopyToken(GetNextToken(&parser->line_number)))->token_type) != SEMICOLON)
     {
         if (parser->line_number > line_start)
         {

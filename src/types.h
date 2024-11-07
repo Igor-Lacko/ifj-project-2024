@@ -248,4 +248,7 @@ extern DATA_TYPE embedded_parameters[EMBEDDED_FUNCTION_COUNT][MAXPARAM_EMBEDDED_
 // Contains the entire stream stored in a dynamic array of tokens
 extern TokenVector *stream;
 
+// Index to access the stream
+extern int stream_index;
+
 #endif

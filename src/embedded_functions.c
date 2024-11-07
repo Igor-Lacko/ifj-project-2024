@@ -3,10 +3,11 @@
 #include <string.h>
 
 #include "embedded_functions.h"
-#include "scanner.h"
 #include "error.h"
 #include "symtable.h"
 #include "stack.h"
+#include "core_parser.h"
+#include "scanner.h"
 
 // ifj.function(params)
 FunctionSymbol *IsEmbeddedFunction(Parser *parser)
