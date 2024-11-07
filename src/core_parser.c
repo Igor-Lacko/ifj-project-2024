@@ -400,7 +400,13 @@ void FunctionCall(Parser *parser, FunctionSymbol *func, const char *fun_name, DA
     CREATEFRAME
     ParametersOnCall(parser, func);
     FUNCTIONCALL(func->name)
-    CheckTokenTypeVector(parser, SEMICOLON);
+<<<<<<< Updated upstream:src/core_parser.c
+    CheckTokenType(parser, SEMICOLON);
+=======
+    func->was_called = true;
+
+    POPFRAME
+>>>>>>> Stashed changes:src/parser.c
 }
 
 void ParametersOnCall(Parser *parser, FunctionSymbol *func)
@@ -420,12 +426,19 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 symb1 = SymtableStackFindVariable(parser->symtable_stack, token->attribute);
                 if (symb1 == NULL)
                 {
+<<<<<<< Updated upstream:src/core_parser.c
                     PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"",
                                 parser->line_number, token->attribute);
                     SymtableStackDestroy(parser->symtable_stack);
                     DestroySymtable(parser->global_symtable);
                     DestroyTokenVector(stream);
                     exit(ERROR_SEMANTIC_UNDEFINED);
+=======
+                    if (!strcmp("write", func->name) && func->return_type == TERM_TYPE) // Special case: ifj.write function
+                        CHECK_PARAM(INT32_TYPE, func->parameters[loaded - 1]->type)
+
+                    SETPARAM(loaded, token->attribute)
+>>>>>>> Stashed changes:src/parser.c
                 }
 
                 // Check if the parameter type is valid
@@ -440,8 +453,15 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
             case INTEGER_32:
                 if(CheckParamType(func->parameters[loaded]->type, INT32_TYPE))
                 {
+<<<<<<< Updated upstream:src/core_parser.c
                     NEWPARAM(loaded)
                     SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
+=======
+                    if (!strcmp("write", func->name) && func->return_type == TERM_TYPE)
+                        CHECK_PARAM(DOUBLE64_TYPE, func->parameters[loaded - 1]->type)
+
+                    SETPARAM(loaded, token->attribute)
+>>>>>>> Stashed changes:src/parser.c
                 }
                 else
                     INVALID_PARAM_TYPE
@@ -451,8 +471,15 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
             case DOUBLE_64:
                 if(CheckParamType(func->parameters[loaded]->type, DOUBLE64_TYPE))
                 {
+<<<<<<< Updated upstream:src/core_parser.c
                     NEWPARAM(loaded)
                     SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
+=======
+                    if (!strcmp("write", func->name) && func->return_type == TERM_TYPE)
+                        CHECK_PARAM(U8_ARRAY_TYPE, func->parameters[loaded - 1]->type)
+
+                    SETPARAM(loaded, token->attribute)
+>>>>>>> Stashed changes:src/parser.c
                 }
                 else
                     INVALID_PARAM_TYPE
@@ -488,8 +515,47 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
 
             else if(token->token_type == COMMA_TOKEN)
             {
-                CheckTokenTypeStream(parser, R_ROUND_BRACKET);
+<<<<<<< Updated upstream:src/core_parser.c
+                DestroyToken(token);
+                CheckTokenType(parser, R_ROUND_BRACKET);
                 break;
+=======
+                if (func->was_defined)
+                {
+                    if ((loaded) <= func->num_of_parameters)
+                    {
+                        if (!strcmp("write", func->name) && func->return_type == TERM_TYPE)
+                            CHECK_PARAM(symb1->type, func->parameters[loaded - 1]->type)
+
+                        SETPARAM(loaded, token->attribute)
+                    }
+
+                    else
+                        INVALID_PARAM_COUNT
+                }
+
+                else
+                {
+                    LENGHTEN_PARAMS
+                    VariableSymbol *param = VariableSymbolInit();
+                    param->type = symb1->type;
+                    func->parameters[loaded - 1] = param;
+
+                    // Allocate a new string for the var name
+                    char *name = malloc(strlen(token->attribute) + 4); // + LF@ and '\0'
+                    if (name == NULL)
+                    {
+                        SymtableStackDestroy(parser->symtable_stack);
+                        DestroySymtable(parser->global_symtable);
+                        DestroyToken(token);
+                        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+                    }
+
+                    sprintf(name, "LF@%s", token->attribute);
+                    SETPARAM(loaded, name)
+                    free(name);
+                }
+>>>>>>> Stashed changes:src/parser.c
             }
 
             else break;
@@ -604,7 +670,11 @@ void FunctionReturn(Parser *parser)
 
 void VariableAssignment(Parser *parser, VariableSymbol *var)
 {
+<<<<<<< Updated upstream:src/core_parser.c
     if (var->is_const && var->defined)
+=======
+    if (var->is_const)
+>>>>>>> Stashed changes:src/parser.c
     {
         PrintError("Error in semantic analysis: Line %d: Reassignment of constant variable \"%s\"",
                    parser->line_number, var->name);
@@ -613,7 +683,8 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
         exit(ERROR_SEMANTIC_REDEFINED);
     }
 
-    if (IsFunctionCall(parser))
+<<<<<<< Updated upstream:src/core_parser.c
+    if (IsFunctionCall(GetNextToken(&parser->line_number), parser))
     {
         // Get the function name to use as a key into the hash table
         Token *func_name = GetNextToken(parser);
@@ -629,7 +700,14 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
     {
         PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\", expected %d, got %d",
                    parser->line_number, var->name, var->type, expr_type);
-                   DestroyTokenVector(stream);
+=======
+    // TODO: Check for function return assignment to the variable
+    TokenVector *postfix = InfixToPostfix(parser);
+    if (GeneratePostfixExpression(parser, postfix, var) != var->type)
+    {
+        PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\"",
+                   parser->line_number, var->name);
+>>>>>>> Stashed changes:src/parser.c
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
         exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
