@@ -14,6 +14,7 @@
 #include "vector.h"
 #include "stack.h"
 #include "loop.h"
+#include "conditionals.h"
 
 Parser InitParser()
 {
@@ -240,62 +241,16 @@ void Header(Parser *parser)
 // if(expression){}else{}
 void IfElse(Parser *parser)
 {
-    IfLabel(LOCAL_FRAME);
-
     Symtable *symtable = InitSymtable(TABLE_COUNT);
     SymtableStackPush(parser->symtable_stack, symtable);
     parser->symtable = symtable;
 
-    CheckTokenTypeVector(parser, L_ROUND_BRACKET);
-    // expression
-    TokenVector *postfix = InfixToPostfix(parser);
-    (void)postfix; // Can't handle expressions yet
-    CheckTokenTypeVector(parser, R_ROUND_BRACKET);
+    if(!IsIfNullableType(parser))
+        ParseIfStatement(parser);
 
-    Token *token = GetNextToken(parser);
-    if (token->token_type == L_CURLY_BRACKET)
-    {
-        ProgramBody(parser); // if block
-        CheckTokenTypeVector(parser, R_CURLY_BRACKET);
-        CheckKeywordTypeVector(parser, ELSE);
-        CheckTokenTypeVector(parser, L_CURLY_BRACKET);
-        ProgramBody(parser); // else block
-        CheckTokenTypeVector(parser, R_CURLY_BRACKET);
-    }
+    else ParseNullableIfStatement(parser);
 
-    else if (token->token_type == VERTICAL_BAR_TOKEN)
-    {
-        CheckTokenTypeVector(parser, VERTICAL_BAR_TOKEN);
-        Token *id = CheckAndReturnTokenVector(parser, IDENTIFIER_TOKEN);
-        VariableSymbol *var = SymtableStackFindVariable(parser->symtable_stack, id->attribute);
-        if (var != NULL)
-        {
-            SymtableStackDestroy(parser->symtable_stack);
-            ErrorExit(ERROR_SEMANTIC_REDEFINED, "Line %d: redefined variable");
-        }
-    }
-
-    else
-    {
-        SymtableStackDestroy(parser->symtable_stack);
-        DestroySymtable(parser->global_symtable);
-        DestroyTokenVector(stream);
-        ErrorExit(ERROR_SYNTACTIC, "Expected '{' or '|' in if block on line %d", parser->line_number);
-    }
-
-    // If block
-    ProgramBody(parser);
-    CheckTokenTypeVector(parser, R_CURLY_BRACKET);
-
-    // Else block
-    CheckKeywordTypeVector(parser, ELSE);
-    ElseLabel(LOCAL_FRAME);
-    CheckTokenTypeVector(parser, L_CURLY_BRACKET);
-    ProgramBody(parser);
-
-    // If-Else finish
-    CheckTokenTypeVector(parser, R_CURLY_BRACKET);
-    EndIfLabel(LOCAL_FRAME);
+    parser->nested_level--;
 }
 
 void WhileLoop(Parser *parser)

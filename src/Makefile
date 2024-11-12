@@ -7,10 +7,10 @@ MODULES = shared.o scanner.o vector.o error.o core_parser.o symtable.o stack.o e
 DEBUG_MODULES = shared-d.o scanner-d.o vector-d.o error-d.o core_parser-d.o symtable-d.o stack-d.o expression_parser-d.o codegen-d.o embedded_functions-d.o function_parser-d.o loop-d.o
 
 #----CURRENT DEBUG FILE----#
-TEST_FILE = ../test_files/test_small.ifj24
+INPUT_FILE = ../tests/test_files/while_cycle_easy.ifj24
 
 #----CURRENT OUTPUT FILE----#
-OUTPUT_FILE = ../test_outputs/testifj24.ifjcode
+OUTPUT_FILE = ../tests/test_outputs/testifj24.ifjcode
 
 TARGETS = ifj24 ifj24debug
 
@@ -27,7 +27,7 @@ run: all
 	./ifj24
 
 run-debug: debug
-	./ifj24debug < $(TEST_FILE) > $(OUTPUT_FILE)
+	./ifj24debug < $(INPUT_FILE) > $(OUTPUT_FILE)
 
 #----RULES----#
 %.o : %.c $(HEADERS)

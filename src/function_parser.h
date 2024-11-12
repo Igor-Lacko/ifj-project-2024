@@ -27,9 +27,5 @@ void ParseParameters(Parser *parser, FunctionSymbol *func);
  */
 void ParseFunctions(Parser *parser);
 
-/**
- * @brief Rewinds the stdin stream to it's start (before the first token was read). Need to run this after ParseFunctions() is executed.
- */
-void UngetStream(Parser *parser);
 
 #endif
