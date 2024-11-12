@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "shared.h"
 #include "function_parser.h"
 #include "error.h"
 #include "core_parser.h"
@@ -17,10 +18,8 @@
 void ParseFunctionDefinition(Parser *parser)
 {
     Token *token;
-    token = CheckAndReturnKeyword(parser, FN);
-    AppendToken(stream, token);
-    token = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
-    AppendToken(stream, token);
+    CheckKeywordTypeStream(parser, FN);
+    token = CheckAndReturnTokenStream(parser, IDENTIFIER_TOKEN);
 
     // flag for checking return/params of main function
     bool is_main = false;
@@ -42,7 +41,7 @@ void ParseFunctionDefinition(Parser *parser)
                    parser->line_number, func->name);
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
-        DestroyToken(token);
+        DestroyTokenVector(stream);
         exit(ERROR_SEMANTIC_REDEFINED);
     }
 
@@ -54,15 +53,16 @@ void ParseFunctionDefinition(Parser *parser)
         is_main = true;
     }
 
-    token = CheckAndReturnToken(parser, L_ROUND_BRACKET);
-    AppendToken(stream, token);
+    token = CheckAndReturnTokenStream(parser, L_ROUND_BRACKET);
     ParseParameters(parser, func); // params with )
 
-    if ((token = GetNextToken(&parser->line_number))->token_type != KEYWORD || (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8 && token->keyword_type != VOID))
+    if ((token = LoadTokenFromStream(&parser->line_number))->token_type != KEYWORD || 
+    (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8 && token->keyword_type != VOID))
     {
         SymtableStackDestroy(parser->symtable_stack);
-        DestroyToken(token);
         DestroySymtable(parser->global_symtable);
+        DestroyToken(token);
+        DestroyTokenVector(stream);
         ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
     }
 
@@ -90,14 +90,13 @@ void ParseFunctionDefinition(Parser *parser)
     // Check for correct return type/params in case of main
     if (is_main && (func->return_type != VOID_TYPE || func->num_of_parameters != 0))
     {
-        DestroyToken(token);
         DestroySymtable(parser->global_symtable);
         SymtableStackDestroy(parser->symtable_stack);
+        DestroyTokenVector(stream); 
         ErrorExit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION, "Main function has incorrect return type or parameters");
     }
 
-    token = CheckAndReturnToken(parser, L_CURLY_BRACKET);
-    AppendToken(stream, token);
+    token = CheckAndReturnTokenStream(parser, L_CURLY_BRACKET);
 }
 
 // checks all parameters
@@ -109,7 +108,7 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
     // loops through all parameters
     while (1)
     {
-        token = GetNextToken(&parser->line_number);
+        token = LoadTokenFromStream(&parser->line_number);
         if (token->token_type == R_ROUND_BRACKET) // reached ')' so all parameters are checked
         {
             AppendToken(stream, token);
@@ -121,6 +120,7 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
             DestroyToken(token);
             DestroySymtable(parser->symtable);
             SymtableStackDestroy(parser->symtable_stack);
+            DestroyTokenVector(stream);
             ErrorExit(ERROR_SYNTACTIC, "Didn't you forget ) at line %d ?", parser->line_number);
         }
 
@@ -141,20 +141,23 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
 
                     // free resources
                     SymtableStackDestroy(parser->symtable_stack);
+                    DestroySymtable(parser->global_symtable);
                     DestroyVariableSymbol(var);
+                    DestroyTokenVector(stream);
 
                     exit(ERROR_SEMANTIC_REDEFINED);
                 }
             }
 
             // TODO: possible var leak (???? Explain pls)
-            token = CheckAndReturnToken(parser, COLON_TOKEN);
-            AppendToken(stream, token);
+            CheckTokenTypeStream(parser, COLON_TOKEN);
 
-            if ((token = GetNextToken(&parser->line_number))->token_type != KEYWORD && (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8))
+            if ((token = LoadTokenFromStream(&parser->line_number))->token_type != KEYWORD && (token->keyword_type != I32 || token->keyword_type != F64 || token->keyword_type != U8))
             {
                 DestroyToken(token);
+                DestroyTokenVector(stream);
                 DestroyVariableSymbol(var);
+                SymtableStackDestroy(parser->symtable_stack);
                 DestroySymtable(parser->global_symtable);
                 ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
             }
@@ -179,14 +182,11 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
             }
 
             // add parameter to the function symbol
-            if (!func->was_called)
-            {
-                func->parameters = realloc(func->parameters, (param_count + 1) * sizeof(VariableSymbol *));
-                func->parameters[param_count++] = var;
-            }
+            func->parameters = realloc(func->parameters, (param_count + 1) * sizeof(VariableSymbol *));
+            func->parameters[param_count++] = var;
 
             // checks if there is another parameter
-            if ((token = GetNextToken(&parser->line_number))->token_type != COMMA_TOKEN)
+            if ((token = LoadTokenFromStream(&parser->line_number))->token_type != COMMA_TOKEN)
             {
                 // no more parameters
                 if (token->token_type == R_ROUND_BRACKET)
@@ -194,16 +194,22 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
                     AppendToken(stream, token);
                     break;
                 }
-                DestroyToken(token);
-                DestroySymtable(parser->global_symtable);
-                SymtableStackDestroy(parser->symtable_stack);
-                ErrorExit(ERROR_SYNTACTIC, "Expected ',' or ')' at line %d", parser->line_number);
+
+                else
+                {
+                    DestroyToken(token);
+                    DestroyTokenVector(stream);
+                    DestroySymtable(parser->global_symtable);
+                    SymtableStackDestroy(parser->symtable_stack);
+                    ErrorExit(ERROR_SYNTACTIC, "Expected ',' or ')' at line %d", parser->line_number);
+                }
             }
             AppendToken(stream, token);
         }
         else
         {
             DestroyToken(token);
+            DestroyTokenVector(stream);
             DestroySymtable(parser->global_symtable);
             SymtableStackDestroy(parser->symtable_stack);
             ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", parser->line_number);
@@ -219,10 +225,9 @@ void ParseFunctions(Parser *parser)
     stream = InitTokenVector();
 
     // Get the line number of the first token
-    Token *token = GetNextToken(&parser->line_number);
-    UngetToken(token);
+    Token *token;
 
-    while ((token = GetNextToken(&parser->line_number))->token_type != EOF_TOKEN)
+    while ((token = LoadTokenFromStream(&parser->line_number))->token_type != EOF_TOKEN)
     {
         // Reserve the new token
         AppendToken(stream, token);
@@ -257,23 +262,6 @@ void ParseFunctions(Parser *parser)
         }
     }
 
-    DestroyToken(token); // Destroy the EOF token
-}
-
-void UngetStream(Parser *parser)
-{
-    int current_line = parser->line_number;
-    for (int i = stream->length - 1; i >= 0; i--)
-    {
-        while(current_line != stream->token_string[i]->line_number)
-        {
-            current_line--;
-            ungetc('\n', stdin);
-        }
-
-        current_line = stream->token_string[i]->line_number;
-        UngetToken(stream->token_string[i]);
-        stream->token_string[i] = NULL;
-        if(i != 0) ungetc(' ', stdin); // So that tokens don't get meshed together
-    }
+    parser->line_number = stream->token_string[0]->line_number; // The line number of the first token
+    AppendToken(stream, token); // Append the EOF token
 }

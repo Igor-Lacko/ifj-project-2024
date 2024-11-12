@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "shared.h"
 #include "scanner.h"
 #include "error.h"
 #include "core_parser.h"
@@ -10,7 +11,9 @@
 #include "embedded_functions.h"
 #include "expression_parser.h"
 #include "function_parser.h"
+#include "vector.h"
 #include "stack.h"
+#include "loop.h"
 
 Parser InitParser()
 {
@@ -33,6 +36,21 @@ Parser InitParser()
     return parser;
 }
 
+Token *GetNextToken(Parser *parser)
+{
+    if (stream_index >= stream->length)
+    {
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
+        ErrorExit(ERROR_INTERNAL, "Calling GetNextToken out of bounds. Fix your code!!!");
+    }
+
+    Token *token = stream->token_string[stream_index++];
+    parser->line_number = token->line_number;
+    return token;
+}
+
 void ProgramBegin()
 {
     // initial codegen instructions
@@ -42,60 +60,118 @@ void ProgramBegin()
 }
 
 // checks if the next token is of the expected type
-void CheckTokenType(Parser *parser, TOKEN_TYPE type)
+void CheckTokenTypeStream(Parser *parser, TOKEN_TYPE type)
 {
     Token *token;
-    char char_types[30][16] = {"Identifier", "_", "Keyword", "integer", "double", "u8", "string", "import", "=", "*", "/", "+", "-", "==", "!=", "<", ">", "<=", ">=", "(", ")", "{", "}", "|", ";", ",", ".", ":", "@", "EOF"};
-    if ((token = GetNextToken(&parser->line_number))->token_type != type)
+    if ((token = LoadTokenFromStream(&parser->line_number))->token_type != type)
     {
         DestroyToken(token);
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
         ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
-                  char_types[type], parser->line_number);
+                  token_types[type], parser->line_number);
     }
-    DestroyToken(token);
+
+    else AppendToken(stream, token);
 }
 
 // checks if the next token is of the expected keyword type
-void CheckKeywordType(Parser *parser, KEYWORD_TYPE type)
+void CheckKeywordTypeStream(Parser *parser, KEYWORD_TYPE type)
 {
     Token *token;
-    char keyword_types[13][20] = {"const", "else", "fn", "if", "i32", "f64", "null", "pub", "return", "u8", "var", "void", "while"};
-    if ((token = GetNextToken(&parser->line_number))->keyword_type != type)
+    if ((token = LoadTokenFromStream(&parser->line_number))->keyword_type != type)
     {
         DestroyToken(token);
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
+        ErrorExit(ERROR_SYNTACTIC, "Expected '%s' keyword at line %d",
+                  keyword_types[type], parser->line_number);
+    }
+
+    else AppendToken(stream, token);
+}
+
+// checks if the next token is of the expected type and returns it
+Token *CheckAndReturnTokenStream(Parser *parser, TOKEN_TYPE type)
+{
+    Token *token;
+    if ((token = LoadTokenFromStream(&parser->line_number))->token_type != type)
+    {
+        DestroyToken(token);
+        DestroyTokenVector(stream);
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
+                  token_types[type], parser->line_number);
+    }
+    AppendToken(stream, token);
+    return token;
+}
+
+Token *CheckAndReturnKeywordStream(Parser *parser, KEYWORD_TYPE type)
+{
+    Token *token;
+    if ((token = LoadTokenFromStream(&parser->line_number))->keyword_type != type)
+    {
+        DestroyToken(token);
+        DestroyTokenVector(stream);
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
         ErrorExit(ERROR_SYNTACTIC, "Expected '%s' keyword at line %d",
                   keyword_types[type], parser->line_number);
     }
-    DestroyToken(token);
+    AppendToken(stream, token);
+    return token;
 }
 
-// checks if the next token is of the expected type and returns it
-Token *CheckAndReturnToken(Parser *parser, TOKEN_TYPE type)
+void CheckTokenTypeVector(Parser *parser, TOKEN_TYPE type)
 {
     Token *token;
-    char char_types[30][15] = {"Identifier", "_", "Keyword", "integer", "double", "u8", "string", "=", "*", "/", "+", "-", "==", "!=", "<", ">", "<=", ">=", "(", ")", "{", "}", "|", ";", ",", ".", ":", "@", "EOF"};
-    if ((token = GetNextToken(&parser->line_number))->token_type != type)
+        if ((token = GetNextToken(parser))->token_type != type)
     {
-        DestroyToken(token);
+        DestroyTokenVector(stream);
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
         ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
-                  char_types[type], parser->line_number);
+                  token_types[type], parser->line_number);
+    }
+}
+
+void CheckKeywordTypeVector(Parser *parser, KEYWORD_TYPE type)
+{
+    Token *token;
+    if ((token = GetNextToken(parser))->keyword_type != type)
+    {
+        DestroyTokenVector(stream);
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        ErrorExit(ERROR_SYNTACTIC, "Expected '%s' keyword at line %d",
+                  keyword_types[type], parser->line_number);
+    }
+}
+
+Token *CheckAndReturnTokenVector(Parser *parser, TOKEN_TYPE type)
+{
+    Token *token;
+    if ((token = GetNextToken(parser))->token_type != type)
+    {
+        DestroyTokenVector(stream);
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        ErrorExit(ERROR_SYNTACTIC, " Expected '%s' at line %d",
+                  token_types[type], parser->line_number);
     }
     return token;
 }
 
-Token *CheckAndReturnKeyword(Parser *parser, KEYWORD_TYPE type)
+Token *CheckAndReturnKeywordVector(Parser *parser, KEYWORD_TYPE type)
 {
     Token *token;
-    char keyword_types[13][20] = {"const", "else", "fn", "if", "i32", "f64", "null", "pub", "return", "u8", "var", "void", "while"};
-    if ((token = GetNextToken(&parser->line_number))->keyword_type != type)
+    if ((token = GetNextToken(parser))->keyword_type != type)
     {
-        DestroyToken(token);
+        DestroyTokenVector(stream);
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
         ErrorExit(ERROR_SYNTACTIC, "Expected '%s' keyword at line %d",
@@ -112,111 +188,52 @@ VariableSymbol *IsVariableAssignment(Token *token, Parser *parser)
     if (FindFunctionSymbol(parser->global_symtable, token->attribute) == NULL && (var = SymtableStackFindVariable(parser->symtable_stack, token->attribute)) != NULL)
     {
         // The next token has to be an '=' operator, a variable by itself is not an expression
-        Token *tok2 = CheckAndReturnToken(parser, ASSIGNMENT);
-        UngetToken(tok2);
-        UngetToken(token);
+        CheckTokenTypeVector(parser, ASSIGNMENT);
+        stream_index-=2;
         return var;
     }
 
     return NULL;
 }
 
-bool IsFunctionCall(Token *token, Parser *parser)
+bool IsFunctionCall(Parser *parser)
 {
-    Token *braces = GetNextToken(&parser->line_number);
-    if (braces->token_type == L_ROUND_BRACKET)
+    Token *id = GetNextToken(parser);
+    Token *braces = GetNextToken(parser);
+    if (id->token_type == IDENTIFIER_TOKEN && braces->token_type == L_ROUND_BRACKET)
     {
-        UngetToken(braces);
-        UngetToken(token);
+        stream_index-=2;
         return true;
     }
 
-    UngetToken(braces);
-    UngetToken(token);
+    stream_index-=2;
     return false;
-}
-
-void PrintStream()
-{
-    int c;
-    while ((c = getchar()) != EOF)
-        putchar(c);
-    exit(SUCCESS);
 }
 
 void PrintStreamTokens(Parser *parser)
 {
-    Token *token;
-    while ((token = GetNextToken(&parser->line_number))->token_type != EOF_TOKEN)
+    for(int i = 0; i < stream->length; i++)
     {
-        PrintToken(token);
-        DestroyToken(token);
+        PrintToken(stream->token_string[i]);
     }
+    //DestroyTokenVector(stream);
+    SymtableStackDestroy(parser->symtable_stack);
+    DestroySymtable(parser->global_symtable);
+    DestroyTokenVector(stream);
     exit(SUCCESS);
 }
 
 // const ifj = @import("ifj24.zig");
 void Header(Parser *parser)
 {
-    CheckKeywordType(parser, CONST);
-    CheckTokenType(parser, IDENTIFIER_TOKEN);
-    CheckTokenType(parser, ASSIGNMENT);
-    CheckTokenType(parser, IMPORT_TOKEN);
-    CheckTokenType(parser, L_ROUND_BRACKET);
-    CheckTokenType(parser, LITERAL_TOKEN);
-    CheckTokenType(parser, R_ROUND_BRACKET);
-    CheckTokenType(parser, SEMICOLON);
-}
-
-void Expression(Parser *parser)
-{
-    Token *token;
-    int bracket_count = 0;
-    while (1)
-    {
-        token = GetNextToken(&parser->line_number);
-
-        // ; closing the expression
-        if (token->token_type == SEMICOLON)
-        {
-            DestroyToken(token);
-            ungetc(';', stdin);
-            return;
-        }
-
-        // if the expression is not closed
-        if (token->token_type == EOF_TOKEN)
-        {
-            DestroyToken(token);
-            DestroySymtable(parser->symtable);
-            ErrorExit(ERROR_SYNTACTIC, "Expected ';' at line %d", parser->line_number);
-        }
-
-        if (token->token_type == L_ROUND_BRACKET)
-            bracket_count++;
-        else if (token->token_type == R_ROUND_BRACKET)
-            bracket_count--;
-
-        // | closing the expression
-        if (token->token_type == VERTICAL_BAR_TOKEN)
-        {
-            DestroyToken(token);
-            ungetc('|', stdin);
-            return;
-        }
-
-        // ) closing the expression
-        if (bracket_count < 0)
-        {
-            DestroyToken(token);
-            ungetc(')', stdin);
-            return;
-        }
-
-        // TODO: complete expressions, for now just skip
-        DestroyToken(token);
-    }
-    DestroyToken(token);
+    CheckKeywordTypeVector(parser, CONST);
+    CheckTokenTypeVector(parser, IDENTIFIER_TOKEN);
+    CheckTokenTypeVector(parser, ASSIGNMENT);
+    CheckTokenTypeVector(parser, IMPORT_TOKEN);
+    CheckTokenTypeVector(parser, L_ROUND_BRACKET);
+    CheckTokenTypeVector(parser, LITERAL_TOKEN);
+    CheckTokenTypeVector(parser, R_ROUND_BRACKET);
+    CheckTokenTypeVector(parser, SEMICOLON);
 }
 
 // if(expression)|id|{} else{}
@@ -229,27 +246,27 @@ void IfElse(Parser *parser)
     SymtableStackPush(parser->symtable_stack, symtable);
     parser->symtable = symtable;
 
-    CheckTokenType(parser, L_ROUND_BRACKET);
+    CheckTokenTypeVector(parser, L_ROUND_BRACKET);
     // expression
     TokenVector *postfix = InfixToPostfix(parser);
     (void)postfix; // Can't handle expressions yet
-    CheckTokenType(parser, R_ROUND_BRACKET);
+    CheckTokenTypeVector(parser, R_ROUND_BRACKET);
 
-    Token *token = GetNextToken(&parser->line_number);
+    Token *token = GetNextToken(parser);
     if (token->token_type == L_CURLY_BRACKET)
     {
         ProgramBody(parser); // if block
-        CheckTokenType(parser, R_CURLY_BRACKET);
-        CheckKeywordType(parser, ELSE);
-        CheckTokenType(parser, L_CURLY_BRACKET);
+        CheckTokenTypeVector(parser, R_CURLY_BRACKET);
+        CheckKeywordTypeVector(parser, ELSE);
+        CheckTokenTypeVector(parser, L_CURLY_BRACKET);
         ProgramBody(parser); // else block
-        CheckTokenType(parser, R_CURLY_BRACKET);
+        CheckTokenTypeVector(parser, R_CURLY_BRACKET);
     }
 
     else if (token->token_type == VERTICAL_BAR_TOKEN)
     {
-        CheckTokenType(parser, VERTICAL_BAR_TOKEN);
-        Token *id = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
+        CheckTokenTypeVector(parser, VERTICAL_BAR_TOKEN);
+        Token *id = CheckAndReturnTokenVector(parser, IDENTIFIER_TOKEN);
         VariableSymbol *var = SymtableStackFindVariable(parser->symtable_stack, id->attribute);
         if (var != NULL)
         {
@@ -260,23 +277,24 @@ void IfElse(Parser *parser)
 
     else
     {
-        DestroyToken(token);
         SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
         ErrorExit(ERROR_SYNTACTIC, "Expected '{' or '|' in if block on line %d", parser->line_number);
     }
 
     // If block
     ProgramBody(parser);
-    CheckTokenType(parser, R_CURLY_BRACKET);
+    CheckTokenTypeVector(parser, R_CURLY_BRACKET);
 
     // Else block
-    CheckKeywordType(parser, ELSE);
+    CheckKeywordTypeVector(parser, ELSE);
     ElseLabel(LOCAL_FRAME);
-    CheckTokenType(parser, L_CURLY_BRACKET);
+    CheckTokenTypeVector(parser, L_CURLY_BRACKET);
     ProgramBody(parser);
 
     // If-Else finish
-    CheckTokenType(parser, R_CURLY_BRACKET);
+    CheckTokenTypeVector(parser, R_CURLY_BRACKET);
     EndIfLabel(LOCAL_FRAME);
 }
 
@@ -286,21 +304,20 @@ void WhileLoop(Parser *parser)
     SymtableStackPush(parser->symtable_stack, symtable);
     parser->symtable = symtable;
 
-    CheckTokenType(parser, L_ROUND_BRACKET);
-    // expression
-    Expression(parser);
-    CheckTokenType(parser, R_ROUND_BRACKET);
+    if(!IsLoopNullableType(parser))
+        ParseWhileLoop(parser);
 
-    CheckTokenType(parser, L_CURLY_BRACKET);
-    ProgramBody(parser);
-    CheckTokenType(parser, R_CURLY_BRACKET);
+
+    else ParseNullableWhileLoop(parser);
+
+    parser->nested_level--;
 }
 
 // const/var id = expression;
 void VarDeclaration(Parser *parser, bool is_const)
 {
     Token *token;
-    token = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
+    token = CheckAndReturnTokenVector(parser, IDENTIFIER_TOKEN);
 
     // add to symtable
     VariableSymbol *var = VariableSymbolInit();
@@ -322,14 +339,14 @@ void VarDeclaration(Parser *parser, bool is_const)
     // insert into symtable on top of the stack
     InsertVariableSymbol(SymtableStackTop(parser->symtable_stack), var);
 
-    DestroyToken(token);
 
-    token = GetNextToken(&parser->line_number);
+    token = GetNextToken(parser);
 
     if (token->token_type != ASSIGNMENT && token->token_type != COLON_TOKEN)
     {
-        DestroyToken(token);
+        SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->symtable);
+        DestroyTokenVector(stream);
         ErrorExit(ERROR_SYNTACTIC, "Expected '=' or ':' at line %d", parser->line_number);
     }
 
@@ -337,30 +354,27 @@ void VarDeclaration(Parser *parser, bool is_const)
     if (token->token_type == COLON_TOKEN)
     {
         // data type
-        DestroyToken(token);
-        token = GetNextToken(&parser->line_number);
+        token = GetNextToken(parser);
         if (token->token_type != KEYWORD || (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8))
         {
-            DestroyToken(token);
+            DestroyTokenVector(stream);
             DestroySymtable(parser->symtable);
+            SymtableStackDestroy(parser->symtable_stack);
             ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
         }
         var->type = token->keyword_type == I32 ? INT32_TYPE : token->keyword_type == F64 ? DOUBLE64_TYPE
                                                                                          : U8_ARRAY_TYPE;
-        DestroyToken(token);
 
-        CheckTokenType(parser, ASSIGNMENT);
+        CheckTokenTypeVector(parser, ASSIGNMENT);
     }
 
     else if (token->token_type != ASSIGNMENT)
     {
-        DestroyToken(token);
         SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
         ErrorExit(ERROR_SYNTACTIC, "Expected '=' at line %d", parser->line_number);
     }
-
-    else
-        DestroyToken(token);
 
     // Assign to the variable
     VariableAssignment(parser, var);
@@ -378,11 +392,11 @@ void FunctionCall(Parser *parser, FunctionSymbol *func, const char *fun_name, DA
         DestroySymtable(parser->global_symtable);
     }
 
-    CheckTokenType(parser, L_ROUND_BRACKET);
+    CheckTokenTypeVector(parser, L_ROUND_BRACKET);
     CREATEFRAME
     ParametersOnCall(parser, func);
     FUNCTIONCALL(func->name)
-    CheckTokenType(parser, SEMICOLON);
+    CheckTokenTypeVector(parser, SEMICOLON);
 }
 
 void ParametersOnCall(Parser *parser, FunctionSymbol *func)
@@ -392,7 +406,7 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
     VariableSymbol *symb1; // for identifier parameter checking
 
     // Load all parameters
-    while ((token = GetNextToken(&parser->line_number))->token_type != R_ROUND_BRACKET)
+    while ((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET)
     {
         if(loaded == func->num_of_parameters) break; // Invalid count checking after the loop is done
         switch (token->token_type)
@@ -406,6 +420,7 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                                 parser->line_number, token->attribute);
                     SymtableStackDestroy(parser->symtable_stack);
                     DestroySymtable(parser->global_symtable);
+                    DestroyTokenVector(stream);
                     exit(ERROR_SEMANTIC_UNDEFINED);
                 }
 
@@ -416,7 +431,6 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 NEWPARAM(loaded)
                 SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
 
-                DestroyToken(token);
                 break;
 
             case INTEGER_32:
@@ -428,7 +442,6 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 else
                     INVALID_PARAM_TYPE
 
-                DestroyToken(token);
                 break;
 
             case DOUBLE_64:
@@ -440,7 +453,6 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 else
                     INVALID_PARAM_TYPE
 
-                DestroyToken(token);
                 break;
 
             case LITERAL_TOKEN:
@@ -452,14 +464,13 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 else
                     INVALID_PARAM_TYPE
 
-                DestroyToken(token);
                 break;
 
             // Any other token type is a syntax error
             default:
                 PrintError("Error in syntactic analysis: Line %d: Unexpected token \"%s\" in function call",
                            parser->line_number, token->attribute);
-                DestroyToken(token);
+                DestroyTokenVector(stream);
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroySymtable(parser->global_symtable);
                 exit(ERROR_SYNTACTIC);
@@ -468,20 +479,16 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
         // In the case of the last parameter, check if the next token is a comma/')'
         if(loaded == func->num_of_parameters)
         {
-            if((token=GetNextToken(&parser->line_number))->token_type != R_ROUND_BRACKET && token->token_type != COMMA_TOKEN)
+            if((token=GetNextToken(parser))->token_type != R_ROUND_BRACKET && token->token_type != COMMA_TOKEN)
                 INVALID_PARAM_COUNT
 
             else if(token->token_type == COMMA_TOKEN)
             {
-                DestroyToken(token);
-                CheckTokenType(parser, R_ROUND_BRACKET);
+                CheckTokenTypeVector(parser, R_ROUND_BRACKET);
                 break;
             }
 
-            else{
-                DestroyToken(token);
-                break;
-            }
+            else break;
         }
     }
 
@@ -509,29 +516,30 @@ bool CheckParamType(DATA_TYPE param_expected, DATA_TYPE param_got)
 void FunctionDefinition(Parser *parser)
 {
     // These next few lines should ALWAYS run succesfully, since the function parser already checks them
-    CheckKeywordType(parser, FN);
-    Token *token = CheckAndReturnToken(parser, IDENTIFIER_TOKEN);
+    CheckKeywordTypeVector(parser, FN);
+    Token *token = CheckAndReturnTokenVector(parser, IDENTIFIER_TOKEN);
     FunctionSymbol *func = FindFunctionSymbol(parser->global_symtable, token->attribute);
-    DestroyToken(token);
 
     // Generate code for the function label
     FUNCTIONLABEL(func->name)
+    if(!strcmp(func->name, "main")) CREATEFRAME
     PUSHFRAME
 
     // Skip all tokens until the function body begins (so after '{')
-    while ((token = GetNextToken(&parser->line_number))->token_type != L_CURLY_BRACKET)
-        DestroyToken(token);
-
-    DestroyToken(token); // Destroy the '{' token
+    while ((token = GetNextToken(parser))->token_type != L_CURLY_BRACKET)
+        continue;
 
     // Create a new symtable for the function's stack frame
     Symtable *symtable = InitSymtable(TABLE_COUNT);
     SymtableStackPush(parser->symtable_stack, symtable);
     parser->symtable = symtable;
 
-    // Add the function parameters to the symtable
+    // Add the function parameters to the symtable and define them on the local frame
     for(int i = 0; i < func->num_of_parameters; i++)
+    {
+        DEFPARAM(i)
         InsertVariableSymbol(symtable, VariableSymbolCopy(func->parameters[i]));
+    }
 
     ProgramBody(parser);
 }
@@ -541,11 +549,11 @@ void FunctionReturn(Parser *parser)
     Token *token;
     if (!parser->current_function) // In main, return exits the program
     {
-        if ((token = GetNextToken(&parser->line_number))->token_type != SEMICOLON)
+        if ((token = GetNextToken(parser))->token_type != SEMICOLON)
         {
             SymtableStackDestroy(parser->symtable_stack);
             DestroySymtable(parser->symtable);
-            DestroyToken(token);
+            DestroyTokenVector(stream);
             ErrorExit(ERROR_SEMANTIC_MISSING_EXPR, "Line %d: Invalid usage of \"return\" in main function (unexpected expression)");
         }
         IFJ24SUCCESS // Successful return from main = EXIT 0
@@ -555,19 +563,18 @@ void FunctionReturn(Parser *parser)
     // void function case
     if (parser->current_function->return_type == VOID_TYPE)
     {
-        if ((token = GetNextToken(&parser->line_number))->token_type != SEMICOLON) // returning something from void function
+        if ((token = GetNextToken(parser))->token_type != SEMICOLON) // returning something from void function
         {
             PrintError("Line %d: Returning a value from void function \"%s\"",
                        parser->line_number, parser->current_function->name);
             SymtableStackDestroy(parser->symtable_stack);
             DestroySymtable(parser->global_symtable);
-            DestroyToken(token);
+            DestroyTokenVector(stream);
             exit(ERROR_SEMANTIC_MISSING_EXPR);
         }
 
         else
         {
-            DestroyToken(token);
             FUNCTION_RETURN
             return;
         }
@@ -581,6 +588,7 @@ void FunctionReturn(Parser *parser)
         {
             SymtableStackDestroy(parser->symtable_stack);
             DestroySymtable(parser->global_symtable);
+            DestroyTokenVector(stream);
             ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
         }
         sprintf(var->name, "GF@%sRETURN", parser->current_function->name);
@@ -605,15 +613,27 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
         exit(ERROR_SEMANTIC_REDEFINED);
     }
 
-    if (IsFunctionCall(GetNextToken(&parser->line_number), parser))
+    if (IsFunctionCall(parser))
     {
         // Get the function name to use as a key into the hash table
-        Token *func_name = GetNextToken(&parser->line_number);
+        Token *func_name = GetNextToken(parser);
         FunctionSymbol *func = FindFunctionSymbol(parser->global_symtable, func_name->attribute); // This should always be successful
-        DestroyToken(func_name);
         FunctionToVariable(parser, var, func);
         return;
     }
+
+    // Check for a embedded function call
+    Token *token = GetNextToken(parser);
+    if(!strcmp(token->attribute, "ifj"))
+    {
+        FunctionSymbol *func = IsEmbeddedFunction(parser);
+        stream_index+=2; // skip the 'ifj' and the '.' token
+        EmbeddedFunctionCall(parser, func, var);
+        return;
+    }
+
+    // If the 'ifj' token is not present, move the stream back and expect an expression
+    else stream_index--; 
 
     DATA_TYPE expr_type;
     TokenVector *postfix = InfixToPostfix(parser);
@@ -622,6 +642,7 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
     {
         PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\", expected %d, got %d",
                    parser->line_number, var->name, var->type, expr_type);
+                   DestroyTokenVector(stream);
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
         exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
@@ -632,18 +653,16 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
         var->type = expr_type;
 
     var->defined = true;
-
-    CheckTokenType(parser, SEMICOLON);
 }
 
 void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *func)
 {
-
     // Function has no return value
     if (func->return_type == VOID_TYPE)
     {
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
         ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Assigning return value of void function to variable.", parser->line_number);
     }
 
@@ -657,12 +676,13 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
     )
     {
         SymtableStackDestroy(parser->symtable_stack);
+        DestroyTokenVector(stream);
         DestroySymtable(parser->global_symtable);
         ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Invalid type in assigning to variable");
     }
 
     // Since we are expecting '(' as the next token, we need to load the params
-    CheckTokenType(parser, L_ROUND_BRACKET);
+    CheckTokenTypeVector(parser, L_ROUND_BRACKET);
     CREATEFRAME
     ParametersOnCall(parser, func);
 
@@ -671,6 +691,7 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
         - The return value is on top of the data stack
         - Note: Default IFJ24 doesn't have booleans, maybe expand this for the BOOLTHEN extension later?
     */
+    fprintf(stdout, "CALL %s\n", func->name);
     fprintf(stdout, "POPS LF@%s\n", var->name); // TODO: run the IFJCODE24 interpreter on a code using this if it actually works
 }
 
@@ -681,58 +702,51 @@ void ProgramBody(Parser *parser)
     VariableSymbol *var;
     while (true)
     {
-        token = GetNextToken(&parser->line_number);
+        token = GetNextToken(parser);
         switch (token->token_type)
         {
         case KEYWORD:
             // start of function declaration, either skip it or throw an error
             if (token->keyword_type == PUB)
             {
-                DestroyToken(token);
                 ++(parser->nested_level);
                 FunctionDefinition(parser);
             }
             // start of if-else block
             else if (token->keyword_type == IF)
             {
-                DestroyToken(token);
                 ++(parser->nested_level);
                 IfElse(parser);
             }
             // start of while loop
             else if (token->keyword_type == WHILE)
             {
-                DestroyToken(token);
                 ++(parser->nested_level);
                 WhileLoop(parser);
             }
             else if (token->keyword_type == CONST)
             {
-                DestroyToken(token);
                 VarDeclaration(parser, true);
             }
             else if (token->keyword_type == VAR)
             {
-                DestroyToken(token);
                 VarDeclaration(parser, false);
             }
             else if (token->keyword_type == RETURN) // in function
             {
-                DestroyToken(token);
                 FunctionReturn(parser);
             }
             else
             {
-                DestroyToken(token);
+                break;
                 // ErrorExit(ERROR_SYNTACTIC, "Unexpected at line %d", *line_number);
             }
             break;
 
         case R_CURLY_BRACKET:
-            DestroyToken(token);
             --(parser->nested_level);
             SymtableStackRemoveTop(parser->symtable_stack);
-            ungetc('}', stdin);
+            parser->symtable = SymtableStackTop(parser->symtable_stack);
             return;
 
         case IDENTIFIER_TOKEN:
@@ -740,72 +754,87 @@ void ProgramBody(Parser *parser)
             if (!strcmp(token->attribute, "ifj"))
             {
                 func = IsEmbeddedFunction(parser);
-                FunctionCall(parser, func, func->name, VOID_TYPE); // Void type since we aren't assigning the result anywhere
+                stream_index+=2; // skip the 'ifj' and the '.' token
+                EmbeddedFunctionCall(parser, func, NULL); // Void type since we aren't assigning the result anywhere
             }
 
             else if ((var = IsVariableAssignment(token, parser)) != NULL)
             {
                 // Move past the ID =
-                token = GetNextToken(&parser->line_number);
-                DestroyToken(token);
-                token = GetNextToken(&parser->line_number);
+                token = GetNextToken(parser);
+                token = GetNextToken(parser);
 
                 // Variable assignment
                 VariableAssignment(parser, var);
             }
 
-            else if (IsFunctionCall(token, parser))
+            else if (IsFunctionCall(parser))
             {
                 // Store the function name in a temporary variable since we will be moving the tokens forward
                 char *tmp_func_name = strdup(token->attribute);
 
                 // Move past the ID(
-                token = GetNextToken(&parser->line_number);
-                DestroyToken(token);
-                token = GetNextToken(&parser->line_number);
+                token = GetNextToken(parser);
+                token = GetNextToken(parser);
 
                 // Function call
                 FunctionCall(parser, FindFunctionSymbol(parser->global_symtable, tmp_func_name), tmp_func_name, VOID_TYPE);
                 free(tmp_func_name);
             }
 
-            DestroyToken(token);
             break;
 
         case EOF_TOKEN:
-            DestroyToken(token);
             return;
 
         default:
             // ErrorExit(ERROR_SYNTACTIC, "Unexpected token at line %d", *line_number);
-            DestroyToken(token);
             break;
         }
     }
-    DestroyToken(token);
+}
+
+void PrintEqualTokens()
+{
+    for(int i = 0; i < stream->length; i++)
+    {
+        for(int j = i+1; j < stream->length; j++)
+        {
+            if(i != j && stream->token_string[i] == stream->token_string[j])
+            {
+                fprintf(stderr, "Equal tokens found at indexes %d and %d\n", i, j);
+                PrintToken(stream->token_string[i]);
+                PrintToken(stream->token_string[j]);
+            }
+        }
+    }
 }
 
 int main()
 {
     // parser instance
     Parser parser = InitParser();
-    ProgramBegin(&parser);
+
+    // First go-through of the stream file, add functions to the global symtable
     ParseFunctions(&parser);
-    UngetStream(&parser);
-    Header(&parser);
-    ProgramBody(&parser);
 
-
-    // check if the main function is present
+    // Check for the presence of a a main function
     if (!parser.has_main)
     {
         SymtableStackDestroy(parser.symtable_stack);
         DestroySymtable(parser.global_symtable);
+        DestroyTokenVector(stream);
         ErrorExit(ERROR_SEMANTIC_UNDEFINED, "Main function not found");
     }
 
+    // Second go-through of the stream file, parse the program body
+    ProgramBegin(&parser);
+    Header(&parser);
+    ProgramBody(&parser);
+
     SymtableStackDestroy(parser.symtable_stack);
     DestroySymtable(parser.global_symtable);
+    DestroyTokenVector(stream);
     IFJ24SUCCESS
     return 0;
 }

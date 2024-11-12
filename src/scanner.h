@@ -6,23 +6,21 @@
 #define KEYWORD_COUNT 13
 
 /**
- * @brief Gets next token starting at pos (skipping whitespace)
+ * @brief Gets next token from the input stream (skipping whitespace)
  *
  * @param int keeps track of the line number
  * @return Token* Pointer to the initialized token structure
  */
-Token *GetNextToken(int *line_number);
+Token *LoadTokenFromStream(int *line_number);
 
 // Token constructor
 Token *InitToken();
 
+// Retuns a copy of the token passed as a parameter to avoid double freeing
+Token *CopyToken(Token *token);
+
 // Token destructor
 void DestroyToken(Token *token);
-
-/**
- * @brief Returns the token passed as a parameter to the stream
- */
-void UngetToken(Token *token);
 
 // Returns the next character from stdin without moving forward (it returns the character back)
 char NextChar();

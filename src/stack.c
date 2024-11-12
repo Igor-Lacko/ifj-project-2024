@@ -26,7 +26,6 @@ Symtable *SymtableStackTop(SymtableStack *stack)
 
 void SymtableStackRemoveTop(SymtableStack *stack)
 {
-    fprintf(stderr, "Removing top\n");
     if (stack->size != 0)
     { // do nothing if stack is empty
         SymtableStackNode *previous_top = stack->top;
@@ -58,7 +57,6 @@ Symtable *SymtableStackPop(SymtableStack *stack)
 
 void SymtableStackPush(SymtableStack *stack, Symtable *symtable)
 {
-    fprintf(stderr, "Pushing onto the stack\n");
     SymtableStackNode *node;
     if ((node = malloc(sizeof(SymtableStackNode))) == NULL)
     {
