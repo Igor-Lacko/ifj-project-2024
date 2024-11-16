@@ -461,7 +461,7 @@ bool IsTermType(DATA_TYPE type)
 
 bool CheckParamType(DATA_TYPE param_expected, DATA_TYPE param_got)
 {
-    return (param_expected == param_got ||
+    return  (param_expected == param_got ||
             (param_expected == U8_ARRAY_NULLABLE_TYPE && param_got == U8_ARRAY_TYPE) ||
             (param_expected == INT32_NULLABLE_TYPE && param_got == INT32_TYPE) ||
             (param_expected == DOUBLE64_NULLABLE_TYPE && param_got == DOUBLE64_TYPE) ||
@@ -536,24 +536,44 @@ void FunctionReturn(Parser *parser)
     }
 
     // function with a return type
+    // return expression;
     else
     {
-        VariableSymbol *var = VariableSymbolInit();
-        if ((var->name = malloc(snprintf(NULL, 0, "LF@%sRETURN", parser->current_function->name) + 1)) == NULL)
+        // The returned type is now in R0/B0/F0
+        TokenVector *postfix = InfixToPostfix(parser);
+        DATA_TYPE expr_type = GeneratePostfixExpression(parser, postfix, NULL);
+
+        // Invalid return type
+        if(expr_type != parser->current_function->return_type)
         {
+            PrintError("Error in semantic analysis: Line %d: Invalid return type for function \"%s\"",
+                       parser->line_number, parser->current_function->name);
             SymtableStackDestroy(parser->symtable_stack);
             DestroySymtable(parser->global_symtable);
             DestroyTokenVector(stream);
-            ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+            exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
         }
-        sprintf(var->name, "GF@%sRETURN", parser->current_function->name);
-        TokenVector *postfix = InfixToPostfix(parser);
-        DATA_TYPE return_type = GeneratePostfixExpression(parser, postfix, var);
-        (void)return_type; // STFU gcc
 
-        // TODO: give it to the variable
-        DestroyVariableSymbol(var);
+        FUNCTION_RETURN
         return;
+    }
+}
+
+DATA_TYPE NullableToNormal(DATA_TYPE type)
+{
+    switch(type)
+    {
+        case U8_ARRAY_NULLABLE_TYPE:
+            return U8_ARRAY_TYPE;
+
+        case INT32_NULLABLE_TYPE:
+            return INT32_TYPE;
+
+        case DOUBLE64_NULLABLE_TYPE:
+            return DOUBLE64_TYPE;
+
+        default:
+            return type;
     }
 }
 
@@ -587,8 +607,26 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
         return;
     }
 
+    // Null can also be assigned to a variable, but we have to check if it's a nullable type
+    else if(token->keyword_type == NULL_TYPE)
+    {
+        if(!IsNullable(var->type))
+        {
+            PrintError("Error in semantic analysis: Line %d: Assigning NULL to non-nullable variable \"%s\"",
+                        parser->line_number, var->name);
+            SymtableStackDestroy(parser->symtable_stack);
+            DestroySymtable(parser->global_symtable);
+            DestroyTokenVector(stream);
+            exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+        }
+
+        // Assign NULL to the variable
+        MOVE(var->name, "nil@nil", false, LOCAL_FRAME);
+        return;
+    }
+
     // If the 'ifj' token is not present, move the stream back and expect an expression
-    else stream_index--; 
+    else stream_index--;
 
     DATA_TYPE expr_type;
     TokenVector *postfix = InfixToPostfix(parser);
@@ -625,8 +663,8 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
     if ( // But for example, a U8 function return to ?U8 would be valid, since the latter can have a U8 or NULL type
         func->return_type != var->type &&
         ((var->type == U8_ARRAY_NULLABLE_TYPE && func->return_type != U8_ARRAY_TYPE) ||
-         (var->type == INT32_NULLABLE_TYPE && func->return_type != INT32_TYPE) ||
-         (var->type == DOUBLE64_NULLABLE_TYPE && func->return_type != DOUBLE64_TYPE)) &&
+        (var->type == INT32_NULLABLE_TYPE && func->return_type != INT32_TYPE) ||
+        (var->type == DOUBLE64_NULLABLE_TYPE && func->return_type != DOUBLE64_TYPE)) &&
         var->type != VOID_TYPE // VOID_TYPE on variable --> the variable is just being declared, so the type has to be derived from the function
     )
     {
@@ -790,6 +828,5 @@ int main()
     SymtableStackDestroy(parser.symtable_stack);
     DestroySymtable(parser.global_symtable);
     DestroyTokenVector(stream);
-    IFJ24SUCCESS
     return 0;
 }

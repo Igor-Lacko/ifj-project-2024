@@ -8,6 +8,9 @@
 #include "codegen.h"
 #include "shared.h"
 #include "error.h"
+#include "symtable.h"
+#include "vector.h"
+#include "stack.h"
 
 bool IsIfNullableType(Parser *parser)
 {
@@ -24,6 +27,7 @@ bool IsIfNullableType(Parser *parser)
     Token *token;
     while(counter)
     {
+        token = GetNextToken(parser);
         // 3 possible cases which we don't skip: L_ROUND_BRACKET, R_ROUND_BRACKET, EOF
         switch(token->token_type)
         {
@@ -89,6 +93,7 @@ void ParseIfStatement(Parser *parser)
 
     /* If statement pseudocode
         LABEL if_order
+        POPS B0
         if(B0 == false) JUMP(else_order)
         If body
         JUMP(endif_order)
@@ -157,7 +162,8 @@ void ParseNullableIfStatement(Parser *parser)
     /* Loop pseudocode
         LABEL if_order
         if(var == NULL) JUMP(else_order)
-        DEFVAR var
+        DEFVAR id
+        MOVE id var
         If body
         JUMP(endif_order)
         LABEL else_order
@@ -179,16 +185,19 @@ void ParseNullableIfStatement(Parser *parser)
     new->defined = true;
     new->is_const = false;
     new->name = strdup(token->attribute);
-    new->type = var->type;
+    new->type = NullableToNormal(var->type);
 
     // New entry in the symtable
-    InsertVariableSymbol(parser->symtable_stack, new);
+    InsertVariableSymbol(parser->symtable, new);
 
     // If(var == NULL) JUMP(else_order)
     fprintf(stdout, "JUMPIFEQ else%d LF@%s nil@nil\n", if_label_count, var->name);
 
     // DEFVAR var
     DefineVariable(new->name, LOCAL_FRAME);
+
+    // id = var
+    fprintf(stdout, "MOVE LF@%s LF@%s\n", new->name, var->name);
 
     // If body
     ProgramBody(parser);

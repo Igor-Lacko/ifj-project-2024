@@ -40,7 +40,7 @@ void DestroySymtable(Symtable *symtable);
  *
  * @param symbol_name name of the symbol, used as an input to the hash function
  * @param modulo size of the symtable, the index into the symtable is H(x) % size
- * @note This function is from http://www.cse.yorku.ca/~oz/hash.html -- sdbm variant - also used in my IJC project :)
+ * @note This function is from http://www.cse.yorku.ca/~oz/hash.html -- sdbm variant
  * @return unsigned long index into the symtable
  */
 unsigned long GetSymtableHash(char *symbol_name, unsigned long modulo);

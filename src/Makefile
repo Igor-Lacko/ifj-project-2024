@@ -1,10 +1,10 @@
 CC= gcc
 CFLAGS= -Wall -Wextra -pedantic -Werror
 
-HEADERS = types.h shared.h scanner.h vector.h error.h core_parser.h symtable.h stack.h expression_parser.h codegen.h embedded_functions.h function_parser.h
+HEADERS = types.h shared.h scanner.h vector.h error.h core_parser.h symtable.h stack.h expression_parser.h codegen.h embedded_functions.h function_parser.h loop.h conditionals.h
 
-MODULES = shared.o scanner.o vector.o error.o core_parser.o symtable.o stack.o expression_parser.o codegen.o embedded_functions.o function_parser.o loop.o
-DEBUG_MODULES = shared-d.o scanner-d.o vector-d.o error-d.o core_parser-d.o symtable-d.o stack-d.o expression_parser-d.o codegen-d.o embedded_functions-d.o function_parser-d.o loop-d.o
+MODULES = shared.o scanner.o vector.o error.o core_parser.o symtable.o stack.o expression_parser.o codegen.o embedded_functions.o function_parser.o loop.o conditionals.o
+DEBUG_MODULES = shared-d.o scanner-d.o vector-d.o error-d.o core_parser-d.o symtable-d.o stack-d.o expression_parser-d.o codegen-d.o embedded_functions-d.o function_parser-d.o loop-d.o conditionals-d.o
 
 #----CURRENT DEBUG FILE----#
 INPUT_FILE = ../tests/test_files/while_cycle_easy.ifj24
@@ -24,10 +24,14 @@ debug: $(DEBUG_MODULES) $(HEADERS)
 
 #----RUN THE NORMAL/DEBUG EXECUTABLE----#
 run: all
-	./ifj24
+	./ifj24 < $(INPUT_FILE) > $(OUTPUT_FILE)
 
 run-debug: debug
 	./ifj24debug < $(INPUT_FILE) > $(OUTPUT_FILE)
+
+#----RUN AND CALL THE INTERPRETER AT THE SAME TIME----#
+interpreter: all
+	./ifj24 < $(INPUT_FILE) > $(OUTPUT_FILE) && ./../interpreter/ic24int $(OUTPUT_FILE)
 
 #----RULES----#
 %.o : %.c $(HEADERS)

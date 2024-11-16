@@ -259,17 +259,28 @@ void ConsumeLiteral(Token *token, int *line_number)
     // loop until we encounter another " character
     while ((c = getchar()) != '"' && c != '\n' && c != EOF)
     {
-
-        AppendChar(vector, c);
-        if (c == '\\')
+        if(c != '\\') AppendChar(vector, c);
+        else
         { // possible escape sequence
             switch (c = getchar())
             {
             // all possible \x characters
             case '"':
+                AppendChar(vector, '\"');
+                break;
+
             case 'n':
+                AppendChar(vector, '\n');
+                break;
+
             case 'r':
+                AppendChar(vector, '\r');
+                break;
+
             case 't':
+                AppendChar(vector, '\t');
+                break;
+
             case '\\':
                 AppendChar(vector, c);
                 break;

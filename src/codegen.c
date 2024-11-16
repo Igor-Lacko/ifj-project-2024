@@ -557,10 +557,13 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                 // The result of the expression is on top of the stack
 
                 // If the result of a expression isn't in a variable, it' a boolean expression
-                if(strcmp(varname, "tempvar")) fprintf(stdout, "POPS LF@%s\n", varname);
+                if(strcmp(varname, "tempvar"))
+                    fprintf(stdout, "POPS LF@%s\n", varname);
 
-                // Clear the registers
-                fprintf(stdout, "CLEARS\n");
+                else PopToRegister(return_type);
+
+                // Clear registers
+                CLEARS
 
                 // Free resources that are not needed anymore
                 free(varname);
@@ -579,11 +582,14 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
     }
 
     // The function will get here if the expression isn't ended by a semicolon (for example while(expression))
-    // If the result of a expression isn't in a variable, it' a boolean expression
-    if(strcmp(varname, "tempvar")) fprintf(stdout, "POPS LF@%s\n", varname);
+    // If the result of a expression isn't in a variable, it' a boolean expression or a return value from a function, so it has to stay on top of the stack
+    if(strcmp(varname, "tempvar"))
+        fprintf(stdout, "POPS LF@%s\n", varname);
 
-    // Clear the registers
-    fprintf(stdout, "CLEARS\n");
+    else PopToRegister(return_type);
+
+    // Clear registers
+    CLEARS
 
     // Free resources that are not needed anymore
     free(varname);
@@ -639,11 +645,12 @@ void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame)
     free(type_string);
 }
 
-void MOVE(const char *dst, const char *src, FRAME dst_frame)
+void MOVE(const char *dst, const char *src, bool is_literal, FRAME dst_frame)
 {
-    char *frame_str = GetFrameString(dst_frame);
-    fprintf(stdout, "MOVE %s%s %s\n", frame_str, dst, src);
-    free(frame_str);
+    char *frame_string = GetFrameString(dst_frame);
+    fprintf(stdout, "MOVE %s%s ", frame_string, dst);
+    if(is_literal) WriteStringLiteral(src);
+    else fprintf(stdout, "%s\n", src);
 }
 
 void SETPARAM(int order, const char *value, TOKEN_TYPE type, FRAME frame)
@@ -926,17 +933,17 @@ void STRCMP(VariableSymbol *var, Token *str1, Token *str2, FRAME dst_frame, FRAM
 
     // LABEL FIRSTGREATER
     fprintf(stdout, "LABEL FIRSTGREATER%d\n", strcmp_count);
-    MOVE(var->name, "int@-1", dst_frame);
+    MOVE(var->name, "int@-1", false, dst_frame);
     fprintf(stdout, "JUMP ENDSTRCMP%d\n", strcmp_count);
 
     // LABEL SECONDGREATER
     fprintf(stdout, "LABEL SECONDGREATER%d\n", strcmp_count);
-    MOVE(var->name, "int@1", dst_frame);
+    MOVE(var->name, "int@1", false, dst_frame);
     fprintf(stdout, "JUMP ENDSTRCMP%d\n", strcmp_count);
 
     // LABEL AREEQUAL
     fprintf(stdout, "LABEL AREEQUAL%d\n", strcmp_count);
-    MOVE(var->name, "int@0", dst_frame);
+    MOVE(var->name, "int@0", false, dst_frame);
 
     // LABEL ENDSTRCMP
     fprintf(stdout, "LABEL ENDSTRCMP%d\n", strcmp_count);
@@ -949,7 +956,13 @@ void STRING(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame)
 {
     char *dst_prefix = GetFrameString(dst_frame);
     char *src_prefix = src->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("string@");
-    fprintf(stdout, "MOVE %s%s %s%s\n", dst_prefix, var->name, src_prefix, src->attribute);
+    fprintf(stdout, "MOVE %s%s %s", dst_prefix, var->name, src_prefix);
+    if(src->token_type == LITERAL_TOKEN)
+    {
+        WriteStringLiteral(src->attribute);
+        fprintf(stdout, "\n");
+    }
+    else fprintf(stdout, "%s\n", src->attribute);
     free(dst_prefix);
     free(src_prefix);
 }
@@ -990,7 +1003,7 @@ void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, F
     fprintf(stdout, "JUMP ENDORD%d\n", ord_count);
 
     fprintf(stdout, "LABEL ORDRETURN0%d\n", ord_count);
-    MOVE(var->name, "int@0", dst_frame);
+    MOVE(var->name, "int@0", false, dst_frame);
     fprintf(stdout, "LABEL ENDORD%d\n", ord_count);
 
     // Deallocate the resources
@@ -1054,3 +1067,25 @@ void WriteStringLiteral(const char *str)
         }
     }
 } // hello rudko was here
+
+void PopToRegister(DATA_TYPE type)
+{
+    switch (type)
+    {
+        case INT32_TYPE:
+            fprintf(stdout, "POPS GF@R0\n");
+            break;
+
+        case DOUBLE64_TYPE:
+            fprintf(stdout, "POPS GF@F0\n");
+            break;
+
+        case BOOLEAN:
+            fprintf(stdout, "POPS GF@B0\n");
+            break;
+
+        // This will never happen
+        default:
+            break;  
+    }
+}

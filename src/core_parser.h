@@ -199,6 +199,16 @@ void VariableAssignment(Parser *parser, VariableSymbol *var);
 void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *func);
 
 /**
+ * @brief Returns a normal data type from a nullable one.
+ * 
+ * @note If a non-nullable type is passed, it will be returned as is.
+ * 
+ * @param type The data type to be converted.
+ * @return DATA_TYPE 
+ */
+DATA_TYPE NullableToNormal(DATA_TYPE type);
+
+/**
  * @brief Parses the program body (main parsing loop).
  *
  * @param parser Pointer to the parser structure.

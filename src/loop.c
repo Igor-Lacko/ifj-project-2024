@@ -26,6 +26,7 @@ bool IsLoopNullableType(Parser *parser)
     Token *token;
     while(counter)
     {
+        token = GetNextToken(parser);
         // 3 possible cases which we don't skip: L_ROUND_BRACKET, R_ROUND_BRACKET, EOF
         switch(token->token_type)
         {
@@ -112,10 +113,7 @@ void ParseWhileLoop(Parser *parser)
 
 void ParseNullableWhileLoop(Parser *parser)
 {
-    /* This part is analogous to the normal while loop parsing */
-
-    // Initial while label
-    WhileLabel();
+    /* This part is analogous to the normal while loop parsing except for while label after DEFVAR */
 
     // Must be done :((
     CheckTokenTypeVector(parser, L_ROUND_BRACKET);
@@ -147,6 +145,7 @@ void ParseNullableWhileLoop(Parser *parser)
 
     /* Loop pseudocode
         LABEL while_order
+        DEFVAR id  // this has to be done before the loop to avoid redefinition, worst case it is never used
         if(var == NULL) JUMP(endwhile_order)
         MOVE var2 var
         Loop body
@@ -166,17 +165,20 @@ void ParseNullableWhileLoop(Parser *parser)
     var2->defined = true;
     var2->is_const = false;
     var2->name = strdup(token->attribute);
-    var2->type = var->type;
+    var2->type = NullableToNormal(var->type);
 
     // Make a new entry in the symtable
-    InsertVariableSymbol(parser->symtable, var);
+    InsertVariableSymbol(parser->symtable, var2);
     DefineVariable(var2->name, LOCAL_FRAME);
+
+    // Initial while label
+    WhileLabel();
 
     // if(var == NULL) JUMP(endwhile_order)
     fprintf(stdout, "JUMPIFEQ endwhile%d LF@%s nil@nil\n", while_label_count, var->name);
 
     // var2 = var
-    fprintf(stdout, "MOVE LF@%s LF@%s\n", var->name, var2->name);
+    fprintf(stdout, "MOVE LF@%s LF@%s\n", var2->name, var->name);
 
     // Loop body
     ProgramBody(parser);

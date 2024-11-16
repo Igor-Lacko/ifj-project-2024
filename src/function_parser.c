@@ -254,7 +254,7 @@ void ParseFunctions(Parser *parser)
                 DestroySymtable(parser->global_symtable);
                 DestroyTokenVector(stream);
                 ErrorExit(ERROR_SEMANTIC_OTHER, "Line %d: Function definition cannot be nested inside another block!!!",
-                          parser->line_number);
+                            parser->line_number);
             }
 
             // Increment due to the '{' at the end after the function definition to avoid the previous error
@@ -262,6 +262,9 @@ void ParseFunctions(Parser *parser)
         }
     }
 
-    parser->line_number = stream->token_string[0]->line_number; // The line number of the first token
-    AppendToken(stream, token); // Append the EOF token
+    // Append the EOF token
+    AppendToken(stream, token);
+
+    // The line number of the first token
+    parser->line_number = stream->token_string[0]->line_number; 
 }
