@@ -709,43 +709,43 @@ void PrintToken(Token *token)
     switch (token->token_type)
     {
     case IDENTIFIER_TOKEN:
-        printf("Type: Identifier token, attribute: %s", token->attribute);
+        fprintf(stderr, "Type: Identifier token, attribute: %s", token->attribute);
         break;
 
     case INTEGER_32:
-        printf("Type: Int32 token, attribute: %s", token->attribute);
+        fprintf(stderr, "Type: Int32 token, attribute: %s", token->attribute);
         break;
 
     case DOUBLE_64:
-        printf("Type: F64 token, attribute: %s", token->attribute);
+        fprintf(stderr, "Type: F64 token, attribute: %s", token->attribute);
         break;
 
     case ASSIGNMENT:
-        printf("Type: =");
+        fprintf(stderr, "Type: =");
         break;
 
     case MULTIPLICATION_OPERATOR:
-        printf("Type: *");
+        fprintf(stderr, "Type: *");
         break;
 
     case DIVISION_OPERATOR:
-        printf("Type: /");
+        fprintf(stderr, "Type: /");
         break;
 
     case ADDITION_OPERATOR:
-        printf("Type: +");
+        fprintf(stderr, "Type: +");
         break;
 
     case SUBSTRACTION_OPERATOR:
-        printf("Type: -");
+        fprintf(stderr, "Type: -");
         break;
 
     case EQUAL_OPERATOR:
-        printf("Type: ==");
+        fprintf(stderr, "Type: ==");
         break;
 
     case NOT_EQUAL_OPERATOR:
-        printf("Type: !=");
+        fprintf(stderr, "Type: !=");
         break;
 
     case LESS_THAN_OPERATOR:
@@ -757,71 +757,71 @@ void PrintToken(Token *token)
         break;
 
     case LESSER_EQUAL_OPERATOR:
-        printf("Type: <=");
+        fprintf(stderr, "Type: <=");
         break;
 
     case LARGER_EQUAL_OPERATOR:
-        printf("Type: >=");
+        fprintf(stderr, "Type: >=");
         break;
 
     case L_ROUND_BRACKET:
-        printf("Type: (");
+        fprintf(stderr, "Type: (");
         break;
 
     case R_ROUND_BRACKET:
-        printf("Type: )");
+        fprintf(stderr, "Type: )");
         break;
 
     case L_CURLY_BRACKET:
-        printf("Type: {");
+        fprintf(stderr, "Type: {");
         break;
 
     case R_CURLY_BRACKET:
-        printf("Type: }");
+        fprintf(stderr, "Type: }");
         break;
 
     case SEMICOLON:
-        printf("Type: ;");
+        fprintf(stderr, "Type: ;");
         break;
 
     case EOF_TOKEN:
-        printf("Type: EOF");
+        fprintf(stderr, "Type: EOF");
         break;
 
     case KEYWORD:
-        printf("Type: Keyword. Keyword type: %s", token->attribute);
+        fprintf(stderr, "Type: Keyword. Keyword type: %s", token->attribute);
         break;
 
     case UNDERSCORE_TOKEN:
-        printf("Type: _");
+        fprintf(stderr, "Type: _");
         break;
 
     case IMPORT_TOKEN:
-        printf("Type: @import");
+        fprintf(stderr, "Type: @import");
         break;
 
     case VERTICAL_BAR_TOKEN:
-        printf("Type: |");
+        fprintf(stderr, "Type: |");
         break;
 
     case COLON_TOKEN:
-        printf("Type: :");
+        fprintf(stderr, "Type: :");
         break;
 
     case DOT_TOKEN:
-        printf("Type: .");
+        fprintf(stderr, "Type: .");
         break;
 
     case COMMA_TOKEN:
-        printf("Type: ,");
+        fprintf(stderr, "Type: ,");
         break;
 
     case LITERAL_TOKEN:
-        printf("Type: string literal, value: %s", token->attribute);
+        fprintf(stderr, "Type: string literal, value: %s", token->attribute);
         break;
 
     default:
-        printf("PrintToken() default case");
+        fprintf(stderr, "PrintToken() default case");
     }
-    printf(" Line number: %d\n", token->line_number);
+    fprintf(stderr," Line number: %d\n", token->line_number);
 }

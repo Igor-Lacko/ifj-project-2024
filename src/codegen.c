@@ -286,7 +286,6 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
     // create a stack to evaluate the expression
     ExpressionStack *stack = ExpressionStackInit();
-
     // go through the entire postfix string
     for(int i = 0; i < postfix->length; i++)
     {
@@ -314,8 +313,8 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
                 else
                 {
+                    PUSHS(token->attribute, token->token_type, LOCAL_FRAME);
                     ExpressionStackPush(stack, token);
-                    fprintf(stdout, "PUSHS LF@%s\n",token->attribute);
                     break;
                 }
 
@@ -377,8 +376,9 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     }
                 }
 
-                (op1->token_type != DOUBLE_64 || op1_float) ? fprintf(stdout, "POPS GF@R1\n") : fprintf(stdout, "POPS GF@F1\n"); // R1/F1 = Second operand (popped from the stack first)
-                (op2->token_type != DOUBLE_64 || op2_float) ? fprintf(stdout, "POPS GF@R2\n") : fprintf(stdout, "POPS GF@F2\n"); // R2/F2 = First operand
+
+                (op1->token_type != DOUBLE_64 && !op1_float) ? fprintf(stdout, "POPS GF@R1\n") : fprintf(stdout, "POPS GF@F1\n"); // R1/F1 = Second operand (popped from the stack first)
+                (op2->token_type != DOUBLE_64 && !op2_float) ? fprintf(stdout, "POPS GF@R2\n") : fprintf(stdout, "POPS GF@F2\n"); // R2/F2 = First operand
 
                 // call a function depending on the data types
                 if(op1->token_type == DOUBLE_64 || op2->token_type == DOUBLE_64)
@@ -389,7 +389,6 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     // To push the result
                     Token *f_token = InitToken();
                     f_token->token_type = DOUBLE_64;
-
                     FloatExpression(parser, op1, op2, token->token_type, &are_incompatible);
                     ExpressionStackPush(stack, f_token);
                     return_type = DOUBLE64_TYPE;
@@ -427,6 +426,14 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                             exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
                         }
                     }
+
+                    else
+                    {
+                        Token *i_token = InitToken();
+                        i_token->token_type = INTEGER_32;
+                        IntExpression(token->token_type);
+                        ExpressionStackPush(stack, i_token);
+                    }
                 }
 
                 else if(sym2 != NULL)
@@ -449,6 +456,14 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                             free(varname);
                             exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
                         }
+                    }
+
+                    else
+                    {
+                        Token *i_token = InitToken();
+                        i_token->token_type = INTEGER_32;
+                        IntExpression(token->token_type);
+                        ExpressionStackPush(stack, i_token);
                     }
                 }
 
