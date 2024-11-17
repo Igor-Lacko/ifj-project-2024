@@ -100,13 +100,13 @@ void ParseWhileLoop(Parser *parser)
         LABEL endwhile_order
     */
 
-    JUMPIFEQ("endwhile", "GF@B0", "bool@false", while_label_count);
+    JUMPIFEQ("$endwhile", "GF@$B0", "bool@false", while_label_count);
 
     // Loop body
     ProgramBody(parser);
 
     // Jump back to the beginning of the while
-    JUMP_WITH_ORDER("while", while_label_count);
+    JUMP_WITH_ORDER("$while", while_label_count);
 
     EndWhileLabel();
 }
@@ -175,7 +175,7 @@ void ParseNullableWhileLoop(Parser *parser)
     WhileLabel();
 
     // if(var == NULL) JUMP(endwhile_order)
-    fprintf(stdout, "JUMPIFEQ endwhile%d LF@%s nil@nil\n", while_label_count, var->name);
+    fprintf(stdout, "JUMPIFEQ $endwhile%d LF@%s nil@nil\n", while_label_count, var->name);
 
     // var2 = var
     fprintf(stdout, "MOVE LF@%s LF@%s\n", var2->name, var->name);
@@ -184,7 +184,7 @@ void ParseNullableWhileLoop(Parser *parser)
     ProgramBody(parser);
 
     // JUMP while_order
-    JUMP_WITH_ORDER("while", while_label_count)
+    JUMP_WITH_ORDER("$while", while_label_count)
 
     EndWhileLabel();
 }

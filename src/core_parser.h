@@ -16,8 +16,8 @@ do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type f
 
 // Prints error in case of invalid param count
 #define INVALID_PARAM_COUNT do{\
-    PrintError("Error in semantic analysis: Line %d: Invalid parameter count when calling function '%s': Expected %d, got %d",\
-    func->name, func->num_of_parameters, loaded);\
+    PrintError("Error in semantic analysis: Line %d: Invalid parameter count when calling function '%s'",\
+    parser->line_number, func->name);\
     DestroyTokenVector(stream);\
     SymtableStackDestroy(parser->symtable_stack);\
     DestroySymtable(parser->global_symtable);\

@@ -33,6 +33,10 @@ run-debug: debug
 interpreter: all
 	./ifj24 < $(INPUT_FILE) > $(OUTPUT_FILE) && ./../interpreter/ic24int $(OUTPUT_FILE)
 
+#----RUN TESTS----#
+test: all
+	python3 ../tests/test.py
+
 #----RULES----#
 %.o : %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@

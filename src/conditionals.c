@@ -103,13 +103,13 @@ void ParseIfStatement(Parser *parser)
     */
 
     // If(B0 == false) JUMP(else)
-    JUMPIFEQ("else", "GF@B0", "bool@false", if_label_count);
+    JUMPIFEQ("$else", "GF@$B0", "bool@false", if_label_count);
 
     // If body
     ProgramBody(parser);
 
     // JUMP(endif_order)
-    JUMP_WITH_ORDER("endif", if_label_count);
+    JUMP_WITH_ORDER("$endif", if_label_count);
 
     // Else label
     ElseLabel();
@@ -191,7 +191,7 @@ void ParseNullableIfStatement(Parser *parser)
     InsertVariableSymbol(parser->symtable, new);
 
     // If(var == NULL) JUMP(else_order)
-    fprintf(stdout, "JUMPIFEQ else%d LF@%s nil@nil\n", if_label_count, var->name);
+    fprintf(stdout, "JUMPIFEQ $else%d LF@%s nil@nil\n", if_label_count, var->name);
 
     // DEFVAR var
     DefineVariable(new->name, LOCAL_FRAME);
@@ -203,7 +203,7 @@ void ParseNullableIfStatement(Parser *parser)
     ProgramBody(parser);
 
     // JUMP endif_order
-    JUMP_WITH_ORDER("endif", if_label_count);
+    JUMP_WITH_ORDER("$endif", if_label_count);
 
     // LABEL else_order
     ElseLabel();

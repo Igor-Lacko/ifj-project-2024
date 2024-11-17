@@ -199,7 +199,9 @@ VariableSymbol *IsVariableAssignment(Token *token, Parser *parser)
 
 bool IsFunctionCall(Parser *parser)
 {
+    stream_index--;
     Token *id = GetNextToken(parser);
+    PrintToken(id);
     Token *braces = GetNextToken(parser);
     if (id->token_type == IDENTIFIER_TOKEN && braces->token_type == L_ROUND_BRACKET)
     {
@@ -347,7 +349,6 @@ void FunctionCall(Parser *parser, FunctionSymbol *func, const char *fun_name, DA
         DestroySymtable(parser->global_symtable);
     }
 
-    CheckTokenTypeVector(parser, L_ROUND_BRACKET);
     CREATEFRAME
     ParametersOnCall(parser, func);
     FUNCTIONCALL(func->name)
@@ -356,6 +357,7 @@ void FunctionCall(Parser *parser, FunctionSymbol *func, const char *fun_name, DA
 
 void ParametersOnCall(Parser *parser, FunctionSymbol *func)
 {
+    fprintf(stderr, "Function %s has %d parameters\n", func->name, func->num_of_parameters);
     Token *token;
     int loaded = 0;
     VariableSymbol *symb1; // for identifier parameter checking
@@ -363,7 +365,6 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
     // Load all parameters
     while ((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET)
     {
-        if(loaded == func->num_of_parameters) break; // Invalid count checking after the loop is done
         switch (token->token_type)
         {
             // Variable as a parameter
@@ -385,6 +386,7 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
 
                 NEWPARAM(loaded)
                 SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
+                if(loaded < func->num_of_parameters) CheckTokenTypeVector(parser, COMMA_TOKEN);
 
                 break;
 
@@ -397,6 +399,8 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 else
                     INVALID_PARAM_TYPE
 
+                if(loaded < func->num_of_parameters) CheckTokenTypeVector(parser, COMMA_TOKEN);
+
                 break;
 
             case DOUBLE_64:
@@ -407,6 +411,8 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 }
                 else
                     INVALID_PARAM_TYPE
+
+                if(loaded < func->num_of_parameters) CheckTokenTypeVector(parser, COMMA_TOKEN);
 
                 break;
 
@@ -419,7 +425,23 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 else
                     INVALID_PARAM_TYPE
 
+                if(loaded < func->num_of_parameters) CheckTokenTypeVector(parser, COMMA_TOKEN);
+
                 break;
+
+            // There can be an empty comma after the last parameter
+            case COMMA_TOKEN:
+                CheckTokenTypeVector(parser, R_ROUND_BRACKET);
+                break;
+
+            // Invalid end of expression
+            case EOF_TOKEN:
+                PrintError("Error in syntactic analysis: Line %d: Unexpected end of file in function call",
+                           parser->line_number);
+                DestroyTokenVector(stream);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                exit(ERROR_SYNTACTIC);
 
             // Any other token type is a syntax error
             default:
@@ -430,25 +452,10 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
                 DestroySymtable(parser->global_symtable);
                 exit(ERROR_SYNTACTIC);
         }
-
-        // In the case of the last parameter, check if the next token is a comma/')'
-        if(loaded == func->num_of_parameters)
-        {
-            if((token=GetNextToken(parser))->token_type != R_ROUND_BRACKET && token->token_type != COMMA_TOKEN)
-                INVALID_PARAM_COUNT
-
-            else if(token->token_type == COMMA_TOKEN)
-            {
-                CheckTokenTypeVector(parser, R_ROUND_BRACKET);
-                break;
-            }
-
-            else break;
-        }
     }
 
     // Check if the number of parameters isn't lower than the function expects
-    if(loaded < func->num_of_parameters)
+    if(loaded != func->num_of_parameters)
         INVALID_PARAM_COUNT
 }
 
@@ -511,7 +518,7 @@ void FunctionReturn(Parser *parser)
             DestroyTokenVector(stream);
             ErrorExit(ERROR_SEMANTIC_MISSING_EXPR, "Line %d: Invalid usage of \"return\" in main function (unexpected expression)");
         }
-        IFJ24SUCCESS // Successful return from main = EXIT 0
+        IFJ24SUCCESS // Successful return from main = EXIT 0 (todo: evaluate this? idk how to actually generate it)
             return;
     }
 
@@ -521,7 +528,7 @@ void FunctionReturn(Parser *parser)
         if ((token = GetNextToken(parser))->token_type != SEMICOLON) // returning something from void function
         {
             PrintError("Line %d: Returning a value from void function \"%s\"",
-                       parser->line_number, parser->current_function->name);
+                        parser->line_number, parser->current_function->name);
             SymtableStackDestroy(parser->symtable_stack);
             DestroySymtable(parser->global_symtable);
             DestroyTokenVector(stream);
@@ -588,6 +595,7 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
         exit(ERROR_SEMANTIC_REDEFINED);
     }
 
+    stream_index++; // For IsFunctionCall to work correctly
     if (IsFunctionCall(parser))
     {
         // Get the function name to use as a key into the hash table
@@ -767,8 +775,7 @@ void ProgramBody(Parser *parser)
                 char *tmp_func_name = strdup(token->attribute);
 
                 // Move past the ID(
-                token = GetNextToken(parser);
-                token = GetNextToken(parser);
+                stream_index+=2;
 
                 // Function call
                 FunctionCall(parser, FindFunctionSymbol(parser->global_symtable, tmp_func_name), tmp_func_name, VOID_TYPE);
