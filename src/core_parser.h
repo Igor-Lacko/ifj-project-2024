@@ -24,6 +24,16 @@ do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type f
     exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
 } while(0);
 
+// Prints error in case of unexpected token in parameter parsing
+#define INVALID_PARAM_TOKEN do{\
+    PrintError("Error in syntactic analysis: Line %d: Unexpected token \"%s\" in function call",\
+    parser->line_number, token->attribute);\
+    DestroyTokenVector(stream);\
+    SymtableStackDestroy(parser->symtable_stack);\
+    DestroySymtable(parser->global_symtable);\
+    exit(ERROR_SYNTACTIC);\
+} while(0);
+
 // Same but for return type
 #define CHECK_RETURN_VALUE do{\
     if(func->was_called && func->return_type != return_type){\

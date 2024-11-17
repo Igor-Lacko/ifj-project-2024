@@ -361,102 +361,86 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
     Token *token;
     int loaded = 0;
     VariableSymbol *symb1; // for identifier parameter checking
+    bool break_flag = false;
 
-    // Load all parameters
-    while ((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET)
+    // Main loop
+    while((token=GetNextToken(parser))->token_type != R_ROUND_BRACKET)
     {
-        switch (token->token_type)
+        switch(token->token_type)
         {
-            // Variable as a parameter
-            case IDENTIFIER_TOKEN:
-                symb1 = SymtableStackFindVariable(parser->symtable_stack, token->attribute);
-                if (symb1 == NULL)
+            // Basically the same handling for all of these, check if the type matches and generate code
+            case INTEGER_32: case DOUBLE_64: case LITERAL_TOKEN:
+                // Also check if the count isn't too many
+                if(loaded >= func->num_of_parameters) INVALID_PARAM_COUNT
+
+                // Get the data type depending on the token type
+                DATA_TYPE type_got = token->token_type == INTEGER_32 ? INT32_TYPE : token->token_type == DOUBLE_64 ? DOUBLE64_TYPE : U8_ARRAY_TYPE;
+
+                // Check if the type matches
+                if(!CheckParamType(func->parameters[loaded]->type, type_got)) INVALID_PARAM_TYPE
+
+                // Everything's fine, generate code
+                NEWPARAM(loaded)
+                SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
+
+                // Check if the next token is a comma or a closing bracket
+                if((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET && token->token_type != COMMA_TOKEN) INVALID_PARAM_TOKEN
+
+                // If it's a comma, we can continue the loop
+                else if(token->token_type == COMMA_TOKEN) break;
+
+                // If it's a closing bracket, we're done and we can perform checks after the loop
+                else
                 {
-                    PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"",
-                                parser->line_number, token->attribute);
-                    SymtableStackDestroy(parser->symtable_stack);
+                    break_flag = true;
+                    break;
+                }
+
+            // Very similar to the case above, but we have to check if the identifier is defined, access it in the symtable and check the type
+            case IDENTIFIER_TOKEN:
+                // Again, first check too many params case
+                if(loaded >= func->num_of_parameters) INVALID_PARAM_COUNT
+
+                // Check if the identifier is defined
+                else if((symb1 = SymtableStackFindVariable(parser->symtable_stack, token->attribute)) == NULL)
+                {
+                    fprintf(stderr, "Error in semantic analysis: Line %d: Undefined variable '%s'\n", parser->line_number, token->attribute);
                     DestroySymtable(parser->global_symtable);
+                    SymtableStackDestroy(parser->symtable_stack);
                     DestroyTokenVector(stream);
+                    free(token);
                     exit(ERROR_SEMANTIC_UNDEFINED);
                 }
 
-                // Check if the parameter type is valid
-                if(!CheckParamType(func->parameters[loaded]->type, symb1->type))
-                    INVALID_PARAM_TYPE
+                // Check the type of the identifier
+                else if(!CheckParamType(func->parameters[loaded]->type, symb1->type)) INVALID_PARAM_TYPE
 
+                // Generate code
                 NEWPARAM(loaded)
                 SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
-                if(loaded < func->num_of_parameters) CheckTokenTypeVector(parser, COMMA_TOKEN);
 
-                break;
+                // Check if the next token is a comma or a closing bracket
+                if((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET && token->token_type != COMMA_TOKEN) INVALID_PARAM_TOKEN
 
-            case INTEGER_32:
-                if(CheckParamType(func->parameters[loaded]->type, INT32_TYPE))
-                {
-                    NEWPARAM(loaded)
-                    SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
-                }
+                // If it's a comma, we can continue the loop
+                else if(token->token_type == COMMA_TOKEN) break;
+
+                // If it's a closing bracket, we're done and we can perform checks after the loop
                 else
-                    INVALID_PARAM_TYPE
-
-                if(loaded < func->num_of_parameters) CheckTokenTypeVector(parser, COMMA_TOKEN);
-
-                break;
-
-            case DOUBLE_64:
-                if(CheckParamType(func->parameters[loaded]->type, DOUBLE64_TYPE))
                 {
-                    NEWPARAM(loaded)
-                    SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
+                    break_flag = true;
+                    break;
                 }
-                else
-                    INVALID_PARAM_TYPE
 
-                if(loaded < func->num_of_parameters) CheckTokenTypeVector(parser, COMMA_TOKEN);
-
-                break;
-
-            case LITERAL_TOKEN:
-                if(CheckParamType(func->parameters[loaded]->type, U8_ARRAY_TYPE))
-                {
-                    NEWPARAM(loaded)
-                    SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
-                }
-                else
-                    INVALID_PARAM_TYPE
-
-                if(loaded < func->num_of_parameters) CheckTokenTypeVector(parser, COMMA_TOKEN);
-
-                break;
-
-            // There can be an empty comma after the last parameter
-            case COMMA_TOKEN:
-                CheckTokenTypeVector(parser, R_ROUND_BRACKET);
-                break;
-
-            // Invalid end of expression
-            case EOF_TOKEN:
-                PrintError("Error in syntactic analysis: Line %d: Unexpected end of file in function call",
-                           parser->line_number);
-                DestroyTokenVector(stream);
-                SymtableStackDestroy(parser->symtable_stack);
-                DestroySymtable(parser->global_symtable);
-                exit(ERROR_SYNTACTIC);
-
-            // Any other token type is a syntax error
+            // Invalid token
             default:
-                PrintError("Error in syntactic analysis: Line %d: Unexpected token \"%s\" in function call",
-                           parser->line_number, token->attribute);
-                DestroyTokenVector(stream);
-                SymtableStackDestroy(parser->symtable_stack);
-                DestroySymtable(parser->global_symtable);
-                exit(ERROR_SYNTACTIC);
+                INVALID_PARAM_TOKEN
         }
+        if(break_flag) break;
     }
 
-    // Check if the number of parameters isn't lower than the function expects
-    if(loaded != func->num_of_parameters)
-        INVALID_PARAM_COUNT
+    // Check if we have the right amount of parameters
+    if(loaded != func->num_of_parameters) INVALID_PARAM_COUNT
 }
 
 bool IsTermType(DATA_TYPE type)
