@@ -1,0 +1,20 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: unused variable
+
+pub fn calculateProduct(a: f64, b: f64) f64 {
+    return a * b;
+}
+
+pub fn main() void {
+    var z: f64 = 3.14; 
+
+    var num1: f64 = 2.5;
+    var num2: f64 = 4.0;
+    var product: f64 = calculateProduct(num1, num2);
+
+    ifj.write("Product: ");
+    ifj.write(product);
+
+    return;
+}

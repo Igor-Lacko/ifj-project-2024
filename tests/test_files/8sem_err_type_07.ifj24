@@ -1,0 +1,19 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: type not declared and cannot be derived
+
+pub fn main() void {
+    var product; 
+    var num1: ?i32 = ifj.readi32();
+    var num2: ?i32 = ifj.readi32();
+
+    if (num1 and num2) |n1, n2| {
+        product = n1 * n2;
+        ifj.write("Product: ");
+        ifj.write(product);
+    } else {
+        ifj.write("Failed to read numbers");
+    }
+
+    return;
+}

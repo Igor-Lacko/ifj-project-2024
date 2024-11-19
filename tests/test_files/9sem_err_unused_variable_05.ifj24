@@ -1,0 +1,23 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: unused variable
+
+pub fn sumArray(arr: []i32) i32 {
+    var sum: i32 = 0;
+    for (arr) |item| {
+        sum += item;
+    }
+    return sum;
+}
+
+pub fn main() void {
+    var arr: []i32 = [1, 2, 3]; 
+
+    var numbers: []i32 = [4, 5, 6];
+    var total: i32 = sumArray(numbers);
+
+    ifj.write("Sum of array: ");
+    ifj.write(total);
+
+    return;
+}

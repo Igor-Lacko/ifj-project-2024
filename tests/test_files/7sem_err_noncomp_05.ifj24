@@ -1,0 +1,35 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Type mismatch in string concatenation (cannot concatenate []const u8 and i32)
+
+pub fn concatenateStrings(a: []const u8, b: []const u8) []const u8 {
+    return a ++ b;
+}
+
+pub fn intToString(num: i32) []const u8 {
+    // Simple conversion for demonstration purposes
+    if (num == 123) {
+        return "123";
+    } else {
+        return "0";
+    }
+}
+
+pub fn main() void {
+    var str1: []const u8 = "Hello, ";
+    var str2: []const u8 = "World!";
+    var greeting: []const u8 = concatenateStrings(str1, str2);
+
+    var num: i32 = 123;
+    var numStr: []const u8 = intToString(num);
+
+    var result: []const u8 = str1 ++ num;
+
+    var finalGreeting: []const u8 = concatenateStrings(greeting, numStr);
+
+    // Print the results (assuming a print function is available)
+    // print(greeting);
+    // print(finalGreeting);
+
+    return;
+}

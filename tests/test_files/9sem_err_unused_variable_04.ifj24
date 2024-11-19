@@ -1,0 +1,20 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Unused variable
+
+pub fn concatenateStrings(a: []const u8, b: []const u8) []const u8 {
+    return ifj.concat(a, b);
+}
+
+pub fn main() void {
+    var str: []const u8 = "Nazdar";
+
+    var str1: []const u8 = "Hello, ";
+    var str2: []const u8 = "World!";
+    var result: []const u8 = concatenateStrings(str1, str2);
+
+    ifj.write("Concatenated string: ");
+    ifj.write(result);
+
+    return;
+}

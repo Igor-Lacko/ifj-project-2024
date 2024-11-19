@@ -1,0 +1,10 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Type mismatch in arithmetic expression (cannot add i32 and f64)
+
+pub fn main() void {
+    var a: i32 = 5;
+    var b: f64 = 2.5;
+    var result: f64 = a + b;
+    return;
+}

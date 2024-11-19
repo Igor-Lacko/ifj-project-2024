@@ -1,0 +1,23 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Type mismatch in arithmetic expression (cannot add i32 and f64)
+
+pub fn addNumbers(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+pub fn main() void {
+    var x: i32 = 10;
+    var y: f64 = 20.5;
+    var sum: f64 = x + y;
+
+    var inputNumber: ?i32 = ifj.readi32();
+    if (inputNumber) |num| {
+        var result: i32 = addNumbers(num, 5);
+        ifj.write(result);
+    } else {
+        ifj.write("Invalid input");
+    }
+
+    return;
+}
