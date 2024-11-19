@@ -6,7 +6,6 @@
 // Symtable size
 #define TABLE_COUNT 1009 // first prime over 1000, todo: change this
 
-
 // enum for token types
 typedef enum
 {
@@ -93,9 +92,9 @@ typedef enum
 typedef struct
 {
     TOKEN_TYPE token_type;
-    KEYWORD_TYPE keyword_type;  // KEYWORD_TYPE.NONE if token_type != KEYWORD
-    char *attribute;            // String representation of the token
-    int line_number;            // Useful when ungetting tokens
+    KEYWORD_TYPE keyword_type; // KEYWORD_TYPE.NONE if token_type != KEYWORD
+    char *attribute;           // String representation of the token
+    int line_number;           // Useful when ungetting tokens
 } Token;
 
 // Symbols and symtables
@@ -121,6 +120,8 @@ typedef enum
     NULL_DATA_TYPE
 } DATA_TYPE;
 
+// ********************HASH TABLE****************************** //
+
 // structure of a variable symbol
 typedef struct
 {
@@ -141,21 +142,21 @@ typedef struct
     bool was_called;
 } FunctionSymbol;
 
-// structure of a symbol linked list node
-typedef struct node
-{
-    struct node *next;
-    SYMBOL_TYPE symbol_type;
-    void *symbol;
-} SymtableListNode;
-
-// symtable structure (a hash table --> an array of linked lists)
 typedef struct
 {
-    unsigned long capacity; // the maximum total number of lists
-    unsigned long size;     // so the count of lists we have active (non-NULL/length 0)
-    SymtableListNode *table[TABLE_COUNT];
+    SYMBOL_TYPE symbol_type;
+    void *symbol;
+    bool is_occupied; // True if the slot is occupied
+} HashEntry;
+
+typedef struct
+{
+    unsigned long capacity; // Maximum number of entries
+    unsigned long size;     // Current number of occupied entries
+    HashEntry *table;       // Array of hash entries
 } Symtable;
+
+// ************************************************************* //
 
 // Vector (dynamic array) structures
 typedef struct
@@ -166,41 +167,48 @@ typedef struct
 } Vector;
 
 // Vector of tokens
-typedef struct { // Same as vector from vector.h, but with tokens
+typedef struct
+{                         // Same as vector from vector.h, but with tokens
     Token **token_string; // string of input tokens
-    int length; // current
-    int capacity; // max
+    int length;           // current
+    int capacity;         // max
 } TokenVector;
 
 // Stack structures
-typedef struct SymStackNode { // Linked list for symtable stack implementation
+typedef struct SymStackNode
+{ // Linked list for symtable stack implementation
     Symtable *table;
     struct SymStackNode *next;
 } SymtableStackNode;
 
-typedef struct ExprStackNode { // Linked list for expression parser stack implementation
+typedef struct ExprStackNode
+{ // Linked list for expression parser stack implementation
     Token *token;
     struct ExprStackNode *next;
 } ExpressionStackNode;
 
-typedef struct { // Stack for symtables
+typedef struct
+{ // Stack for symtables
     unsigned long size;
     SymtableStackNode *top;
 } SymtableStack;
 
-typedef struct { // Stack for expression parsing
+typedef struct
+{ // Stack for expression parsing
     unsigned long size;
     ExpressionStackNode *top;
 } ExpressionStack;
 
 // Structures for precedential analysis
-typedef struct { // simple precedence table struct
+typedef struct
+{                                   // simple precedence table struct
     TOKEN_TYPE PRIORITY_HIGHEST[2]; // * and /
-    TOKEN_TYPE PRIORITY_MIDDLE[2]; // + and -
-    TOKEN_TYPE PRIORITY_LOWEST[6]; // ==, !=, >, <, >=, <=
+    TOKEN_TYPE PRIORITY_MIDDLE[2];  // + and -
+    TOKEN_TYPE PRIORITY_LOWEST[6];  // ==, !=, >, <, >=, <=
 } PrecedenceTable;
 
-typedef enum { // helper enum for operator priority (probably only used once)
+typedef enum
+{ // helper enum for operator priority (probably only used once)
     HIGHEST = 3,
     MIDDLE = 2,
     LOWEST = 1
@@ -223,10 +231,9 @@ typedef struct
     bool parsing_functions;
     bool end_of_program;
     FunctionSymbol *current_function;
-    Symtable *symtable; // Current symtable (top of the stack), local variables
+    Symtable *symtable;        // Current symtable (top of the stack), local variables
     Symtable *global_symtable; // Only for functions
     SymtableStack *symtable_stack;
 } Parser;
-
 
 #endif

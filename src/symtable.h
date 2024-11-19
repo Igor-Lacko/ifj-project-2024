@@ -6,29 +6,6 @@
 
 #include "types.h"
 
-
-/**
- * @brief Initializes one node of a SymtableLinkedList
- *
- * @param symbol_type Type of the symbol
- * @param symbol Symbol structure. Passed as a void* since it can be one of two types, the type is inferred from symbol_type
- * @return SymtableListNode*
- * @note not a calloc but initialized with parameters since i assume we will be creating a node while already having necessary
- */
-SymtableListNode *InitNode(SYMBOL_TYPE symbol_type, void *symbol);
-
-// list node destructor
-void DestroyNode(SymtableListNode *node);
-
-// appends a node to the end of a symtable list
-void AppendNode(Symtable *symtable, SymtableListNode *node, unsigned long hash);
-
-// removes a node from the end of the list
-void PopNode(int *symtable_size, SymtableListNode *list);
-
-// symtable list destructor, frees each node recursively
-void DestroyList(SymtableListNode *list);
-
 // symtable constructor with the specified size of linked lists
 Symtable *InitSymtable(unsigned long size);
 
@@ -59,10 +36,6 @@ void DestroyFunctionSymbol(FunctionSymbol *function_symbol);
 
 // VariableSymbol symbol destructor
 void DestroyVariableSymbol(VariableSymbol *variable_symbol);
-
-// symbol getters from nodes to avoid the weird void* notation
-FunctionSymbol *GetFunctionSymbol(SymtableListNode *node);
-VariableSymbol *GetVariableSymbol(SymtableListNode *node);
 
 // better than if(symtable -> size == 0)
 bool IsSymtableEmpty(Symtable *symtable);

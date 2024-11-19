@@ -5,103 +5,29 @@
 #include "symtable.h"
 #include "error.h"
 
-SymtableListNode *InitNode(SYMBOL_TYPE symbol_type, void *symbol)
-{
-    SymtableListNode *node;
-    if ((node = malloc(sizeof(SymtableListNode))) == NULL)
-    {
-        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
-    }
-
-    node->symbol_type = symbol_type;
-    node->symbol = symbol;
-    node->next = NULL;
-
-    return node;
-}
-
-void DestroyNode(SymtableListNode *node)
-{
-    // just in case, check if it wasn't called on an empty node
-    if (node == NULL)
-        return;
-
-    if (node->symbol != NULL)
-    {
-        // I LOVE THE TERNARY OPERATOR
-        node->symbol_type == FUNCTION_SYMBOL ? DestroyFunctionSymbol((FunctionSymbol *)node->symbol) : DestroyVariableSymbol((VariableSymbol *)node->symbol);
-    }
-
-    node->next = NULL;
-
-    free(node);
-}
-
-void AppendNode(Symtable *symtable, SymtableListNode *node, unsigned long hash)
-{
-    // if the list is empty, set the node to the first item
-    if ((symtable->table[hash]) == NULL)
-    {
-        symtable->table[hash] = node;
-        ++(symtable->size);
-        return;
-    }
-
-    SymtableListNode *tmp = symtable->table[hash];
-
-    // jump through the nodes until the next one is empty
-    while (tmp->next != NULL)
-    {
-        tmp = tmp->next;
-    }
-    tmp->next = node;
-}
-
-void PopNode(int *symtable_size, SymtableListNode *list)
-{
-    SymtableListNode *current_node = list;
-
-    // look if the item to pop isn't the list head
-    if (list->next == NULL)
-    {
-        --(*symtable_size);
-        DestroyNode(list);
-        list = NULL;
-    }
-
-    // we need to look 2 nodes forward, since we need to free current_node -> next and set it to NULL
-    while (current_node->next->next != NULL)
-    {
-        current_node = current_node->next;
-    }
-
-    DestroyNode(current_node->next);
-    current_node->next = NULL;
-}
-
-void DestroyList(SymtableListNode *list)
-{
-    // recursion woohoo
-    if (list->next != NULL)
-        DestroyList(list->next);
-    DestroyNode(list);
-}
-
 Symtable *InitSymtable(unsigned long size)
 {
-    Symtable *symtable;
-    if ((symtable = calloc(1, sizeof(Symtable))) == NULL)
+    Symtable *symtable = malloc(sizeof(Symtable));
+    if (!symtable)
     {
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
-    }
-
-    // allocate size linked lists and set each one to NULL
-    for (unsigned long i = 0; i < symtable->capacity; i++)
-    {
-        symtable->table[i] = NULL;
     }
 
     symtable->capacity = size;
+    symtable->size = 0;
+    symtable->table = calloc(size, sizeof(HashEntry));
+    if (!symtable->table)
+    {
+        free(symtable);
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    }
+
+    for (unsigned long i = 0; i < size; i++)
+    {
+        symtable->table[i].is_occupied = false;
+        symtable->table[i].symbol = NULL;
+    }
+
     return symtable;
 }
 
@@ -109,13 +35,20 @@ void DestroySymtable(Symtable *symtable)
 {
     for (unsigned long i = 0; i < symtable->capacity; i++)
     {
-        if (symtable->table[i] != NULL)
+        if (symtable->table[i].is_occupied && symtable->table[i].symbol)
         {
-            DestroyList(symtable->table[i]);
-            symtable->size--;
+            if (symtable->table[i].symbol_type == FUNCTION_SYMBOL)
+            {
+                DestroyFunctionSymbol((FunctionSymbol *)symtable->table[i].symbol);
+            }
+            else if (symtable->table[i].symbol_type == VARIABLE_SYMBOL)
+            {
+                DestroyVariableSymbol((VariableSymbol *)symtable->table[i].symbol);
+            }
         }
     }
 
+    free(symtable->table);
     free(symtable);
 }
 
@@ -161,8 +94,8 @@ void DestroyFunctionSymbol(FunctionSymbol *function_symbol)
     if (function_symbol == NULL)
         return; // just in case
 
-    if (function_symbol->name != NULL)
-        free(function_symbol->name);
+    // if (function_symbol->name != NULL)
+    //     free(function_symbol->name);
 
     // free all parameters
     for (int i = 0; i < function_symbol->num_of_parameters; i++)
@@ -184,20 +117,10 @@ void DestroyVariableSymbol(VariableSymbol *variable_symbol)
     if (variable_symbol == NULL)
         return;
 
-    if (variable_symbol->name != NULL)
-        free(variable_symbol->name);
+    // if (variable_symbol->name != NULL)
+    //     free(variable_symbol->name);
 
     free(variable_symbol);
-}
-
-FunctionSymbol *GetFunctionSymbol(SymtableListNode *node)
-{
-    return (FunctionSymbol *)(node->symbol);
-}
-
-VariableSymbol *GetVariableSymbol(SymtableListNode *node)
-{
-    return (VariableSymbol *)(node->symbol);
 }
 
 unsigned long GetSymtableHash(char *symbol_name, unsigned long modulo)
@@ -214,106 +137,149 @@ unsigned long GetSymtableHash(char *symbol_name, unsigned long modulo)
 
 bool IsSymtableEmpty(Symtable *symtable)
 {
-    return !(symtable->size);
+    return symtable->size == 0;
 }
 
 FunctionSymbol *FindFunctionSymbol(Symtable *symtable, char *function_name)
 {
-    // index into the table using a hash function on the function name
-    SymtableListNode *symtable_row = symtable->table[GetSymtableHash(function_name, symtable->capacity)];
+    unsigned long index = GetSymtableHash(function_name, symtable->capacity);
+    unsigned long start_index = index;
 
-    // we will store/commpare here
-    FunctionSymbol *function_symbol;
-
-    while (symtable_row != NULL)
+    while (symtable->table[index].is_occupied)
     {
-        // check if the node's symbol is a function
-        if (symtable_row->symbol_type == FUNCTION_SYMBOL)
+        if (symtable->table[index].symbol_type == FUNCTION_SYMBOL &&
+            strcmp(((FunctionSymbol *)symtable->table[index].symbol)->name, function_name) == 0)
         {
-            if (!strcmp((function_symbol = GetFunctionSymbol(symtable_row))->name, function_name))
-                return function_symbol;
+            return (FunctionSymbol *)symtable->table[index].symbol;
         }
 
-        symtable_row = symtable_row->next;
+        index = (index + 1) % symtable->capacity;
+        if (index == start_index)
+        {
+            break;
+        }
     }
-    // symbol not found
+
     return NULL;
 }
 
 VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name)
 {
-    // index into the table using a hash function on the variable name
-    SymtableListNode *symtable_row = symtable->table[GetSymtableHash(variable_name, symtable->capacity)];
+    unsigned long index = GetSymtableHash(variable_name, symtable->capacity);
+    unsigned long start_index = index;
 
-    // we will store/commpare here
-    VariableSymbol *variable_symbol;
-
-    while (symtable_row != NULL)
+    while (symtable->table[index].is_occupied)
     {
-        // check if the node's symbol is a function
-        if (symtable_row->symbol_type == VARIABLE_SYMBOL)
+        if (symtable->table[index].symbol_type == VARIABLE_SYMBOL &&
+            strcmp(((VariableSymbol *)symtable->table[index].symbol)->name, variable_name) == 0)
         {
-            if (!strcmp((variable_symbol = GetVariableSymbol(symtable_row))->name, variable_name))
-                return variable_symbol;
+            return (VariableSymbol *)symtable->table[index].symbol;
         }
 
-        symtable_row = symtable_row->next;
+        index = (index + 1) % symtable->capacity;
+        if (index == start_index)
+        {
+            break; // Avoid infinite loop
+        }
     }
-    // symbol not found
-    return NULL;
+
+    return NULL; // Symbol not found
 }
 
 bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol)
 {
-    // check if the symbol isn't in the table already
-    if (FindVariableSymbol(symtable, variable_symbol->name) != NULL || FindFunctionSymbol(symtable, variable_symbol->name) != NULL)
-        return false;
+    unsigned long index = GetSymtableHash(variable_symbol->name, symtable->capacity);
+    unsigned long start_index = index;
 
-    // if not, create a new node and add it to the end
-    SymtableListNode *node = InitNode(VARIABLE_SYMBOL, (void *)(variable_symbol));
-    AppendNode(symtable, node, GetSymtableHash(variable_symbol->name, symtable->capacity));
+    if (FindVariableSymbol(symtable, variable_symbol->name) != NULL || FindFunctionSymbol(symtable, variable_symbol->name) != NULL)
+    {
+        return false; // Symbol already in table
+    }
+
+    while (symtable->table[index].is_occupied)
+    {
+        if (symtable->table[index].symbol_type == VARIABLE_SYMBOL &&
+            strcmp(((VariableSymbol *)symtable->table[index].symbol)->name, variable_symbol->name) == 0)
+        {
+            return false; // Symbol already exists
+        }
+
+        index = (index + 1) % symtable->capacity;
+        if (index == start_index)
+        {
+            return false; // Table is full
+        }
+    }
+
+    symtable->table[index].symbol_type = VARIABLE_SYMBOL;
+    symtable->table[index].symbol = variable_symbol;
+    symtable->table[index].is_occupied = true;
+    symtable->size++;
 
     return true;
 }
 
 bool InsertFunctionSymbol(Symtable *symtable, FunctionSymbol *function_symbol)
 {
-    // the same principle as InsertVariableSymbol()
-    if (FindFunctionSymbol(symtable, function_symbol->name) != NULL || FindVariableSymbol(symtable, function_symbol->name) != NULL)
-        return false;
+    unsigned long index = GetSymtableHash(function_symbol->name, symtable->capacity);
+    unsigned long start_index = index;
 
-    SymtableListNode *node = InitNode(FUNCTION_SYMBOL, (void *)(function_symbol));
-    AppendNode(symtable, node, GetSymtableHash(function_symbol->name, symtable->capacity));
+    if (FindVariableSymbol(symtable, function_symbol->name) != NULL || FindFunctionSymbol(symtable, function_symbol->name) != NULL)
+    {
+        return false; // Symbol already in table
+    }
+
+    while (symtable->table[index].is_occupied)
+    {
+        if (symtable->table[index].symbol_type == FUNCTION_SYMBOL &&
+            strcmp(((FunctionSymbol *)symtable->table[index].symbol)->name, function_symbol->name) == 0)
+        {
+            return false; // Symbol already exists
+        }
+
+        index = (index + 1) % symtable->capacity;
+        if (index == start_index)
+        {
+            return false; // Table is full
+        }
+    }
+
+    symtable->table[index].symbol_type = FUNCTION_SYMBOL;
+    symtable->table[index].symbol = function_symbol;
+    symtable->table[index].is_occupied = true;
+    symtable->size++;
 
     return true;
 }
 
 void PrintTable(Symtable *symtable)
 {
-    printf("Table:\n");
-    for (int i = 0; i < (int)symtable->capacity; i++)
+    printf("Symbol Table:\n");
+    for (unsigned long i = 0; i < symtable->capacity; i++)
     {
-        SymtableListNode *current = symtable->table[i];
-
-        while (current != NULL)
+        if (symtable->table[i].is_occupied)
         {
-            printf("Hash %d : ", i);
-
-            if (current->symbol_type == FUNCTION_SYMBOL)
+            printf("Index %lu: ", i);
+            if (symtable->table[i].symbol_type == FUNCTION_SYMBOL)
             {
-                printf("Function: %s ", ((FunctionSymbol *)current->symbol)->name);
-                printf("Return type: %d\n", ((FunctionSymbol *)current->symbol)->return_type);
-                for (int j = 0; j < ((FunctionSymbol *)current->symbol)->num_of_parameters; j++)
-                {
-                    printf("Parameter: %s ", ((FunctionSymbol *)current->symbol)->parameters[j]->name);
-                    printf("Type: %d\n", ((FunctionSymbol *)current->symbol)->parameters[j]->type);
-                }
+                FunctionSymbol *func = (FunctionSymbol *)symtable->table[i].symbol;
+                printf("Function - Name: %s, Return Type: %d, Parameters: %d\n",
+                       func->name, func->return_type, func->num_of_parameters);
             }
-            else
+            else if (symtable->table[i].symbol_type == VARIABLE_SYMBOL)
             {
-                printf("Variable: %s\n", ((VariableSymbol *)current->symbol)->name);
+                VariableSymbol *var = (VariableSymbol *)symtable->table[i].symbol;
+                printf("Variable - Name: %s, Type: %d, Is Const: %s, Nullable: %s, Defined: %s\n",
+                       var->name,
+                       var->type,
+                       var->is_const ? "true" : "false",
+                       var->nullable ? "true" : "false",
+                       var->defined ? "true" : "false");
             }
-            current = current->next;
+        }
+        else
+        {
+            printf("Index %lu: EMPTY\n", i);
         }
     }
 }
