@@ -1,0 +1,15 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Extra expression in return statement
+
+pub fn concatenateStrings(a: []const u8, b: []const u8) []const u8 {
+    return a ++ b;
+}
+
+pub fn main() void {
+    var str1: []const u8 = "Hello, ";
+    var str2: []const u8 = "World!";
+    var result: []const u8 = concatenateStrings(str1, str2);
+    return result; 
+}
+// toto neviem ci je dobre, ale asi nie lmao

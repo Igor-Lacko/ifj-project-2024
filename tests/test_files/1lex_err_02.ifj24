@@ -1,0 +1,13 @@
+const ifj = @import("ifj24.zig");
+
+// Error: param2 has " missing
+
+pub fn main() void {
+
+}
+
+pub fn id (param1 : i32) i32 {
+    const param2 = string"; 
+}
+
+// nie sme si isty

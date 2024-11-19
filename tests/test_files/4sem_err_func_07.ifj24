@@ -1,0 +1,17 @@
+const ifj = @import("ifj24.zig");
+
+// Error: exampleFunc has i32 as a parameter, not string
+
+pub fn exampleFunc(a: i32) void {
+    var result: i32 = a + 10;
+}
+
+pub fn anotherFunc() void {
+    var value: i32 = 20;
+    exampleFunc(value);
+}
+
+pub fn main() void {
+    exampleFunc("string"); 
+    anotherFunc();
+}

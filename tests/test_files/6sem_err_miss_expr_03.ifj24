@@ -1,0 +1,15 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Missing expression in return statement
+
+pub fn helperFunc3() i32 {
+    var e: i32 = 25;
+    var f: i32 = 30;
+    var result: i32 = e - f;
+    return; 
+}
+
+pub fn main() void {
+    var y: i32 = helperFunc3();
+    return;
+}

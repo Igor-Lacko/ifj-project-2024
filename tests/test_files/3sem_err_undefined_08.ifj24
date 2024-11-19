@@ -1,0 +1,17 @@
+const ifj = @import("ifj24.zig");
+
+// Error: Use of undefined variable `e` and undefined function `processData`
+
+pub fn main() void {
+    var result: i32 = processData(e, 15);
+    return;
+}
+
+pub fn processData(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+pub fn anotherFunction() void {
+    var temp: i32 = processData(e, 5);
+    return;
+}

@@ -1,0 +1,8 @@
+const ifj = @import("ifj24.zig");
+
+// Error: main mustn't contain any parameters
+
+pub fn main(a: i32) void {
+    var char : []u8 = "nazdar";
+    return;
+}

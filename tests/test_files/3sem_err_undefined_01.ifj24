@@ -1,7 +1,8 @@
 const ifj = @import("ifj24.zig");
-// Error: Use of undefined variable `undefined_var`
+
+// Error: Use of undefined variable `tvl`
+
 pub fn main() void {
     var result: i32 = tvl + 5;
     return;
 }
-// nefunguje, dava 0 a ma dat 3

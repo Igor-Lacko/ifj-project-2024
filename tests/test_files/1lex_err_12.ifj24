@@ -1,12 +1,12 @@
 const ifj = @import("ifj24.zig");
 
-// Error: definition of the function is incorrect
+// Error: missing { in function
 
 pub fn main() void {
 
 }
 
-pu fn test8() void {
+pub fn test11(,) void {
     var id : i32 = 80;
     var char : []u8 = "picus";
     var vysl: f64 = 1.0;

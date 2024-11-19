@@ -1,0 +1,56 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Extra expression in return statement
+
+pub fn calculateSum(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+pub fn calculateDifference(a: i32, b: i32) i32 {
+    return a - b;
+}
+
+pub fn calculateProduct(a: i32, b: i32) i32 {
+    return a * b;
+}
+
+pub fn calculateQuotient(a: i32, b: i32) i32 {
+    if (b != 0) {
+        return a / b;
+    } else {
+        return 0;
+    }
+}
+
+pub fn helperFunc4() void {
+    var g: i32 = 35;
+    var h: i32 = 40;
+    var sum: i32 = calculateSum(g, h);
+    var difference: i32 = calculateDifference(g, h);
+    var product: i32 = calculateProduct(g, h);
+    var quotient: i32 = calculateQuotient(g, h);
+
+    return sum;
+}
+
+pub fn main() void {
+    helperFunc4();
+
+    var x: i32 = 50;
+    var y: i32 = 60;
+    var result: i32 = calculateSum(x, y);
+
+    var a: i32 = 70;
+    var b: i32 = 80;
+    var diff: i32 = calculateDifference(a, b);
+
+    var p: i32 = 90;
+    var q: i32 = 100;
+    var prod: i32 = calculateProduct(p, q);
+
+    var m: i32 = 110;
+    var n: i32 = 120;
+    var quot: i32 = calculateQuotient(m, n);
+
+    return;
+}

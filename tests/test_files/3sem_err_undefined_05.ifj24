@@ -1,0 +1,12 @@
+const ifj = @import("ifj24.zig");
+
+// Error: Use of undefined variable `b` and undefined function `process`
+
+pub fn main() void {
+    var result: i32 = process(b);
+    return;
+}
+
+pub fn process(value: i32) i32 {
+    return value * 2;
+}
