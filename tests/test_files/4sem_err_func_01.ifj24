@@ -1,11 +1,10 @@
 const ifj = @import("ifj24.zig");
 
-// Function declaration with incorrect parameter count
+// Error: function declaration with incorrect parameter count
+
 pub fn exampleFunc(a: i32, b :i32) void {
     // Do something
 }
 pub fn main() void {
-    exampleFunc(5,2); // Incorrect number of arguments
+    exampleFunc(5,2); 
 }
-// nefunguje, dava 0 a ma dat 4
-// uz funguje spravne

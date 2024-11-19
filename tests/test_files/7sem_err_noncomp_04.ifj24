@@ -1,0 +1,10 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Type mismatch in string concatenation (cannot concatenate []const u8 and i32)
+
+pub fn main() void {
+    var str: []const u8 = "Hello, ";
+    var num: i32 = 123;
+    var result: []const u8 = str + num;
+    return;
+}

@@ -1,0 +1,20 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: unused variable
+
+pub fn calculateSum(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+pub fn main() void {
+    var y: i32 = 10; 
+
+    var num1: i32 = 5;
+    var num2: i32 = 15;
+    var sum: i32 = calculateSum(num1, num2);
+
+    ifj.write("Sum: ");
+    ifj.write(sum);
+
+    return;
+}

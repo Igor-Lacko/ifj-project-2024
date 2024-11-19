@@ -1,0 +1,14 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: modifiable variable without possibility of change
+
+pub fn main() void {
+    var b: f64 = 2.5;
+    b = 5.0;
+
+    var c: f64 = 7.5;
+    ifj.write("Value of c: ");
+    ifj.write(c);
+
+    return;
+}

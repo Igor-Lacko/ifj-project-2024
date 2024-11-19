@@ -1,0 +1,32 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Type mismatch in arithmetic expression (cannot divide i32 by bool)
+
+pub fn divideNumbers(a: i32, b: i32) ?i32 {
+    if (b != 0) {
+        return a / b;
+    } else {
+        return null;
+    }
+}
+
+pub fn main() void {
+    var x: i32 = 10;
+    var y: bool = true;
+    var quotient: i32 = x / y;
+
+    // Using built-in functions
+    var inputNumber: ?i32 = ifj.readi32();
+    if (inputNumber) |num| {
+        var result: ?i32 = divideNumbers(num, 5);
+        if (result) |res| {
+            ifj.write(res);
+        } else {
+            ifj.write("Division by zero");
+        }
+    } else {
+        ifj.write("Invalid input");
+    }
+
+    return;
+}

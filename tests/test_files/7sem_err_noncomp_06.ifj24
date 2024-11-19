@@ -1,0 +1,44 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Type mismatch in assignment (cannot assign f64 to i32)
+
+pub fn addNumbers(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+pub fn subtractNumbers(a: i32, b: i32) i32 {
+    return a - b;
+}
+
+pub fn multiplyNumbers(a: i32, b: i32) i32 {
+    return a * b;
+}
+
+pub fn divideNumbers(a: i32, b: i32) ?i32 {
+    if (b != 0) {
+        return a / b;
+    } else {
+        return null;
+    }
+}
+
+pub fn main() void {
+    var x: i32 = 10;
+    var y: i32 = 20;
+    var sum: i32 = addNumbers(x, y);
+    var difference: i32 = subtractNumbers(x, y);
+    var product: i32 = multiplyNumbers(x, y);
+    var quotient: ?i32 = divideNumbers(x, y);
+
+    var inputNumber: ?i32 = ifj.readi32();
+    if (inputNumber) |num| {
+        var result: i32 = addNumbers(num, 5);
+        ifj.write(result);
+    } else {
+        ifj.write("Invalid input");
+    }
+
+    var invalidAssignment: i32 = 3.14; 
+
+    return;
+}
