@@ -322,6 +322,7 @@ void VarDeclaration(Parser *parser, bool is_const)
         var->type = token->keyword_type == I32 ? INT32_TYPE : token->keyword_type == F64 ? DOUBLE64_TYPE
                                                                                          : U8_ARRAY_TYPE;
 
+
         CheckTokenTypeVector(parser, ASSIGNMENT);
     }
 

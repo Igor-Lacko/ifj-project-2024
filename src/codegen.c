@@ -313,6 +313,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
                 else
                 {
+                    if(sym1->type == DOUBLE64_TYPE) return_type = DOUBLE64_TYPE;
                     PUSHS(token->attribute, token->token_type, LOCAL_FRAME);
                     ExpressionStackPush(stack, token);
                     break;
@@ -444,7 +445,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                         FloatExpression(parser, op1, op2, token->token_type, &are_incompatible);
                         ExpressionStackPush(stack, f_token);
                         return_type = DOUBLE64_TYPE;
-                        
+
                         if(are_incompatible)
                         {
                             fprintf(stderr, RED"Error in semantic analysis: Line %d: Incompatible operands '%s' and '%s'\n"RESET, parser->line_number, op1->attribute, op2->attribute);
