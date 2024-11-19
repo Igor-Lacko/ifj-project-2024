@@ -1,0 +1,17 @@
+const ifj = @import("ifj24.zig");
+
+// Error: Use of undefined variable `f`
+
+pub fn main() void {
+    var result: i32 = computeResult(25, 25);
+    ifj.write(result);
+    result = computeResult(20, 1);
+    ifj.write(result);
+    result = computeResult(f, 9);
+    ifj.write(result);
+    return;
+}
+
+pub fn computeResult(a: i32, b: i32) i32 {
+    return a * b;
+}

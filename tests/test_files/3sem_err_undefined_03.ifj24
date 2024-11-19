@@ -1,0 +1,8 @@
+const ifj = @import("ifj24.zig");
+
+// Error: Use of undefined function `undefinedFunction`
+
+pub fn main() void {
+    var result: i32 = undefinedFunction(5);
+    return;
+}

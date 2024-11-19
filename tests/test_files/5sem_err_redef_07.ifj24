@@ -1,0 +1,50 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Redefinition of function
+
+pub fn helperFunc1() void {
+    var a: i32 = 5;
+    var b: i32 = 10;
+    var result: i32 = a + b;
+    return;
+}
+
+pub fn helperFunc2() void {
+    var c: i32 = 15;
+    var d: i32 = 20;
+    var result: i32 = c * d;
+    return;
+}
+
+pub fn helperFunc3() void {
+    var e: i32 = 25;
+    var f: i32 = 30;
+    var result: i32 = e - f;
+    return;
+}
+
+pub fn exampleFunc() void {
+    var x: i32 = 35;
+    var y: i32 = 40;
+    var result: i32 = x + y;
+    return;
+}
+
+pub fn exampleFunc() void { // Redefinition of function exampleFunc
+    var p: i32 = 45;
+    var q: i32 = 50;
+    var result: i32 = p * q;
+    return;
+}
+
+pub fn main() void {
+    exampleFunc();
+    helperFunc1();
+    helperFunc2();
+    helperFunc3();
+
+    var i: i32 = 55;
+    var j: i32 = 60;
+    var finalResult: i32 = i * j;
+    return;
+}

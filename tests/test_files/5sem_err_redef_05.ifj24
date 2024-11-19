@@ -1,0 +1,30 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Redefinition of variable and assignment to non-modifiable variable
+
+pub fn helperFunc() void {
+    var a: i32 = 5;
+    var a: i32 = 10; 
+
+    const b: i32 = 20;
+    b = 30; 
+    return;
+}
+
+pub fn main() void {
+    var z: i32 = 30;
+    var z: i32 = 40; 
+
+    const w: i32 = 50;
+    w = 60; 
+
+    helperFunc();
+
+    var c: i32 = 70;
+    var c: i32 = 80;
+
+    const d: i32 = 90;
+    d = 100;
+    
+    return;
+}

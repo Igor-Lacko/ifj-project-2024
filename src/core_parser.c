@@ -74,7 +74,8 @@ void CheckTokenTypeStream(Parser *parser, TOKEN_TYPE type)
                   token_types[type], parser->line_number);
     }
 
-    else AppendToken(stream, token);
+    else
+        AppendToken(stream, token);
 }
 
 // checks if the next token is of the expected keyword type
@@ -91,7 +92,8 @@ void CheckKeywordTypeStream(Parser *parser, KEYWORD_TYPE type)
                   keyword_types[type], parser->line_number);
     }
 
-    else AppendToken(stream, token);
+    else
+        AppendToken(stream, token);
 }
 
 // checks if the next token is of the expected type and returns it
@@ -130,7 +132,7 @@ Token *CheckAndReturnKeywordStream(Parser *parser, KEYWORD_TYPE type)
 void CheckTokenTypeVector(Parser *parser, TOKEN_TYPE type)
 {
     Token *token;
-        if ((token = GetNextToken(parser))->token_type != type)
+    if ((token = GetNextToken(parser))->token_type != type)
     {
         DestroyTokenVector(stream);
         SymtableStackDestroy(parser->symtable_stack);
@@ -190,7 +192,7 @@ VariableSymbol *IsVariableAssignment(Token *token, Parser *parser)
     {
         // The next token has to be an '=' operator, a variable by itself is not an expression
         CheckTokenTypeVector(parser, ASSIGNMENT);
-        stream_index-=2;
+        stream_index -= 2;
         return var;
     }
 
@@ -205,21 +207,21 @@ bool IsFunctionCall(Parser *parser)
     Token *braces = GetNextToken(parser);
     if (id->token_type == IDENTIFIER_TOKEN && braces->token_type == L_ROUND_BRACKET)
     {
-        stream_index-=2;
+        stream_index -= 2;
         return true;
     }
 
-    stream_index-=2;
+    stream_index -= 2;
     return false;
 }
 
 void PrintStreamTokens(Parser *parser)
 {
-    for(int i = 0; i < stream->length; i++)
+    for (int i = 0; i < stream->length; i++)
     {
         PrintToken(stream->token_string[i]);
     }
-    //DestroyTokenVector(stream);
+    // DestroyTokenVector(stream);
     SymtableStackDestroy(parser->symtable_stack);
     DestroySymtable(parser->global_symtable);
     DestroyTokenVector(stream);
@@ -247,10 +249,11 @@ void IfElse(Parser *parser)
     SymtableStackPush(parser->symtable_stack, symtable);
     parser->symtable = symtable;
 
-    if(!IsIfNullableType(parser))
+    if (!IsIfNullableType(parser))
         ParseIfStatement(parser);
 
-    else ParseNullableIfStatement(parser);
+    else
+        ParseNullableIfStatement(parser);
 
     parser->nested_level--;
 }
@@ -261,11 +264,11 @@ void WhileLoop(Parser *parser)
     SymtableStackPush(parser->symtable_stack, symtable);
     parser->symtable = symtable;
 
-    if(!IsLoopNullableType(parser))
+    if (!IsLoopNullableType(parser))
         ParseWhileLoop(parser);
 
-
-    else ParseNullableWhileLoop(parser);
+    else
+        ParseNullableWhileLoop(parser);
 
     parser->nested_level--;
 }
@@ -295,7 +298,6 @@ void VarDeclaration(Parser *parser, bool is_const)
 
     // insert into symtable on top of the stack
     InsertVariableSymbol(SymtableStackTop(parser->symtable_stack), var);
-
 
     token = GetNextToken(parser);
 
@@ -365,95 +367,106 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
     bool break_flag = false;
 
     // Main loop
-    while((token=GetNextToken(parser))->token_type != R_ROUND_BRACKET)
+    while ((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET)
     {
-        switch(token->token_type)
+        switch (token->token_type)
         {
-            // Basically the same handling for all of these, check if the type matches and generate code
-            case INTEGER_32: case DOUBLE_64: case LITERAL_TOKEN:
-                // Also check if the count isn't too many
-                if(loaded >= func->num_of_parameters) INVALID_PARAM_COUNT
+        // Basically the same handling for all of these, check if the type matches and generate code
+        case INTEGER_32:
+        case DOUBLE_64:
+        case LITERAL_TOKEN:
+            // Also check if the count isn't too many
+            if (loaded >= func->num_of_parameters)
+                INVALID_PARAM_COUNT
 
-                // Get the data type depending on the token type
-                DATA_TYPE type_got = token->token_type == INTEGER_32 ? INT32_TYPE : token->token_type == DOUBLE_64 ? DOUBLE64_TYPE : U8_ARRAY_TYPE;
+            // Get the data type depending on the token type
+            DATA_TYPE type_got = token->token_type == INTEGER_32 ? INT32_TYPE : token->token_type == DOUBLE_64 ? DOUBLE64_TYPE
+                                                                                                               : U8_ARRAY_TYPE;
 
-                // Check if the type matches
-                if(!CheckParamType(func->parameters[loaded]->type, type_got)) INVALID_PARAM_TYPE
+            // Check if the type matches
+            if (!CheckParamType(func->parameters[loaded]->type, type_got))
+                INVALID_PARAM_TYPE
 
-                // Everything's fine, generate code
-                NEWPARAM(loaded)
-                SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
+            // Everything's fine, generate code
+            NEWPARAM(loaded)
+            SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
 
-                // Check if the next token is a comma or a closing bracket
-                if((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET && token->token_type != COMMA_TOKEN) INVALID_PARAM_TOKEN
-
-                // If it's a comma, we can continue the loop
-                else if(token->token_type == COMMA_TOKEN) break;
-
-                // If it's a closing bracket, we're done and we can perform checks after the loop
-                else
-                {
-                    break_flag = true;
-                    break;
-                }
-
-            // Very similar to the case above, but we have to check if the identifier is defined, access it in the symtable and check the type
-            case IDENTIFIER_TOKEN:
-                // Again, first check too many params case
-                if(loaded >= func->num_of_parameters) INVALID_PARAM_COUNT
-
-                // Check if the identifier is defined
-                else if((symb1 = SymtableStackFindVariable(parser->symtable_stack, token->attribute)) == NULL)
-                {
-                    fprintf(stderr, "Error in semantic analysis: Line %d: Undefined variable '%s'\n", parser->line_number, token->attribute);
-                    DestroySymtable(parser->global_symtable);
-                    SymtableStackDestroy(parser->symtable_stack);
-                    DestroyTokenVector(stream);
-                    free(token);
-                    exit(ERROR_SEMANTIC_UNDEFINED);
-                }
-
-                // Check the type of the identifier
-                else if(!CheckParamType(func->parameters[loaded]->type, symb1->type)) INVALID_PARAM_TYPE
-
-                // Generate code
-                NEWPARAM(loaded)
-                SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
-
-                // Check if the next token is a comma or a closing bracket
-                if((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET && token->token_type != COMMA_TOKEN) INVALID_PARAM_TOKEN
-
-                // If it's a comma, we can continue the loop
-                else if(token->token_type == COMMA_TOKEN) break;
-
-                // If it's a closing bracket, we're done and we can perform checks after the loop
-                else
-                {
-                    break_flag = true;
-                    break;
-                }
-
-            // Invalid token
-            default:
+            // Check if the next token is a comma or a closing bracket
+            if ((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET && token->token_type != COMMA_TOKEN)
                 INVALID_PARAM_TOKEN
+
+            // If it's a comma, we can continue the loop
+            else if (token->token_type == COMMA_TOKEN)
+                break;
+
+            // If it's a closing bracket, we're done and we can perform checks after the loop
+            else
+            {
+                break_flag = true;
+                break;
+            }
+
+        // Very similar to the case above, but we have to check if the identifier is defined, access it in the symtable and check the type
+        case IDENTIFIER_TOKEN:
+            // Again, first check too many params case
+            if (loaded >= func->num_of_parameters)
+                INVALID_PARAM_COUNT
+
+            // Check if the identifier is defined
+            else if ((symb1 = SymtableStackFindVariable(parser->symtable_stack, token->attribute)) == NULL)
+            {
+                fprintf(stderr, "Error in semantic analysis: Line %d: Undefined variable '%s'\n", parser->line_number, token->attribute);
+                DestroySymtable(parser->global_symtable);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroyTokenVector(stream);
+                free(token);
+                exit(ERROR_SEMANTIC_UNDEFINED);
+            }
+
+            // Check the type of the identifier
+            else if (!CheckParamType(func->parameters[loaded]->type, symb1->type))
+                INVALID_PARAM_TYPE
+
+            // Generate code
+            NEWPARAM(loaded)
+            SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
+
+            // Check if the next token is a comma or a closing bracket
+            if ((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET && token->token_type != COMMA_TOKEN)
+                INVALID_PARAM_TOKEN
+
+            // If it's a comma, we can continue the loop
+            else if (token->token_type == COMMA_TOKEN)
+                break;
+
+            // If it's a closing bracket, we're done and we can perform checks after the loop
+            else
+            {
+                break_flag = true;
+                break;
+            }
+
+        // Invalid token
+        default:
+            INVALID_PARAM_TOKEN
         }
-        if(break_flag) break;
+        if (break_flag)
+            break;
     }
 
     // Check if we have the right amount of parameters
-    if(loaded != func->num_of_parameters) INVALID_PARAM_COUNT
+    if (loaded != func->num_of_parameters)
+        INVALID_PARAM_COUNT
 }
 
 bool IsTermType(DATA_TYPE type)
 {
-    return (type == INT32_TYPE || type == DOUBLE64_TYPE || type == U8_ARRAY_TYPE
-    || type == INT32_NULLABLE_TYPE || type == DOUBLE64_NULLABLE_TYPE || type == U8_ARRAY_NULLABLE_TYPE
-    || type == TERM_TYPE);
+    return (type == INT32_TYPE || type == DOUBLE64_TYPE || type == U8_ARRAY_TYPE || type == INT32_NULLABLE_TYPE || type == DOUBLE64_NULLABLE_TYPE || type == U8_ARRAY_NULLABLE_TYPE || type == TERM_TYPE);
 }
 
 bool CheckParamType(DATA_TYPE param_expected, DATA_TYPE param_got)
 {
-    return  (param_expected == param_got ||
+    return (param_expected == param_got ||
             (param_expected == U8_ARRAY_NULLABLE_TYPE && param_got == U8_ARRAY_TYPE) ||
             (param_expected == INT32_NULLABLE_TYPE && param_got == INT32_TYPE) ||
             (param_expected == DOUBLE64_NULLABLE_TYPE && param_got == DOUBLE64_TYPE) ||
@@ -469,7 +482,8 @@ void FunctionDefinition(Parser *parser)
 
     // Generate code for the function label
     FUNCTIONLABEL(func->name)
-    if(!strcmp(func->name, "main")) CREATEFRAME
+    if (!strcmp(func->name, "main"))
+        CREATEFRAME
     PUSHFRAME
 
     // Skip all tokens until the function body begins (so after '{')
@@ -482,7 +496,7 @@ void FunctionDefinition(Parser *parser)
     parser->symtable = symtable;
 
     // Add the function parameters to the symtable and define them on the local frame
-    for(int i = 0; i < func->num_of_parameters; i++)
+    for (int i = 0; i < func->num_of_parameters; i++)
     {
         DEFPARAM(i)
         InsertVariableSymbol(symtable, VariableSymbolCopy(func->parameters[i]));
@@ -513,7 +527,7 @@ void FunctionReturn(Parser *parser)
         if ((token = GetNextToken(parser))->token_type != SEMICOLON) // returning something from void function
         {
             PrintError("Line %d: Returning a value from void function \"%s\"",
-                        parser->line_number, parser->current_function->name);
+                       parser->line_number, parser->current_function->name);
             SymtableStackDestroy(parser->symtable_stack);
             DestroySymtable(parser->global_symtable);
             DestroyTokenVector(stream);
@@ -536,7 +550,7 @@ void FunctionReturn(Parser *parser)
         DATA_TYPE expr_type = GeneratePostfixExpression(parser, postfix, NULL);
 
         // Invalid return type
-        if(expr_type != parser->current_function->return_type)
+        if (expr_type != parser->current_function->return_type)
         {
             PrintError("Error in semantic analysis: Line %d: Invalid return type for function \"%s\"",
                        parser->line_number, parser->current_function->name);
@@ -553,19 +567,19 @@ void FunctionReturn(Parser *parser)
 
 DATA_TYPE NullableToNormal(DATA_TYPE type)
 {
-    switch(type)
+    switch (type)
     {
-        case U8_ARRAY_NULLABLE_TYPE:
-            return U8_ARRAY_TYPE;
+    case U8_ARRAY_NULLABLE_TYPE:
+        return U8_ARRAY_TYPE;
 
-        case INT32_NULLABLE_TYPE:
-            return INT32_TYPE;
+    case INT32_NULLABLE_TYPE:
+        return INT32_TYPE;
 
-        case DOUBLE64_NULLABLE_TYPE:
-            return DOUBLE64_TYPE;
+    case DOUBLE64_NULLABLE_TYPE:
+        return DOUBLE64_TYPE;
 
-        default:
-            return type;
+    default:
+        return type;
     }
 }
 
@@ -592,21 +606,21 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
 
     // Check for a embedded function call
     Token *token = GetNextToken(parser);
-    if(!strcmp(token->attribute, "ifj"))
+    if (!strcmp(token->attribute, "ifj"))
     {
         FunctionSymbol *func = IsEmbeddedFunction(parser);
-        stream_index+=2; // skip the 'ifj' and the '.' token
+        stream_index += 2; // skip the 'ifj' and the '.' token
         EmbeddedFunctionCall(parser, func, var);
         return;
     }
 
     // Null can also be assigned to a variable, but we have to check if it's a nullable type
-    else if(token->keyword_type == NULL_TYPE)
+    else if (token->keyword_type == NULL_TYPE)
     {
-        if(!IsNullable(var->type))
+        if (!IsNullable(var->type))
         {
             PrintError("Error in semantic analysis: Line %d: Assigning NULL to non-nullable variable \"%s\"",
-                        parser->line_number, var->name);
+                       parser->line_number, var->name);
             SymtableStackDestroy(parser->symtable_stack);
             DestroySymtable(parser->global_symtable);
             DestroyTokenVector(stream);
@@ -619,7 +633,8 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
     }
 
     // If the 'ifj' token is not present, move the stream back and expect an expression
-    else stream_index--;
+    else
+        stream_index--;
 
     DATA_TYPE expr_type;
     TokenVector *postfix = InfixToPostfix(parser);
@@ -628,7 +643,7 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
     {
         PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\", expected %d, got %d",
                    parser->line_number, var->name, var->type, expr_type);
-                   DestroyTokenVector(stream);
+        DestroyTokenVector(stream);
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
         exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
@@ -656,8 +671,8 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
     if ( // But for example, a U8 function return to ?U8 would be valid, since the latter can have a U8 or NULL type
         func->return_type != var->type &&
         ((var->type == U8_ARRAY_NULLABLE_TYPE && func->return_type != U8_ARRAY_TYPE) ||
-        (var->type == INT32_NULLABLE_TYPE && func->return_type != INT32_TYPE) ||
-        (var->type == DOUBLE64_NULLABLE_TYPE && func->return_type != DOUBLE64_TYPE)) &&
+         (var->type == INT32_NULLABLE_TYPE && func->return_type != INT32_TYPE) ||
+         (var->type == DOUBLE64_NULLABLE_TYPE && func->return_type != DOUBLE64_TYPE)) &&
         var->type != VOID_TYPE // VOID_TYPE on variable --> the variable is just being declared, so the type has to be derived from the function
     )
     {
@@ -740,7 +755,7 @@ void ProgramBody(Parser *parser)
             if (!strcmp(token->attribute, "ifj"))
             {
                 func = IsEmbeddedFunction(parser);
-                stream_index+=2; // skip the 'ifj' and the '.' token
+                stream_index += 2;                        // skip the 'ifj' and the '.' token
                 EmbeddedFunctionCall(parser, func, NULL); // Void type since we aren't assigning the result anywhere
             }
 
@@ -760,7 +775,7 @@ void ProgramBody(Parser *parser)
                 char *tmp_func_name = strdup(token->attribute);
 
                 // Move past the ID(
-                stream_index+=2;
+                stream_index += 2;
 
                 // Function call
                 FunctionCall(parser, FindFunctionSymbol(parser->global_symtable, tmp_func_name), tmp_func_name, VOID_TYPE);
@@ -781,11 +796,11 @@ void ProgramBody(Parser *parser)
 
 void PrintEqualTokens()
 {
-    for(int i = 0; i < stream->length; i++)
+    for (int i = 0; i < stream->length; i++)
     {
-        for(int j = i+1; j < stream->length; j++)
+        for (int j = i + 1; j < stream->length; j++)
         {
-            if(i != j && stream->token_string[i] == stream->token_string[j])
+            if (i != j && stream->token_string[i] == stream->token_string[j])
             {
                 fprintf(stderr, "Equal tokens found at indexes %d and %d\n", i, j);
                 PrintToken(stream->token_string[i]);

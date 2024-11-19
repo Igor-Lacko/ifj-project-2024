@@ -1,0 +1,19 @@
+const ifj = @import("ifj24.zig");
+
+// Error: declaration with incorrect parameter count
+
+pub fn exampleFunc(a: i32, b: i32) void {
+    var result: i32 = a + b;
+    return;
+}
+
+pub fn anotherFunc() void {
+    var value1: i32 = 10;
+    var value2: i32 = 20;
+    exampleFunc(value1, value2);
+}
+
+pub fn main() void {
+    exampleFunc(5, 4, 78, "ahoj");
+    anotherFunc();
+}

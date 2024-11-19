@@ -1,0 +1,17 @@
+const ifj = @import("ifj24.zig");
+
+// Error: Use of undefined variable `d` and undefined function `calculateSum`
+
+pub fn main() void {
+    var result: i32 = calculateSum(d, 20);
+    return;
+}
+
+pub fn calculateSum(x: i32, y: i32) i32 {
+    return x + y;
+}
+
+pub fn helperFunction() void {
+    var temp: i32 = d * 2;
+    return;
+}

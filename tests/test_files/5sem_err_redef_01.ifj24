@@ -1,7 +1,9 @@
-const ifj = @import("ifj24.zig");
+const ifj = @import("ifj24.zig"); 
 
-// Redefinition of variable
+// Error: Redefinition of variable
+
 pub fn main() void {
     var x: i32 = 10;
-    x = 20; 
+    var x: i32 = 20; // Redefinition of variable x
+    return;
 }

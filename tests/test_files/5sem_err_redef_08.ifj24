@@ -1,0 +1,41 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Assignment to non-modifiable variable
+
+pub fn helperFunc1() void {
+    var a: i32 = 5;
+    var b: i32 = 10;
+    var result: i32 = a + b;
+    return;
+}
+
+pub fn helperFunc2() void {
+    var c: i32 = 15;
+    var d: i32 = 20;
+    var result: i32 = c * d;
+    return;
+}
+
+pub fn helperFunc3() void {
+    var e: i32 = 25;
+    var f: i32 = 30;
+    var result: i32 = e - f;
+    return;
+}
+
+pub fn main() void {
+    const x: i32 = 35;
+    var y: i32 = 40;
+    var result: i32 = x + y;
+
+    x = 45; // Assignment to non-modifiable variable x
+
+    helperFunc1();
+    helperFunc2();
+    helperFunc3();
+
+    var i: i32 = 50;
+    var j: i32 = 55;
+    var finalResult: i32 = i * j;
+    return;
+}

@@ -1,0 +1,15 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Redefinition of function
+
+pub fn exampleFunc() void {
+    return;
+}
+
+pub fn exampleFunc() void {
+    return;
+}
+
+pub fn main() void {
+    exampleFunc();
+}

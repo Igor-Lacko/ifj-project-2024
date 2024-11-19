@@ -1,0 +1,8 @@
+const ifj = @import("ifj24.zig");
+
+// Error: main must be void
+
+pub fn main() i32 {
+    var char : []u8 = "ahoj";
+    return;
+}

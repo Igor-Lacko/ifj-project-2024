@@ -1,0 +1,11 @@
+const ifj = @import("ifj24.zig");
+
+// Error: incorrect type for return value
+
+pub fn exampleFunc(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+pub fn main() void {
+    var result: i64 = exampleFunc(5, 10);
+}

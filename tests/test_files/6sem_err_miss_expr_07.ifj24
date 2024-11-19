@@ -1,0 +1,14 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Missing expression in return statement
+
+pub fn addNumbers(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+pub fn main() void {
+    var x: i32 = 5;
+    var y: i32 = 10;
+    var result: i32 = addNumbers(x, y);
+    return;
+}

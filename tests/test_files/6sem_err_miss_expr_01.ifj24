@@ -1,7 +1,15 @@
-const ifj = @import("ifj24.zig");
+const ifj = @import("ifj24.zig"); 
 
-// Missing expression in an assignment
+// Error: Missing expression in return statement
+
+pub fn helperFunc1() i32 {
+    var a: i32 = 5;
+    var b: i32 = 10;
+    var result: i32 = a + b;
+    return;
+}
+
 pub fn main() void {
-    var x: i32; // No value assigned
-    x =; // Missing expression
+    var x: i32 = helperFunc1();
+    return;
 }

@@ -1,0 +1,12 @@
+const ifj = @import("ifj24.zig");
+
+// Error: Use of undefined variable `c` and undefined function `compute`
+
+pub fn main() void {
+    var result: i32 = compute(c, 5);
+    return;
+}
+
+pub fn compute(x: i32, y: i32) i32 {
+    return x - y;
+}

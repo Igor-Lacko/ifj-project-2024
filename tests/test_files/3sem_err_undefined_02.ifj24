@@ -1,0 +1,8 @@
+const ifj = @import("ifj24.zig");
+
+// Error: Use of undefined variable `x`
+
+pub fn main() void {
+    var result: i32 = x * 10;
+    return;
+}

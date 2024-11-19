@@ -1,0 +1,12 @@
+const ifj = @import("ifj24.zig");
+
+// Error: function declaration with incorrect parameter type
+
+pub fn exampleFunc(a: i32) void {
+    return a + a;
+}
+
+pub fn main() void {
+    exampleFunc("string"); // Incorrect type of argument
+    return;
+}

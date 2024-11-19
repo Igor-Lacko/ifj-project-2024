@@ -1,0 +1,9 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Assignment to non-modifiable variable
+
+pub fn main() void {
+    const y: i32 = 15;
+    y = 25; 
+    return;
+}

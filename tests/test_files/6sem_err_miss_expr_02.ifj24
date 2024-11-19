@@ -1,0 +1,15 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Extra expression in return statement
+
+pub fn helperFunc2() void {
+    var c: i32 = 15;
+    var d: i32 = 20;
+    var result: i32 = c * d;
+    return result; 
+}
+
+pub fn main() void {
+    helperFunc2();
+    return;
+}
