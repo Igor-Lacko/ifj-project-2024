@@ -1,3 +1,2 @@
 1. MAIN PRIORITY: Parse variables on the first go-through of the input and add them to the function to later DEFVAR 
-2. Ensure identifier uniqueness - keys that are allowed in IFJCode24 but not in IFJ24, etc.
-3. Fix incorrect function arguments - doesn't throw an error when it should
+2. Raise errors for code outside of functions and returns 

@@ -255,7 +255,6 @@ void IfElse(Parser *parser)
     else
         ParseNullableIfStatement(parser);
 
-    parser->nested_level--;
 }
 
 void WhileLoop(Parser *parser)
@@ -270,7 +269,6 @@ void WhileLoop(Parser *parser)
     else
         ParseNullableWhileLoop(parser);
 
-    parser->nested_level--;
 }
 
 // const/var id = expression;
@@ -360,7 +358,6 @@ void FunctionCall(Parser *parser, FunctionSymbol *func, const char *fun_name, DA
 
 void ParametersOnCall(Parser *parser, FunctionSymbol *func)
 {
-    fprintf(stderr, "Function %s has %d parameters\n", func->name, func->num_of_parameters);
     Token *token;
     int loaded = 0;
     VariableSymbol *symb1; // for identifier parameter checking
@@ -415,7 +412,6 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
             // Check if the identifier is defined
             else if ((symb1 = SymtableStackFindVariable(parser->symtable_stack, token->attribute)) == NULL)
             {
-                fprintf(stderr, "Error in semantic analysis: Line %d: Undefined variable '%s'\n", parser->line_number, token->attribute);
                 DestroySymtable(parser->global_symtable);
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroyTokenVector(stream);
@@ -502,7 +498,14 @@ void FunctionDefinition(Parser *parser)
         InsertVariableSymbol(symtable, VariableSymbolCopy(func->parameters[i]));
     }
 
+    // Set the current function
+    parser->current_function = func;
+
+    // Function body
     ProgramBody(parser);
+
+    // Not in a function anymore
+    parser->current_function = NULL;
 }
 
 void FunctionReturn(Parser *parser)
@@ -701,9 +704,23 @@ void ProgramBody(Parser *parser)
     Token *token;
     FunctionSymbol *func;
     VariableSymbol *var;
+
     while (true)
     {
         token = GetNextToken(parser);
+        // Code can't be outside of a function, so if we aren't in a function the next token has to be pub
+
+        if(!parser->current_function)
+        {
+            if(token->token_type != EOF_TOKEN && token->keyword_type != PUB)
+            {
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                DestroyTokenVector(stream);
+                ErrorExit(ERROR_SYNTACTIC, "Expected 'pub' keyword at line %d", parser->line_number);
+            }
+        }
+
         switch (token->token_type)
         {
         case KEYWORD:

@@ -94,8 +94,8 @@ void DestroyFunctionSymbol(FunctionSymbol *function_symbol)
     if (function_symbol == NULL)
         return; // just in case
 
-    // if (function_symbol->name != NULL)
-    //     free(function_symbol->name);
+    if (function_symbol->name != NULL)
+        free(function_symbol->name);
 
     // free all parameters
     for (int i = 0; i < function_symbol->num_of_parameters; i++)
@@ -117,8 +117,8 @@ void DestroyVariableSymbol(VariableSymbol *variable_symbol)
     if (variable_symbol == NULL)
         return;
 
-    // if (variable_symbol->name != NULL)
-    //     free(variable_symbol->name);
+    if (variable_symbol->name != NULL)
+        free(variable_symbol->name);
 
     free(variable_symbol);
 }
