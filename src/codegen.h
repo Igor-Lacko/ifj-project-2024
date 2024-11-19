@@ -113,9 +113,10 @@ void EndWhileLabel();
  * 
  * @param dst Destination variable.
  * @param src Source variable/symbol.
+ * @param is_literal If the source is a literal.
  * @param dst_frame Destination frame type.
  */
-void MOVE(const char *dst, const char *src, FRAME dst_frame);
+void MOVE(const char *dst, const char *src, bool is_literal, FRAME dst_frame);
 
 /**
  * @brief Generates code for pushing a symbol to the data stack.
@@ -144,6 +145,9 @@ char *GetTypeStringToken(TOKEN_TYPE type);
 
 // Gets a IFJ24Code data type from a data type
 char *GetTypeStringSymbol(DATA_TYPE type);
+
+// Generates pop into R0/F0/B0 depending on the expression type
+void PopToRegister(DATA_TYPE type);
 
 // Calls the READ instruction to read a symbol of type var->type to var at frame "frame"
 // @param read_type: used if the type of the variable is NONE, in that case the type is dereived from the function's return value

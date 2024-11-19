@@ -46,7 +46,7 @@ bool IsTokenInString(TokenVector *postfix, Token *token);
  * @note returns are self explanatory i guess
  * 
  */
-bool IsNullable(VariableSymbol *var);
+bool IsNullable(DATA_TYPE type);
 
 /**
  * @brief Help function to avoid double frees, utilizes IsTokenInString

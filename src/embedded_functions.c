@@ -120,6 +120,7 @@ TokenVector *ParseEmbeddedFunctionParams(Parser *parser, FunctionSymbol *func)
                 // Undefined variable case
                 if((var=SymtableStackFindVariable(parser->symtable_stack, token->attribute)) == NULL)
                 {
+                    fprintf(stderr, "Undefined variable \"%s\"\n", token->attribute);
                     PrintError("Error in syntax analysis: Line %d: Undefined variable \"%s\"", parser->line_number, token->attribute);
                     DestroyTokenVector(operands);
                     DestroyTokenVector(stream);

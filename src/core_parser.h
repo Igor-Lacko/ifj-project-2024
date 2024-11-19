@@ -16,12 +16,22 @@ do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type f
 
 // Prints error in case of invalid param count
 #define INVALID_PARAM_COUNT do{\
-    PrintError("Error in semantic analysis: Line %d: Invalid parameter count when calling function '%s': Expected %d, got %d",\
-    func->name, func->num_of_parameters, loaded);\
+    PrintError("Error in semantic analysis: Line %d: Invalid parameter count when calling function '%s'",\
+    parser->line_number, func->name);\
     DestroyTokenVector(stream);\
     SymtableStackDestroy(parser->symtable_stack);\
     DestroySymtable(parser->global_symtable);\
     exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
+} while(0);
+
+// Prints error in case of unexpected token in parameter parsing
+#define INVALID_PARAM_TOKEN do{\
+    PrintError("Error in syntactic analysis: Line %d: Unexpected token \"%s\" in function call",\
+    parser->line_number, token->attribute);\
+    DestroyTokenVector(stream);\
+    SymtableStackDestroy(parser->symtable_stack);\
+    DestroySymtable(parser->global_symtable);\
+    exit(ERROR_SYNTACTIC);\
 } while(0);
 
 // Same but for return type
@@ -197,6 +207,16 @@ void VariableAssignment(Parser *parser, VariableSymbol *var);
  * @param func Symbol representing the function whose return value will be assigned to the variable.
  */
 void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *func);
+
+/**
+ * @brief Returns a normal data type from a nullable one.
+ * 
+ * @note If a non-nullable type is passed, it will be returned as is.
+ * 
+ * @param type The data type to be converted.
+ * @return DATA_TYPE 
+ */
+DATA_TYPE NullableToNormal(DATA_TYPE type);
 
 /**
  * @brief Parses the program body (main parsing loop).

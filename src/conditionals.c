@@ -1,25 +1,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "shared.h"
-#include "loop.h"
-#include "scanner.h"
+
+#include "conditionals.h"
 #include "core_parser.h"
 #include "expression_parser.h"
 #include "codegen.h"
-#include "stack.h"
+#include "shared.h"
+#include "error.h"
 #include "symtable.h"
 #include "vector.h"
+#include "stack.h"
 
-bool IsLoopNullableType(Parser *parser)
+bool IsIfNullableType(Parser *parser)
 {
     // Will help us reset to the current position later and check for errors
     int initial_index = stream_index;
 
-    // Braces counter to identify the end of the loop
+    // Braces counter
     int counter = 1;
 
-    // While(expression)
+    // If(expression)
     CheckTokenTypeVector(parser, L_ROUND_BRACKET);
 
     // Skip all tokens until we find the corresponding R_ROUND_BRACKET token
@@ -45,7 +46,7 @@ bool IsLoopNullableType(Parser *parser)
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroySymtable(parser->global_symtable);
                 DestroyTokenVector(stream);
-                ErrorExit(ERROR_SYNTACTIC, "Line %d: Incorrectly ended while loop", parser->line_number);
+                ErrorExit(ERROR_SYNTACTIC, "Line %d: Incorrectly ended if statement", parser->line_number);
                 break; // gcc would complain about missing break, but it's not needed here
 
             // Skip the token
@@ -60,80 +61,95 @@ bool IsLoopNullableType(Parser *parser)
         CheckTokenTypeVector(parser, IDENTIFIER_TOKEN);
         CheckTokenTypeVector(parser, VERTICAL_BAR_TOKEN);
 
-        // Reset the token strean to the position before and return true
+        // Reset the stream index
         stream_index = initial_index;
         return true;
     }
 
-    // Same but false
     stream_index = initial_index;
     return false;
 }
 
-void ParseWhileLoop(Parser *parser)
+void ParseIfStatement(Parser *parser)
 {
+    // Initial if label
+    IfLabel();
 
-    // Initial while label
-    WhileLabel();
-
-    // We are before the L_ROUND_BRACKET
+    // Before the initial L_ROUND_BRACKET
     CheckTokenTypeVector(parser, L_ROUND_BRACKET);
 
-    // Parse the expression
+    // Parse the inside expression
     TokenVector *postfix = InfixToPostfix(parser);
     DATA_TYPE expr_type = GeneratePostfixExpression(parser, postfix, NULL);
 
-    // Check if the expression wasn't of a incorrect type
+    // Check if the expression is a boolean
     if(expr_type != BOOLEAN)
     {
         DestroyTokenVector(stream);
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
-        ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Expected boolean expression in while loop", parser->line_number);
+        ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Expected boolean expression in conditional", parser->line_number);
     }
 
-    /* Loop pseudocode
-        LABEL while_order
-        If(B0 == false) JUMP(endwhile_order)
-        Loop body
-        JUMP(while_order)
-        LABEL endwhile_order
+    /* If statement pseudocode
+        LABEL if_order
+        POPS B0
+        if(B0 == false) JUMP(else_order)
+        If body
+        JUMP(endif_order)
+        LABEL else_order
+        Else body
+        LABEL endif_order
     */
 
-    JUMPIFEQ("$endwhile", "GF@$B0", "bool@false", while_label_count);
+    // If(B0 == false) JUMP(else)
+    JUMPIFEQ("$else", "GF@$B0", "bool@false", if_label_count);
 
-    // Loop body
+    // If body
     ProgramBody(parser);
 
-    // Jump back to the beginning of the while
-    JUMP_WITH_ORDER("$while", while_label_count);
+    // JUMP(endif_order)
+    JUMP_WITH_ORDER("$endif", if_label_count);
 
-    EndWhileLabel();
+    // Else label
+    ElseLabel();
+
+    // Else body
+    ProgramBody(parser);
+
+    // Final if label
+    EndIfLabel();
 }
 
-void ParseNullableWhileLoop(Parser *parser)
+void ParseNullableIfStatement(Parser *parser)
 {
-    /* This part is analogous to the normal while loop parsing except for while label after DEFVAR */
+    /* Just like with loops, this part is analogous to the normal if statement parsing */
 
-    // Must be done :((
+    // Initial if label
+    IfLabel();
+
+    // Before the initial L_ROUND_BRACKET
     CheckTokenTypeVector(parser, L_ROUND_BRACKET);
 
-    /* This part is not analogous to the normal while loop parsing */
+    /* This part is not analogous to the normal if statement parsing */
 
-    // The "expression" has to be a variable which can contain null (so the token has to be an identifier)
+    // Has to be a nullable variable
     Token *token = CheckAndReturnTokenVector(parser, IDENTIFIER_TOKEN);
 
-    // Check if it's a defined variable
+    // Get the symbol representing the variable
     VariableSymbol *var = SymtableStackFindVariable(parser->symtable_stack, token->attribute);
+
+    // Undefined case
     if(var == NULL)
     {
-        PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"", token->attribute);
+        PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"", parser->line_number, token->attribute);
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
         DestroyTokenVector(stream);
         exit(ERROR_SEMANTIC_UNDEFINED);
     }
 
+    // Non-nullable case
     else if(!IsNullable(var->type))
     {
         PrintError("Error in semantic analysis: Line %d: Variable \"%s\" is not of a nullable type", var->name);
@@ -144,47 +160,57 @@ void ParseNullableWhileLoop(Parser *parser)
     }
 
     /* Loop pseudocode
-        LABEL while_order
-        DEFVAR id  // this has to be done before the loop to avoid redefinition, worst case it is never used
-        if(var == NULL) JUMP(endwhile_order)
-        MOVE var2 var
-        Loop body
-        JUMP(while_order)
-        LABEL endwhile_order
+        LABEL if_order
+        if(var == NULL) JUMP(else_order)
+        DEFVAR id
+        MOVE id var
+        If body
+        JUMP(endif_order)
+        LABEL else_order
+        Else body
+        LABEL endif_order
     */
 
-    // Closing ')'
+    // Closing ')
     CheckTokenTypeVector(parser, R_ROUND_BRACKET);
 
-    // Opening '|'
+    // |id_without_null|
     CheckTokenTypeVector(parser, VERTICAL_BAR_TOKEN);
 
-    // new variable
+    // Get the "id_without_null" part
     token = CheckAndReturnTokenVector(parser, IDENTIFIER_TOKEN);
-    VariableSymbol *var2 = VariableSymbolInit();
-    var2->defined = true;
-    var2->is_const = false;
-    var2->name = strdup(token->attribute);
-    var2->type = NullableToNormal(var->type);
 
-    // Make a new entry in the symtable
-    InsertVariableSymbol(parser->symtable, var2);
-    DefineVariable(var2->name, LOCAL_FRAME);
+    // Create a new variable symbol representing it
+    VariableSymbol *new = VariableSymbolInit();
+    new->defined = true;
+    new->is_const = false;
+    new->name = strdup(token->attribute);
+    new->type = NullableToNormal(var->type);
 
-    // Initial while label
-    WhileLabel();
+    // New entry in the symtable
+    InsertVariableSymbol(parser->symtable, new);
 
-    // if(var == NULL) JUMP(endwhile_order)
-    fprintf(stdout, "JUMPIFEQ $endwhile%d LF@%s nil@nil\n", while_label_count, var->name);
+    // If(var == NULL) JUMP(else_order)
+    fprintf(stdout, "JUMPIFEQ $else%d LF@%s nil@nil\n", if_label_count, var->name);
 
-    // var2 = var
-    fprintf(stdout, "MOVE LF@%s LF@%s\n", var2->name, var->name);
+    // DEFVAR var
+    DefineVariable(new->name, LOCAL_FRAME);
 
-    // Loop body
+    // id = var
+    fprintf(stdout, "MOVE LF@%s LF@%s\n", new->name, var->name);
+
+    // If body
     ProgramBody(parser);
 
-    // JUMP while_order
-    JUMP_WITH_ORDER("$while", while_label_count)
+    // JUMP endif_order
+    JUMP_WITH_ORDER("$endif", if_label_count);
 
-    EndWhileLabel();
+    // LABEL else_order
+    ElseLabel();
+
+    // Else body
+    ProgramBody(parser);
+
+    // LABEL endif_order
+    EndIfLabel();
 }

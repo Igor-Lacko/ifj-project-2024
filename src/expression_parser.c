@@ -60,12 +60,12 @@ int ComparePriority(TOKEN_TYPE operator_1, TOKEN_TYPE operator_2)
     return 0;
 }
 
-bool IsNullable(VariableSymbol *var)
+bool IsNullable(DATA_TYPE type)
 {
-    return  var->type == INT32_NULLABLE_TYPE        ||
-            var->type == DOUBLE64_NULLABLE_TYPE     ||
-            var->type == U8_ARRAY_NULLABLE_TYPE     ||
-            var->type == NULL_DATA_TYPE; // This specific one shouldn't ever happen i guess?
+    return  type == INT32_NULLABLE_TYPE        ||
+            type == DOUBLE64_NULLABLE_TYPE     ||
+            type == U8_ARRAY_NULLABLE_TYPE     ||
+            type == NULL_DATA_TYPE; // This specific one shouldn't ever happen i guess?
 }
 
 TokenVector *InfixToPostfix(Parser *parser)

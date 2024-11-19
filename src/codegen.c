@@ -13,20 +13,20 @@
 void InitRegisters()
 {
     // Result registers
-    fprintf(stdout, "DEFVAR GF@R0\n");
-    fprintf(stdout, "DEFVAR GF@F0\n");
-    fprintf(stdout, "DEFVAR GF@B0\n");
-    fprintf(stdout, "DEFVAR GF@S0\n");
+    fprintf(stdout, "DEFVAR GF@$R0\n");
+    fprintf(stdout, "DEFVAR GF@$F0\n");
+    fprintf(stdout, "DEFVAR GF@$B0\n");
+    fprintf(stdout, "DEFVAR GF@$S0\n");
 
     // Operand registers
-    fprintf(stdout, "DEFVAR GF@R1\n");
-    fprintf(stdout, "DEFVAR GF@R2\n");
-    fprintf(stdout, "DEFVAR GF@F1\n");
-    fprintf(stdout, "DEFVAR GF@F2\n");
-    fprintf(stdout, "DEFVAR GF@B1\n");
-    fprintf(stdout, "DEFVAR GF@B2\n");
-    fprintf(stdout, "DEFVAR GF@S1\n");
-    fprintf(stdout, "DEFVAR GF@S2\n");
+    fprintf(stdout, "DEFVAR GF@$R1\n");
+    fprintf(stdout, "DEFVAR GF@$R2\n");
+    fprintf(stdout, "DEFVAR GF@$F1\n");
+    fprintf(stdout, "DEFVAR GF@$F2\n");
+    fprintf(stdout, "DEFVAR GF@$B1\n");
+    fprintf(stdout, "DEFVAR GF@$B2\n");
+    fprintf(stdout, "DEFVAR GF@$S1\n");
+    fprintf(stdout, "DEFVAR GF@$S2\n");
 }
 
 void DefineVariable(const char *name, FRAME frame)
@@ -54,19 +54,19 @@ void IntExpression(TOKEN_TYPE operator)
     switch(operator)
     {
         case MULTIPLICATION_OPERATOR:
-            fprintf(stdout, "MUL GF@R0 GF@R1 GF@R2\n");
+            fprintf(stdout, "MUL GF@$R0 GF@$R1 GF@$R2\n");
             break;
 
         case DIVISION_OPERATOR:
-            fprintf(stdout, "IDIV GF@R0 GF@R2 GF@R1\n");
+            fprintf(stdout, "IDIV GF@$R0 GF@$R2 GF@$R1\n");
             break;
 
         case ADDITION_OPERATOR:
-            fprintf(stdout, "ADD GF@R0 GF@R1 GF@R2\n");
+            fprintf(stdout, "ADD GF@$R0 GF@$R1 GF@$R2\n");
             break;
 
         case SUBSTRACTION_OPERATOR:
-            fprintf(stdout, "SUB GF@R0 GF@R2 GF@R1\n");
+            fprintf(stdout, "SUB GF@$R0 GF@$R2 GF@$R1\n");
             break;
 
         default:
@@ -74,7 +74,7 @@ void IntExpression(TOKEN_TYPE operator)
             break;
     }
 
-    fprintf(stdout, "PUSHS GF@R0\n");
+    fprintf(stdout, "PUSHS GF@$R0\n");
 }
 
 void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *are_incompatible)
@@ -115,27 +115,27 @@ void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_T
     }
 
     // See if one of the operands isn't an int literal and if yes, convert it
-    if(operand_1->token_type == INTEGER_32) fprintf(stdout, "INT2FLOAT GF@F1 GF@R1\n");
-    if(operand_2->token_type == INTEGER_32) fprintf(stdout, "INT2FLOAT GF@F2 GF@R2\n");
+    if(operand_1->token_type == INTEGER_32) fprintf(stdout, "INT2FLOAT GF@$F1 GF@$R1\n");
+    if(operand_2->token_type == INTEGER_32) fprintf(stdout, "INT2FLOAT GF@$F2 GF@$R2\n");
 
     // Perform the given operation
     // At the start, operand 1 is in F1, operand 2 is in F2
     switch(operator)
     {
         case MULTIPLICATION_OPERATOR:
-            fprintf(stdout, "MUL GF@F0 GF@F1 GF@F2\n");
+            fprintf(stdout, "MUL GF@$F0 GF@$F1 GF@$F2\n");
             break;
 
         case DIVISION_OPERATOR:
-            fprintf(stdout, "DIV GF@F0 GF@F2 GF@F1\n");
+            fprintf(stdout, "DIV GF@$F0 GF@$F2 GF@$F1\n");
             break;
 
         case ADDITION_OPERATOR:
-            fprintf(stdout, "ADD GF@F0 GF@F1 GF@F2\n");
+            fprintf(stdout, "ADD GF@$F0 GF@$F1 GF@$F2\n");
             break;
 
         case SUBSTRACTION_OPERATOR:
-            fprintf(stdout, "SUB GF@F0 GF@F2 GF@F1\n");
+            fprintf(stdout, "SUB GF@$F0 GF@$F2 GF@$F1\n");
             break;
 
         default:
@@ -143,7 +143,7 @@ void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_T
             break;
     }
 
-    fprintf(stdout, "PUSHS GF@F0\n");
+    fprintf(stdout, "PUSHS GF@$F0\n");
 }
 
 void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *are_incompatible)
@@ -193,14 +193,14 @@ void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TY
     // Get the src registers
     if(has_floats)
     {
-        strcpy(op1_reg, "GF@F1");
-        strcpy(op2_reg, "GF@F2");
+        strcpy(op1_reg, "GF@$F1");
+        strcpy(op2_reg, "GF@$F2");
     }
 
     else
     {
-        strcpy(op1_reg, "GF@R1");
-        strcpy(op2_reg, "GF@R2");
+        strcpy(op1_reg, "GF@$R1");
+        strcpy(op2_reg, "GF@$R2");
     }
 
     // Convert to floats if needed
@@ -211,32 +211,32 @@ void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TY
     switch(operator)
     {
         case EQUAL_OPERATOR:
-            fprintf(stdout, "EQ GF@B0 %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "EQ GF@$B0 %s %s\n", op1_reg, op2_reg);
             break;
 
         case NOT_EQUAL_OPERATOR:
-            fprintf(stdout, "EQ GF@B1 %s %s\n", op1_reg, op2_reg);
-            fprintf(stdout, "NOT GF@B0 GF@B1\n");
+            fprintf(stdout, "EQ GF@$B1 %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "NOT GF@$B0 GF@$B1\n");
             break;
 
         case LARGER_THAN_OPERATOR:
-            fprintf(stdout, "GT GF@B0 %s %s\n", op2_reg, op1_reg);
+            fprintf(stdout, "GT GF@$B0 %s %s\n", op2_reg, op1_reg);
             break;
 
         case LESS_THAN_OPERATOR:
-            fprintf(stdout, "LT GF@B0 %s %s\n", op2_reg, op1_reg);
+            fprintf(stdout, "LT GF@$B0 %s %s\n", op2_reg, op1_reg);
             break;
 
         case LARGER_EQUAL_OPERATOR:
-            fprintf(stdout, "GT GF@B1 %s %s\n", op2_reg, op1_reg);
-            fprintf(stdout, "EQ GF@B2 %s %s\n", op1_reg, op2_reg);
-            fprintf(stdout, "OR GF@B0 GF@B1 GF@B2\n");
+            fprintf(stdout, "GT GF@$B1 %s %s\n", op2_reg, op1_reg);
+            fprintf(stdout, "EQ GF@$B2 %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "OR GF@$B0 GF@$B1 GF@$B2\n");
             break;
 
         case LESSER_EQUAL_OPERATOR:
-            fprintf(stdout, "LT GF@B1 %s %s\n", op2_reg, op1_reg);
-            fprintf(stdout, "EQ GF@B2 %s %s\n", op1_reg, op2_reg);
-            fprintf(stdout, "OR GF@B0 GF@B1 GF@B2\n");
+            fprintf(stdout, "LT GF@$B1 %s %s\n", op2_reg, op1_reg);
+            fprintf(stdout, "EQ GF@$B2 %s %s\n", op1_reg, op2_reg);
+            fprintf(stdout, "OR GF@$B0 GF@$B1 GF@$B2\n");
             break;
 
         default:
@@ -245,7 +245,7 @@ void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TY
             break;
     }
 
-    fprintf(stdout, "PUSHS GF@B0\n");
+    fprintf(stdout, "PUSHS GF@$B0\n");
 }
 
 DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, VariableSymbol *var)
@@ -286,7 +286,6 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
     // create a stack to evaluate the expression
     ExpressionStack *stack = ExpressionStackInit();
-
     // go through the entire postfix string
     for(int i = 0; i < postfix->length; i++)
     {
@@ -314,8 +313,8 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
                 else
                 {
+                    PUSHS(token->attribute, token->token_type, LOCAL_FRAME);
                     ExpressionStackPush(stack, token);
-                    fprintf(stdout, "PUSHS LF@%s\n",token->attribute);
                     break;
                 }
 
@@ -377,8 +376,9 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     }
                 }
 
-                (op1->token_type != DOUBLE_64 || op1_float) ? fprintf(stdout, "POPS GF@R1\n") : fprintf(stdout, "POPS GF@F1\n"); // R1/F1 = Second operand (popped from the stack first)
-                (op2->token_type != DOUBLE_64 || op2_float) ? fprintf(stdout, "POPS GF@R2\n") : fprintf(stdout, "POPS GF@F2\n"); // R2/F2 = First operand
+
+                (op1->token_type != DOUBLE_64 && !op1_float) ? fprintf(stdout, "POPS GF@$R1\n") : fprintf(stdout, "POPS GF@$F1\n"); // R1/F1 = Second operand (popped from the stack first)
+                (op2->token_type != DOUBLE_64 && !op2_float) ? fprintf(stdout, "POPS GF@$R2\n") : fprintf(stdout, "POPS GF@$F2\n"); // R2/F2 = First operand
 
                 // call a function depending on the data types
                 if(op1->token_type == DOUBLE_64 || op2->token_type == DOUBLE_64)
@@ -389,7 +389,6 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     // To push the result
                     Token *f_token = InitToken();
                     f_token->token_type = DOUBLE_64;
-
                     FloatExpression(parser, op1, op2, token->token_type, &are_incompatible);
                     ExpressionStackPush(stack, f_token);
                     return_type = DOUBLE64_TYPE;
@@ -427,6 +426,14 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                             exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
                         }
                     }
+
+                    else
+                    {
+                        Token *i_token = InitToken();
+                        i_token->token_type = INTEGER_32;
+                        IntExpression(token->token_type);
+                        ExpressionStackPush(stack, i_token);
+                    }
                 }
 
                 else if(sym2 != NULL)
@@ -449,6 +456,14 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                             free(varname);
                             exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
                         }
+                    }
+
+                    else
+                    {
+                        Token *i_token = InitToken();
+                        i_token->token_type = INTEGER_32;
+                        IntExpression(token->token_type);
+                        ExpressionStackPush(stack, i_token);
                     }
                 }
 
@@ -537,8 +552,8 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
                 if(op1_float || op2_float) return_type = DOUBLE64_TYPE;
 
-                (op1->token_type != DOUBLE_64 || op1_float) ? fprintf(stdout, "POPS GF@R1\n") : fprintf(stdout, "POPS GF@F1\n"); // R1/F1 = Second operand (popped from the stack first)
-                (op2->token_type != DOUBLE_64 || op2_float) ? fprintf(stdout, "POPS GF@R2\n") : fprintf(stdout, "POPS GF@F2\n"); // R2/F2 = First operand
+                (op1->token_type != DOUBLE_64 && !op1_float) ? fprintf(stdout, "POPS GF@$R1\n") : fprintf(stdout, "POPS GF@$F1\n"); // R1/F1 = Second operand (popped from the stack first)
+                (op2->token_type != DOUBLE_64 && !op2_float) ? fprintf(stdout, "POPS GF@$R2\n") : fprintf(stdout, "POPS GF@$F2\n"); // R2/F2 = First operand
 
                 op1_float = false; op2_float = false;
 
@@ -557,10 +572,13 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                 // The result of the expression is on top of the stack
 
                 // If the result of a expression isn't in a variable, it' a boolean expression
-                if(strcmp(varname, "tempvar")) fprintf(stdout, "POPS LF@%s\n", varname);
+                if(strcmp(varname, "tempvar"))
+                    fprintf(stdout, "POPS LF@%s\n", varname);
 
-                // Clear the registers
-                fprintf(stdout, "CLEARS\n");
+                else PopToRegister(return_type);
+
+                // Clear registers
+                CLEARS
 
                 // Free resources that are not needed anymore
                 free(varname);
@@ -579,11 +597,14 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
     }
 
     // The function will get here if the expression isn't ended by a semicolon (for example while(expression))
-    // If the result of a expression isn't in a variable, it' a boolean expression
-    if(strcmp(varname, "tempvar")) fprintf(stdout, "POPS LF@%s\n", varname);
+    // If the result of a expression isn't in a variable, it' a boolean expression or a return value from a function, so it has to stay on top of the stack
+    if(strcmp(varname, "tempvar"))
+        fprintf(stdout, "POPS LF@%s\n", varname);
 
-    // Clear the registers
-    fprintf(stdout, "CLEARS\n");
+    else PopToRegister(return_type);
+
+    // Clear registers
+    CLEARS
 
     // Free resources that are not needed anymore
     free(varname);
@@ -593,27 +614,27 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
 void IfLabel()
 {
-    fprintf(stdout, "LABEL if%d\n", ++if_label_count);
+    fprintf(stdout, "LABEL $if%d\n", ++if_label_count);
 }
 
 void ElseLabel()
 {
-    fprintf(stdout, "LABEL else%d\n", if_label_count);
+    fprintf(stdout, "LABEL $else%d\n", if_label_count);
 }
 
 void EndIfLabel()
 {
-    fprintf(stdout, "LABEL endif%d\n", if_label_count);
+    fprintf(stdout, "LABEL $endif%d\n", if_label_count);
 }
 
 void WhileLabel()
 {
-    fprintf(stdout, "LABEL while%d\n", ++while_label_count);
+    fprintf(stdout, "LABEL $while%d\n", ++while_label_count);
 }
 
 void EndWhileLabel()
 {
-    fprintf(stdout, "LABEL endwhile%d\n", while_label_count);
+    fprintf(stdout, "LABEL $endwhile%d\n", while_label_count);
 }
 
 void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame)
@@ -639,11 +660,12 @@ void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame)
     free(type_string);
 }
 
-void MOVE(const char *dst, const char *src, FRAME dst_frame)
+void MOVE(const char *dst, const char *src, bool is_literal, FRAME dst_frame)
 {
-    char *frame_str = GetFrameString(dst_frame);
-    fprintf(stdout, "MOVE %s%s %s\n", frame_str, dst, src);
-    free(frame_str);
+    char *frame_string = GetFrameString(dst_frame);
+    fprintf(stdout, "MOVE %s%s ", frame_string, dst);
+    if(is_literal) WriteStringLiteral(src);
+    else fprintf(stdout, "%s\n", src);
 }
 
 void SETPARAM(int order, const char *value, TOKEN_TYPE type, FRAME frame)
@@ -891,7 +913,7 @@ void STRCMP(VariableSymbol *var, Token *str1, Token *str2, FRAME dst_frame, FRAM
 
     // Compare the strings with IFJcode24 instructions
     // B1 will store the strings s1 > s2, B2 will store s2 > s1, if neither of those is true, the strings are equal
-    fprintf(stdout, "GT GF@B1 %s", str1_prefix);
+    fprintf(stdout, "GT GF@$B1 %s", str1_prefix);
     if(str1->token_type == LITERAL_TOKEN) WriteStringLiteral(str1->attribute);
     else fprintf(stdout, "%s", str1->attribute);
 
@@ -920,23 +942,23 @@ void STRCMP(VariableSymbol *var, Token *str1, Token *str2, FRAME dst_frame, FRAM
     B2 = str2 > str1
     */
 
-    JUMPIFEQ("FIRSTGREATER", "GF@B1", "bool@true", strcmp_count)
-    JUMPIFEQ("SECONDGREATER", "GF@B2", "bool@true", strcmp_count)
+    JUMPIFEQ("FIRSTGREATER", "GF@$B1", "bool@true", strcmp_count)
+    JUMPIFEQ("SECONDGREATER", "GF@$B2", "bool@true", strcmp_count)
     fprintf(stdout, "JUMP AREEQUAL%d\n", strcmp_count);
 
     // LABEL FIRSTGREATER
     fprintf(stdout, "LABEL FIRSTGREATER%d\n", strcmp_count);
-    MOVE(var->name, "int@-1", dst_frame);
+    MOVE(var->name, "int@-1", false, dst_frame);
     fprintf(stdout, "JUMP ENDSTRCMP%d\n", strcmp_count);
 
     // LABEL SECONDGREATER
     fprintf(stdout, "LABEL SECONDGREATER%d\n", strcmp_count);
-    MOVE(var->name, "int@1", dst_frame);
+    MOVE(var->name, "int@1", false, dst_frame);
     fprintf(stdout, "JUMP ENDSTRCMP%d\n", strcmp_count);
 
     // LABEL AREEQUAL
     fprintf(stdout, "LABEL AREEQUAL%d\n", strcmp_count);
-    MOVE(var->name, "int@0", dst_frame);
+    MOVE(var->name, "int@0", false, dst_frame);
 
     // LABEL ENDSTRCMP
     fprintf(stdout, "LABEL ENDSTRCMP%d\n", strcmp_count);
@@ -949,7 +971,13 @@ void STRING(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame)
 {
     char *dst_prefix = GetFrameString(dst_frame);
     char *src_prefix = src->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("string@");
-    fprintf(stdout, "MOVE %s%s %s%s\n", dst_prefix, var->name, src_prefix, src->attribute);
+    fprintf(stdout, "MOVE %s%s %s", dst_prefix, var->name, src_prefix);
+    if(src->token_type == LITERAL_TOKEN)
+    {
+        WriteStringLiteral(src->attribute);
+        fprintf(stdout, "\n");
+    }
+    else fprintf(stdout, "%s\n", src->attribute);
     free(dst_prefix);
     free(src_prefix);
 }
@@ -970,7 +998,7 @@ void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, F
     */
 
     // Don't call STRLEN since it R0 is not represented by a token
-    fprintf(stdout, "STRLEN GF@R0 %s%s\n", string_prefix, string->attribute);
+    fprintf(stdout, "STRLEN GF@$R0 %s%s\n", string_prefix, string->attribute);
 
     /* Pseudocode for how that might look like
         if R0 == 0 jump RETURN0ORD
@@ -981,16 +1009,16 @@ void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, F
     */
 
     // Initial conditionals
-    JUMPIFEQ("ORDRETURN0", "GF@R0", "int@0", ord_count)
-    fprintf(stdout, "GT GF@B0 %s%s GF@R0\n", position_prefix, string->attribute);
-    JUMPIFEQ("ORDRETURN0", "GF@B0", "bool@true", ord_count)
+    JUMPIFEQ("ORDRETURN0", "GF@$R0", "int@0", ord_count)
+    fprintf(stdout, "GT GF@$B0 %s%s GF@R0\n", position_prefix, string->attribute);
+    JUMPIFEQ("ORDRETURN0", "GF@$B0", "bool@true", ord_count)
 
     // Call STRI2INT and skip the 0 assignment
     STRI2INT(var, string, position, dst_frame, string_frame, position_frame);
     fprintf(stdout, "JUMP ENDORD%d\n", ord_count);
 
     fprintf(stdout, "LABEL ORDRETURN0%d\n", ord_count);
-    MOVE(var->name, "int@0", dst_frame);
+    MOVE(var->name, "int@0", false, dst_frame);
     fprintf(stdout, "LABEL ENDORD%d\n", ord_count);
 
     // Deallocate the resources
@@ -1054,3 +1082,25 @@ void WriteStringLiteral(const char *str)
         }
     }
 } // hello rudko was here
+
+void PopToRegister(DATA_TYPE type)
+{
+    switch (type)
+    {
+        case INT32_TYPE:
+            fprintf(stdout, "POPS GF@$R0\n");
+            break;
+
+        case DOUBLE64_TYPE:
+            fprintf(stdout, "POPS GF@$F0\n");
+            break;
+
+        case BOOLEAN:
+            fprintf(stdout, "POPS GF@$B0\n");
+            break;
+
+        // This will never happen
+        default:
+            break;  
+    }
+}

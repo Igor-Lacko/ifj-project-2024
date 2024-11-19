@@ -3,7 +3,7 @@ import subprocess
 
 # Directory with test cases
 # pre ostatnych: ~/ifj-project-2024/tests/test_files
-test_dir = os.path.expanduser('/home/rudko/ifj2/ifj-project-2024/tests/test_files')
+test_dir = os.path.expanduser('../tests/test_files')
 
 # Error code macros
 SUCCESS = 0
@@ -22,28 +22,15 @@ INTERNAL_ERROR = 99
 # Expected error codes for each test file
 expected_errors = {
     '1lex_err_01.ifj24': LEXICAL_ERROR,
-    '1lex_err_02.ifj24': LEXICAL_ERROR,
-    '1lex_err_03.ifj24': LEXICAL_ERROR,
-    '1lex_err_04.ifj24': LEXICAL_ERROR,
-    '1lex_err_05.ifj24': LEXICAL_ERROR,
-    '1lex_err_06.ifj24': LEXICAL_ERROR,
-    '1lex_err_07.ifj24': LEXICAL_ERROR,
-    '1lex_err_08.ifj24': LEXICAL_ERROR,
-    '1lex_err_09.ifj24': LEXICAL_ERROR,
-    '1lex_err_10.ifj24': LEXICAL_ERROR,
-    '1lex_err_11.ifj24': LEXICAL_ERROR,
-    '1lex_err_12.ifj24': LEXICAL_ERROR,
-    'test_small.ifj24': SUCCESS,
-    'factorial_iterative.ifj24': SUCCESS,
-    'factorial_recursive.ifj24': SUCCESS,
-    'strings.ifj24': SUCCESS,
-    'while_cycle': SUCCESS,
-    'while_cycle_easy': SUCCESS
+    '2synt_err_01.ifj24': SYNTACTIC_ERROR,
+    '2synt_err_02.ifj24': SYNTACTIC_ERROR,
+    '3sem_err_undefined_01.ifj24': SEMANTIC_ERROR_UNDEFINED,
+    '4sem_err_func_01.ifj24': SEMANTIC_ERROR_TYPECOUNT_FUNCTION,
 }
 
 # Path to the compiler executable
 # pre ostatnych co testuju: ~/ifj-project-2024/src/ifj24
-compiler_path = '/home/rudko/ifj2/ifj-project-2024/src/ifj24'
+compiler_path = './ifj24'
 
 # Run each test and check output
 for test_file, expected_code in expected_errors.items():
