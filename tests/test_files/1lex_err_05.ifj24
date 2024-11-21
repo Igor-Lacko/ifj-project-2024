@@ -1,15 +1,8 @@
 const ifj = @import("ifj24.zig");
 
-// Error: var gay should be with only one =
+// Error: Invalid character '%' in identifier
 
 pub fn main() void {
-
+    var invalid%name: i32 = 50;
+    return;
 }
-
-pub fn id (param1 : i32) i32 {
-    const number : i32 = 5;
-    var gay == 64;
-    return number;
-}
-
-// syntakticka

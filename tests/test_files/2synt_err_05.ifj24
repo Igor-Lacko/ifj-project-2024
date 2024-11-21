@@ -1,0 +1,13 @@
+const ifj = @import("ifj24.zig");
+
+// Error: var gay should be with only one =
+
+pub fn main() void {
+
+}
+
+pub fn id (param1 : i32) i32 {
+    const number : i32 = 5;
+    var gay == 64;
+    return number;
+}

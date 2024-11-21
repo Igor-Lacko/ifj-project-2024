@@ -5,9 +5,3 @@ const ifj = @import("ifj24.zig");
 pub fn main() void {
     var num#ber = 123;
 }
-
-// __ 2 IDS nie sme si isty
-// 001 nenulove cisla nemozeme 0 pisat, ale 0 mozme
-// random od piči znaky su lexical
-// [] jeden token, u8
-// . valid token

@@ -1,15 +1,8 @@
 const ifj = @import("ifj24.zig");
 
-// Error: definition of the function is incorrect
+// Error: Invalid character '*' in identifier
 
 pub fn main() void {
-
+    var invalid*name: i32 = 80;
+    return;
 }
-
-pu fn test8() void {
-    var id : i32 = 80;
-    var char : []u8 = "picus";
-    var vysl: f64 = 1.0;
-}
-
-// syntakticka

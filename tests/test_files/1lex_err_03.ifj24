@@ -1,14 +1,8 @@
 const ifj = @import("ifj24.zig");
 
-// Error: x = 5 is not valid, it should be x == 5
+// Error: Invalid character '!' in identifier
 
 pub fn main() void {
-
+    var invalid!name: i32 = 30;
+    return;
 }
-
-pub fn id (param1 : i32) i32 {
-    if (x = 5) { 
-    } 
-}
-
-// syntakticka

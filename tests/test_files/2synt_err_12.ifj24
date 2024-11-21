@@ -1,0 +1,51 @@
+const ifj = @import("ifj24.zig"); 
+
+// Error: Missing colon in variable declaration
+
+pub fn calculateSum(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+pub fn calculateDifference(a: i32, b: i32) i32 {
+    return a - b;
+}
+
+pub fn calculateProduct(a: i32, b: i32) i32 {
+    return a * b;
+}
+
+pub fn calculateQuotient(a: i32, b: i32) ?i32 {
+    if (b != 0) {
+        return a / b;
+    } else {
+        return null;
+    }
+}
+
+pub fn main() void {
+    var x i32 = 10; 
+    var y: i32 = 20;
+
+    var sum: i32 = calculateSum(x, y);
+    var difference: i32 = calculateDifference(x, y);
+    var product: i32 = calculateProduct(x, y);
+    var quotient: ?i32 = calculateQuotient(x, y);
+
+    ifj.write("Sum: ");
+    ifj.write(sum);
+
+    ifj.write("Difference: ");
+    ifj.write(difference);
+
+    ifj.write("Product: ");
+    ifj.write(product);
+
+    if (quotient) |q| {
+        ifj.write("Quotient: ");
+        ifj.write(q);
+    } else {
+        ifj.write("Division by zero");
+    }
+
+    return;
+}

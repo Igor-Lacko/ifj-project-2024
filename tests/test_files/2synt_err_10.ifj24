@@ -6,8 +6,8 @@ pub fn main() void {
 
 }
 
-pub f id() void {
-    var cislo : i32 = 123;
+pub fn test9) void {
+    var id : i32 = 80;
+    var char : []u8 = "picus";
+    var vysl: f64 = 1.0;
 }
-
-// syntakticka

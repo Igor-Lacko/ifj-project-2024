@@ -1,13 +1,8 @@
 const ifj = @import("ifj24.zig");
 
-// Error: param2 has " missing
+// Error: Invalid character '@' in identifier
 
 pub fn main() void {
-
+    var invalid@name: i32 = 20;
+    return;
 }
-
-pub fn id (param1 : i32) i32 {
-    const param2 = string"; 
-}
-
-// nie sme si isty
