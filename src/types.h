@@ -147,7 +147,7 @@ typedef struct
     int num_of_parameters;
     VariableSymbol **parameters;
     DATA_TYPE return_type;
-    bool was_called;
+    bool has_return;
     StringArray variables;
 } FunctionSymbol;
 

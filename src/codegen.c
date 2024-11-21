@@ -588,7 +588,6 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
             default:
                 // This case should never happen, since the Expression parser checks for invalid symbols, but it has to be here anyway
-                PrintToken(token);
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroyStackAndVector(postfix, stack);
                 free(varname);
@@ -613,29 +612,29 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
     return return_type;
 }
 
-void IfLabel()
+void IfLabel(int count)
 {
-    fprintf(stdout, "LABEL $if%d\n", ++if_label_count);
+    fprintf(stdout, "LABEL $if%d\n", count);
 }
 
-void ElseLabel()
+void ElseLabel(int count)
 {
-    fprintf(stdout, "LABEL $else%d\n", if_label_count);
+    fprintf(stdout, "LABEL $else%d\n", count);
 }
 
-void EndIfLabel()
+void EndIfLabel(int count)
 {
-    fprintf(stdout, "LABEL $endif%d\n", if_label_count);
+    fprintf(stdout, "LABEL $endif%d\n", count);
 }
 
-void WhileLabel()
+void WhileLabel(int count)
 {
-    fprintf(stdout, "LABEL $while%d\n", ++while_label_count);
+    fprintf(stdout, "LABEL $while%d\n", count);
 }
 
-void EndWhileLabel()
+void EndWhileLabel(int count)
 {
-    fprintf(stdout, "LABEL $endwhile%d\n", while_label_count);
+    fprintf(stdout, "LABEL $endwhile%d\n", count);
 }
 
 void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame)
@@ -672,7 +671,7 @@ void MOVE(const char *dst, const char *src, bool is_literal, FRAME dst_frame)
 void SETPARAM(int order, const char *value, TOKEN_TYPE type, FRAME frame)
 {
     // Initial print of the target parameter variable
-    fprintf(stdout, "MOVE TF@param%d ", order);
+    fprintf(stdout, "MOVE TF@PARAM%d ", order);
 
     // Prefix is either GF@/LF@/TF@ or the type of the token (int@, float@0x, string@, bool@)
     char *prefix = type == IDENTIFIER_TOKEN ? GetFrameString(frame) : GetTypeStringToken(type);
@@ -926,7 +925,7 @@ void STRCMP(VariableSymbol *var, Token *str1, Token *str2, FRAME dst_frame, FRAM
     fprintf(stdout, "\n");
 
     // Do the same for B2
-    fprintf(stdout, "GT GF@B2 %s", str2_prefix);
+    fprintf(stdout, "GT GF@$B2 %s", str2_prefix);
     if(str2->token_type == LITERAL_TOKEN) WriteStringLiteral(str2->attribute);
     else fprintf(stdout, "%s", str2->attribute);
 
@@ -1098,6 +1097,29 @@ void PopToRegister(DATA_TYPE type)
 
         case BOOLEAN:
             fprintf(stdout, "POPS GF@$B0\n");
+            break;
+
+        // This will never happen
+        default:
+            break;  
+    }
+}
+
+void PushRetValue(DATA_TYPE type)
+{
+    switch (type)
+    {
+        case INT32_TYPE: case INT32_NULLABLE_TYPE:
+            fprintf(stdout, "PUSHS GF@$R0\n");
+            break;
+
+        case DOUBLE64_TYPE: case DOUBLE64_NULLABLE_TYPE:
+            fprintf(stdout, "PUSHS GF@$F0\n");
+            break;
+
+        // Should never happen?
+        case BOOLEAN: 
+            fprintf(stdout, "PUSHS GF@$B0\n");
             break;
 
         // This will never happen

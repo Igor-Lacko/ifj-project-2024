@@ -42,7 +42,7 @@ void SymtableStackRemoveTop(SymtableStack *stack)
 Symtable *SymtableStackPop(SymtableStack *stack)
 {
     // look if the stack is not empty
-    if (stack->size == 0)
+    if ((stack->size)-- == 0)
         return NULL;
 
     // retrieve the top and pop it from the symtable
@@ -106,6 +106,7 @@ VariableSymbol *SymtableStackFindVariable(SymtableStack *stack, char *name)
 
 void SymtableStackPrint(SymtableStack *stack)
 {
+    fprintf(stdout, "Symtable stack:\n");
     SymtableStackNode *current = stack->top;
     while (current != NULL)
     {

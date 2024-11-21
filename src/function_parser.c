@@ -73,7 +73,7 @@ void ParseFunctionDefinition(Parser *parser)
 
     FunctionSymbol *func;
 
-    // Check if the function exists already (so if it was called, which can happen, or redefined, which is an error)
+    // Check if the function exists already (so if it was redefined, which is an error)
     if ((func = FindFunctionSymbol(parser->global_symtable, token->attribute)) == NULL)
     {
         func = FunctionSymbolInit();
@@ -92,7 +92,6 @@ void ParseFunctionDefinition(Parser *parser)
         exit(ERROR_SEMANTIC_REDEFINED);
     }
 
-    parser->current_function = func;
 
     // check if the main function is present
     if (!strcmp(func->name, "main"))
@@ -117,23 +116,21 @@ void ParseFunctionDefinition(Parser *parser)
     AppendToken(stream, token);
 
     // set the return type
-    DATA_TYPE return_type;
     switch (token->keyword_type)
     {
     case I32:
-        return_type = INT32_TYPE;
+        func->return_type = INT32_TYPE;
         break;
     case F64:
-        return_type = DOUBLE64_TYPE;
+        func->return_type = DOUBLE64_TYPE;
         break;
     case U8:
-        return_type = U8_ARRAY_TYPE;
+        func->return_type = U8_ARRAY_TYPE;
         break;
     default:
-        return_type = VOID_TYPE;
+        func->return_type = VOID_TYPE;
         break;
     }
-    CHECK_RETURN_VALUE
 
     // Check for correct return type/params in case of main
     if (is_main && (func->return_type != VOID_TYPE || func->num_of_parameters != 0))

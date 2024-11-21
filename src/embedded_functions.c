@@ -62,7 +62,6 @@ void InsertEmbeddedFunctions(Parser *parser)
         FunctionSymbol *func = FunctionSymbolInit();
         func->name = strdup(embedded_names[i]);
         func->return_type = embedded_return_types[i];
-        func->was_called = false; // This doesn't really matter with embedded functions
 
         // Create the function's parameters
         for (int j = 0; j < MAXPARAM_EMBEDDED_FUNCTION && embedded_parameters[i][j] != VOID_TYPE; j++)
@@ -133,7 +132,7 @@ TokenVector *ParseEmbeddedFunctionParams(Parser *parser, FunctionSymbol *func)
                 else if(!CheckParamType(func->parameters[loaded]->type, var->type))
                 {
                     PrintError("Error in semantic analysis: Line %d: Incompatible types in parameter %d of function call \"%s\"", parser->line_number, loaded+1, func->name);
-                    fprintf(stderr, "Expected type %d, got %d\n", var->type, func->parameters[loaded]->type);
+                    fprintf(stderr, "Expected type %d, got %d\n", func->parameters[loaded]->type, var->type);
                     DestroyTokenVector(operands);
                     DestroyTokenVector(stream);
                     SymtableStackDestroy(parser->symtable_stack);

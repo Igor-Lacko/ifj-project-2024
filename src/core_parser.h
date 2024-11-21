@@ -34,19 +34,6 @@ do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type f
     exit(ERROR_SYNTACTIC);\
 } while(0);
 
-// Same but for return type
-#define CHECK_RETURN_VALUE do{\
-    if(func->was_called && func->return_type != return_type){\
-        PrintError("Error in semantic analysis: Invalid return value for function %s", func->name);\
-        DestroyToken(token);\
-        SymtableStackDestroy(parser->symtable_stack);\
-        DestroySymtable(parser->global_symtable);\
-        exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
-    }\
-    func->return_type = return_type;\
-} while(0);
-
-
 
 // Function declarations
 

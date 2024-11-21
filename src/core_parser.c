@@ -203,7 +203,6 @@ bool IsFunctionCall(Parser *parser)
 {
     stream_index--;
     Token *id = GetNextToken(parser);
-    PrintToken(id);
     Token *braces = GetNextToken(parser);
     if (id->token_type == IDENTIFIER_TOKEN && braces->token_type == L_ROUND_BRACKET)
     {
@@ -410,10 +409,10 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
             // Check if the identifier is defined
             else if ((symb1 = SymtableStackFindVariable(parser->symtable_stack, token->attribute)) == NULL)
             {
+                PrintError("Line %d: Undefined variable \"%s\"", parser->line_number, token->attribute);
                 DestroySymtable(parser->global_symtable);
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroyTokenVector(stream);
-                free(token);
                 exit(ERROR_SEMANTIC_UNDEFINED);
             }
 
@@ -442,6 +441,7 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
 
         // Invalid token
         default:
+            fprintf(stderr, "Unexpected token \"%s\"\n", token->attribute);
             INVALID_PARAM_TOKEN
         }
         if (break_flag)
@@ -498,7 +498,8 @@ void FunctionDefinition(Parser *parser)
     // Add the function parameters to the symtable and define them on the local frame
     for (int i = 0; i < func->num_of_parameters; i++)
     {
-        DEFPARAM(i)
+        DefineVariable(func->parameters[i]->name, LOCAL_FRAME);
+        fprintf(stdout, "MOVE LF@%s LF@PARAM%d\n", func->parameters[i]->name, i);
         InsertVariableSymbol(symtable, VariableSymbolCopy(func->parameters[i]));
     }
 
@@ -508,14 +509,37 @@ void FunctionDefinition(Parser *parser)
     // Function body
     ProgramBody(parser);
 
+    // If the function is main, exit at the end
+    if (!strcmp(func->name, "main")) IFJ24SUCCESS
+
+    // Also if it's a void function put a return at the end
+    else if (func->return_type == VOID_TYPE) FUNCTION_RETURN
+
+    // If it's not a void function and doesn't have a return statement, throw an error
+    else if (!func->has_return)
+    {
+        PrintError("Error in semantic analysis: Line %d: Missing return statement in function \"%s\"",
+                   parser->line_number, func->name);
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
+        exit(ERROR_SEMANTIC_MISSING_EXPR);
+    }
+
     // Not in a function anymore
     parser->current_function = NULL;
 }
 
 void FunctionReturn(Parser *parser)
 {
+    /* The function has a return statement
+        - TODO: Assert that this doesn't get called when outside of a function?
+        - That would throw a segfault, but i think ProgramBody() detects that already
+    */
+    parser->current_function->has_return = true;
+
     Token *token;
-    if (!parser->current_function) // In main, return exits the program
+    if (!strcmp(parser->current_function->name, "main")) // In main, return exits the program
     {
         if ((token = GetNextToken(parser))->token_type != SEMICOLON)
         {
@@ -524,7 +548,7 @@ void FunctionReturn(Parser *parser)
             DestroyTokenVector(stream);
             ErrorExit(ERROR_SEMANTIC_MISSING_EXPR, "Line %d: Invalid usage of \"return\" in main function (unexpected expression)");
         }
-        IFJ24SUCCESS // Successful return from main = EXIT 0 (todo: evaluate this? idk how to actually generate it)
+        IFJ24SUCCESS // Successful return from main = EXIT 0
             return;
     }
 
@@ -552,6 +576,19 @@ void FunctionReturn(Parser *parser)
     // return expression;
     else
     {
+        // Check if an expression follows the return statement and revert the stream
+        if((token = GetNextToken(parser))->token_type == SEMICOLON)
+        {
+            PrintError("Error in semantic analysis: Line %d: Missing expression in return statement for function \"%s\"",
+                       parser->line_number, parser->current_function->name);
+            SymtableStackDestroy(parser->symtable_stack);
+            DestroySymtable(parser->global_symtable);
+            DestroyTokenVector(stream);
+            exit(ERROR_SEMANTIC_MISSING_EXPR);
+        }
+
+        stream_index--; // Revert the stream to the beginning of the expression
+
         // The returned type is now in R0/B0/F0
         TokenVector *postfix = InfixToPostfix(parser);
         DATA_TYPE expr_type = GeneratePostfixExpression(parser, postfix, NULL);
@@ -567,6 +604,8 @@ void FunctionReturn(Parser *parser)
             exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
         }
 
+        // Push the return value to the data stack and exit the function
+        PushRetValue(expr_type);
         FUNCTION_RETURN
         return;
     }
@@ -608,6 +647,7 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
         Token *func_name = GetNextToken(parser);
         FunctionSymbol *func = FindFunctionSymbol(parser->global_symtable, func_name->attribute); // This should always be successful
         FunctionToVariable(parser, var, func);
+        CheckTokenTypeVector(parser, SEMICOLON);
         return;
     }
 
@@ -636,6 +676,7 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
 
         // Assign NULL to the variable
         MOVE(var->name, "nil@nil", false, LOCAL_FRAME);
+        CheckTokenTypeVector(parser, SEMICOLON);
         return;
     }
 
@@ -674,6 +715,10 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
         ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Assigning return value of void function to variable.", parser->line_number);
     }
 
+    // Var type yet to be derived
+    if(var->type == VOID_TYPE)
+        var->type = func->return_type;
+
     // Incompatible return type
     if ( // But for example, a U8 function return to ?U8 would be valid, since the latter can have a U8 or NULL type
         func->return_type != var->type &&
@@ -700,7 +745,7 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
         - Note: Default IFJ24 doesn't have booleans, maybe expand this for the BOOLTHEN extension later?
     */
     fprintf(stdout, "CALL %s\n", func->name);
-    fprintf(stdout, "POPS LF@%s\n", var->name); // TODO: run the IFJCODE24 interpreter on a code using this if it actually works
+    fprintf(stdout, "POPS LF@%s\n", var->name);
 }
 
 void ProgramBody(Parser *parser)
@@ -760,8 +805,11 @@ void ProgramBody(Parser *parser)
             }
             else
             {
-                break;
-                // ErrorExit(ERROR_SYNTACTIC, "Unexpected at line %d", *line_number);
+                PrintError("Unexpected token \"%s\" at line %d", token->attribute, parser->line_number);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                DestroyTokenVector(stream);
+                exit(ERROR_SYNTACTIC);
             }
             break;
 
@@ -806,11 +854,25 @@ void ProgramBody(Parser *parser)
             break;
 
         case EOF_TOKEN:
-            return;
+            // EOF can't be inside of a code block
+            if(parser->current_function)
+            {
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                DestroyTokenVector(stream);
+                ErrorExit(ERROR_SYNTACTIC, "Unexpected end of file");
+            }
+
+            else return;
+
+            break; // Shut up gcc
 
         default:
-            // ErrorExit(ERROR_SYNTACTIC, "Unexpected token at line %d", *line_number);
-            break;
+            PrintError("Unexpected token \"%s\" at line %d", token->attribute, parser->line_number);
+            SymtableStackDestroy(parser->symtable_stack);
+            DestroySymtable(parser->global_symtable);
+            DestroyTokenVector(stream);
+            exit(ERROR_SYNTACTIC);
         }
     }
 }
@@ -852,6 +914,7 @@ int main()
     ProgramBegin(&parser);
     Header(&parser);
     ProgramBody(&parser);
+
 
     SymtableStackDestroy(parser.symtable_stack);
     DestroySymtable(parser.global_symtable);
