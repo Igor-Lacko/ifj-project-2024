@@ -110,13 +110,6 @@ VariableSymbol *IsVariableAssignment(Token *token, Parser *parser);
 void Header(Parser *parser);
 
 /**
- * @brief Parses an expression.
- *
- * @param parser Pointer to the parser structure.
- */
-void Expression(Parser *parser);
-
-/**
  * @brief A function call, checks if the params fit and calls codegen on the fly.
  * 
  * @param parser Pointer to the parser structure.
