@@ -27,5 +27,11 @@ void ParseParameters(Parser *parser, FunctionSymbol *func);
  */
 void ParseFunctions(Parser *parser);
 
+/**
+ * @brief Stores variable into the current function's variables array.
+ * 
+ * @param parser 
+ */
+void ParseVariableDeclaration(Parser *parser);
 
 #endif

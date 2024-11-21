@@ -132,6 +132,14 @@ typedef struct
     bool defined;
 } VariableSymbol;
 
+typedef struct
+{
+    char **strings;
+    int count;
+    int capacity;
+} StringArray;
+
+
 // structure of a function symbol
 typedef struct
 {
@@ -140,6 +148,7 @@ typedef struct
     VariableSymbol **parameters;
     DATA_TYPE return_type;
     bool was_called;
+    StringArray variables;
 } FunctionSymbol;
 
 typedef struct

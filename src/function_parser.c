@@ -15,6 +15,53 @@
 // pub fn id ( seznam_parametrů ) návratový_typ {
 // sekvence_příkazů
 // }
+
+
+void ParseVariableDeclaration(Parser *parser)
+{
+
+    Token *token;
+    token = CheckAndReturnTokenStream(parser, IDENTIFIER_TOKEN);
+
+    if (token == NULL)
+    {
+        ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", parser->line_number);
+    }
+
+    if(parser->current_function == NULL)
+    {
+        ErrorExit(ERROR_INTERNAL, "currrent function isnt defined");
+    }
+
+    if(strcmp(token->attribute, "ifj") == 0)
+    {
+        return;
+    }
+
+    // Add the variable name to the current function's variables array
+    AppendStringArray(&parser->current_function->variables, token->attribute);
+
+
+}
+
+void ParseConstDeclaration(Parser *parser){
+    Token *token;
+    token = CheckAndReturnTokenStream(parser, IDENTIFIER_TOKEN);
+
+    if (token == NULL)
+    {
+        ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", parser->line_number);
+    }
+
+    if(strcmp(token->attribute, "ifj") == 0)
+    {
+        return;
+    }
+
+    AppendStringArray(&parser->current_function->variables, token->attribute);
+}
+
+
 void ParseFunctionDefinition(Parser *parser)
 {
     Token *token;
@@ -45,6 +92,7 @@ void ParseFunctionDefinition(Parser *parser)
         exit(ERROR_SEMANTIC_REDEFINED);
     }
 
+    parser->current_function = func;
 
     // check if the main function is present
     if (!strcmp(func->name, "main"))
@@ -260,6 +308,15 @@ void ParseFunctions(Parser *parser)
             // Increment due to the '{' at the end after the function definition to avoid the previous error
             parser->nested_level++;
         }
+
+        if(token->keyword_type == VAR){
+            ParseVariableDeclaration(parser);
+        }
+
+        if(token->keyword_type == CONST){
+            ParseConstDeclaration(parser);
+        }
+
     }
 
     // Append the EOF token

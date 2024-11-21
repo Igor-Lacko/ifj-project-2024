@@ -67,4 +67,8 @@ bool InsertFunctionSymbol(Symtable *symtable, FunctionSymbol *function_symbol);
  */
 void PrintTable(Symtable *symtable);
 
+// Initializes a string array
+void InitStringArray(StringArray *string_array);
+// Appends a string to the string array
+void AppendStringArray(StringArray *string_array, char *string);
 #endif
