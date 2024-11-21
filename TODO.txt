@@ -1,2 +1,1 @@
 1. MAIN PRIORITY: Parse variables on the first go-through of the input and add them to the function to later DEFVAR 
-2. Raise errors for code outside of functions and returns 

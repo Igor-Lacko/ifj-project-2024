@@ -262,10 +262,10 @@ void EmbeddedFunctionCall(Parser *parser, FunctionSymbol *func, VariableSymbol *
         WRITEINSTRUCTION(params->token_string[0], LOCAL_FRAME);
 
     else if(!strcmp(func->name, "i2f"))
-        INT2FLOAT(var, params->token_string[0]->attribute ,LOCAL_FRAME);
+        INT2FLOAT(var, params->token_string[0], LOCAL_FRAME, LOCAL_FRAME);
 
     else if(!strcmp(func->name, "f2i"))
-        FLOAT2INT(var, params->token_string[0]->attribute ,LOCAL_FRAME);
+        FLOAT2INT(var, params->token_string[0], LOCAL_FRAME, LOCAL_FRAME);
 
     else if(!strcmp(func->name, "length"))
         STRLEN(var, params->token_string[0], LOCAL_FRAME, LOCAL_FRAME);

@@ -25,12 +25,20 @@ void ParseVariableDeclaration(Parser *parser)
 
     if (token == NULL)
     {
-        ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", parser->line_number);
+        PrintError("Error in semantic analysis: Line %d: Expected identifier", parser->line_number);
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
+        exit(ERROR_SYNTACTIC);
     }
 
     if(parser->current_function == NULL)
     {
-        ErrorExit(ERROR_INTERNAL, "currrent function isnt defined");
+        PrintError("Error in semantic analysis: Line %d: Variable declaration outside of a function", parser->line_number);
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
+        exit(ERROR_SEMANTIC_OTHER); // TODO
     }
 
     if(strcmp(token->attribute, "ifj") == 0)
@@ -79,6 +87,7 @@ void ParseFunctionDefinition(Parser *parser)
         func = FunctionSymbolInit();
         func->name = strdup(token->attribute);
         InsertFunctionSymbol(parser->global_symtable, func);
+        parser->current_function = func;
     }
 
     // the function already exists in some scope

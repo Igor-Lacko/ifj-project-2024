@@ -6,11 +6,14 @@ HEADERS = types.h shared.h scanner.h vector.h error.h core_parser.h symtable.h s
 MODULES = shared.o scanner.o vector.o error.o core_parser.o symtable.o stack.o expression_parser.o codegen.o embedded_functions.o function_parser.o loop.o conditionals.o
 DEBUG_MODULES = shared-d.o scanner-d.o vector-d.o error-d.o core_parser-d.o symtable-d.o stack-d.o expression_parser-d.o codegen-d.o embedded_functions-d.o function_parser-d.o loop-d.o conditionals-d.o
 
+TEST_FOLDER = ../tests/test_files
+EXAMPLE_FOLDER = ../ifj24_examples
+
 #----VEDUCI LOGIN----#
 VEDUCI = xpogad00
 
 #----CURRENT DEBUG FILE----#
-INPUT_FILE = ../ifj24_examples/strings.ifj24
+INPUT_FILE = $(EXAMPLE_FOLDER)/example_func.ifj24
 
 #----CURRENT OUTPUT FILE----#
 OUTPUT_FILE = ../tests/test_outputs/testifj24.ifjcode

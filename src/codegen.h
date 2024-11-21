@@ -157,8 +157,8 @@ void READ(VariableSymbol *var, FRAME frame, DATA_TYPE read_type);
 void WRITEINSTRUCTION(Token *token, FRAME frame);
 
 // Conversion instructions
-void INT2FLOAT(VariableSymbol *dst, const char *value, FRAME frame);
-void FLOAT2INT(VariableSymbol *dst, const char *value, FRAME frame);
+void INT2FLOAT(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_frame);
+void FLOAT2INT(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_frame);
 
 // Calls the STRLEN instruction
 void STRLEN(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame);

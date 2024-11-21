@@ -548,6 +548,7 @@ void FunctionReturn(Parser *parser)
             DestroyTokenVector(stream);
             ErrorExit(ERROR_SEMANTIC_MISSING_EXPR, "Line %d: Invalid usage of \"return\" in main function (unexpected expression)");
         }
+        POPFRAME
         IFJ24SUCCESS // Successful return from main = EXIT 0
             return;
     }
@@ -567,6 +568,7 @@ void FunctionReturn(Parser *parser)
 
         else
         {
+            POPFRAME
             FUNCTION_RETURN
             return;
         }
@@ -606,6 +608,7 @@ void FunctionReturn(Parser *parser)
 
         // Push the return value to the data stack and exit the function
         PushRetValue(expr_type);
+        POPFRAME
         FUNCTION_RETURN
         return;
     }
@@ -900,6 +903,7 @@ int main()
 
     // First go-through of the stream file, add functions to the global symtable
     ParseFunctions(&parser);
+    parser.current_function = NULL;
 
     // Check for the presence of a a main function
     if (!parser.has_main)

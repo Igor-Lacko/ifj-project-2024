@@ -152,15 +152,17 @@ void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TY
     bool has_floats = false;
 
     // For quicker access to types
-    VariableSymbol *symb1 = NULL, *symb2 = NULL;
+    VariableSymbol *symb1 = SymtableStackFindVariable(parser->symtable_stack, operand_1->attribute),
+    *symb2 = SymtableStackFindVariable(parser->symtable_stack, operand_2->attribute);
 
     // For quicker printing of the source registers (Either R1/R2 or F1/F2)
     char op1_reg[8]; char op2_reg[8];
 
+
     // Same edge/error cases as with FloatExpression()
     if(operand_1->token_type == IDENTIFIER_TOKEN && operand_2->token_type == IDENTIFIER_TOKEN)
     {
-        if((symb1 = SymtableStackFindVariable(parser->symtable_stack, operand_1->attribute))->type != (symb2 = SymtableStackFindVariable(parser->symtable_stack, operand_2->attribute))->type)
+        if(symb1->type != symb2->type)
         {
             *are_incompatible = true;
             return;
@@ -179,16 +181,27 @@ void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TY
             *are_incompatible = true;
             return;
         }
+
+        else if(symb1->type == DOUBLE64_TYPE)
+        {
+            has_floats = true;
+        }
     }
 
     else if(symb2 != NULL)
     {
-        if(operand_1->token_type == INTEGER_32 && symb2->type == INT32_TYPE)
+        if(operand_1->token_type == DOUBLE_64 && symb2->type == INT32_TYPE)
         {
             *are_incompatible = true;
             return;
         }
+
+        else if(symb2->type == DOUBLE64_TYPE)
+        {
+            has_floats = true;
+        }
     }
+
 
     // Get the src registers
     if(has_floats)
@@ -204,8 +217,8 @@ void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TY
     }
 
     // Convert to floats if needed
-    if(operand_1->token_type == INTEGER_32 && has_floats) fprintf(stdout, "INT2FLOAT GF@F1 GF@R1\n");
-    if(operand_2->token_type == INTEGER_32 && has_floats) fprintf(stdout, "INT2FLOAT GF@F2 GF@R2\n");
+    if(operand_1->token_type == INTEGER_32 && has_floats) fprintf(stdout, "INT2FLOAT GF@$F1 GF@$R1\n");
+    if(operand_2->token_type == INTEGER_32 && has_floats) fprintf(stdout, "INT2FLOAT GF@$F2 GF@$R2\n");
 
     // Perform the given operation
     switch(operator)
@@ -242,6 +255,7 @@ void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TY
         default:
             // This will never happen, because the codegen calls this only when a boolean operator is encountered
             // Regardless, it has to be here
+            fprintf(stderr, "Error in codegen: Invalid boolean operator\n");
             break;
     }
 
@@ -335,6 +349,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     ErrorExit(ERROR_SYNTACTIC, "Line %d: Invalid expression");
                 }
 
+
                 // check if they are identifiers
                 if(op1->token_type == IDENTIFIER_TOKEN)
                 {
@@ -356,7 +371,7 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                     }
                 }
 
-                else if(op2->token_type == IDENTIFIER_TOKEN)
+                if(op2->token_type == IDENTIFIER_TOKEN)
                 {
                     if(!(sym2 = SymtableStackFindVariable(parser->symtable_stack, op2->attribute)))
                     {
@@ -376,7 +391,6 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                         op2_float = true;
                     }
                 }
-
 
                 (op1->token_type != DOUBLE_64 && !op1_float) ? fprintf(stdout, "POPS GF@$R1\n") : fprintf(stdout, "POPS GF@$F1\n"); // R1/F1 = Second operand (popped from the stack first)
                 (op2->token_type != DOUBLE_64 && !op2_float) ? fprintf(stdout, "POPS GF@$R2\n") : fprintf(stdout, "POPS GF@$F2\n"); // R2/F2 = First operand
@@ -485,9 +499,9 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
                 break;
 
             // Boolean operators
-            case EQUAL_OPERATOR: case NOT_EQUAL_OPERATOR:
-            case LESS_THAN_OPERATOR: case LARGER_THAN_OPERATOR:
-            case LESSER_EQUAL_OPERATOR: case LARGER_EQUAL_OPERATOR:
+            case EQUAL_OPERATOR:                case NOT_EQUAL_OPERATOR:
+            case LESS_THAN_OPERATOR:            case LARGER_THAN_OPERATOR:
+            case LESSER_EQUAL_OPERATOR:         case LARGER_EQUAL_OPERATOR:
                 // Has to be the end of a expression
                 if(postfix->token_string[i + 1]->token_type != SEMICOLON && postfix->token_string[i + 1]->token_type != R_ROUND_BRACKET)
                 {
@@ -550,8 +564,6 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
 
                     else if(sym2->type == DOUBLE64_TYPE) op2_float = true;
                 }
-
-                if(op1_float || op2_float) return_type = DOUBLE64_TYPE;
 
                 (op1->token_type != DOUBLE_64 && !op1_float) ? fprintf(stdout, "POPS GF@$R1\n") : fprintf(stdout, "POPS GF@$F1\n"); // R1/F1 = Second operand (popped from the stack first)
                 (op2->token_type != DOUBLE_64 && !op2_float) ? fprintf(stdout, "POPS GF@$R2\n") : fprintf(stdout, "POPS GF@$F2\n"); // R2/F2 = First operand
@@ -811,40 +823,26 @@ void WRITEINSTRUCTION(Token *token, FRAME frame)
     free(prefix);
 }
 
-void INT2FLOAT(VariableSymbol *dst, const char *value, FRAME frame)
+void INT2FLOAT(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_frame)
 {
-    switch(frame)
-    {
-        case GLOBAL_FRAME:
-            fprintf(stdout, "INT2FLOAT GF@%s %s", dst->name, value);
-            break;
+    char *src_prefix = value->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("int@");
+    char *dst_prefix = GetFrameString(dst_frame);
 
-        case LOCAL_FRAME:
-            fprintf(stdout, "INT2FLOAT LF@%s %s", dst->name, value);
-            break;
+    fprintf(stdout, "INT2FLOAT %s%s %s%s\n", dst_prefix, dst->name, src_prefix, value->attribute);
 
-        case TEMPORARY_FRAME:
-            fprintf(stdout, "INT2FLOAT TF@%s %s", dst->name, value);
-            break;
-    }
+    free(src_prefix);
+    free(dst_prefix);
 }
 
-void FLOAT2INT(VariableSymbol *dst, const char *value, FRAME frame)
+void FLOAT2INT(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_frame)
 {
-    switch(frame)
-    {
-        case GLOBAL_FRAME:
-            fprintf(stdout, "FLOAT2INT GF@%s %s", dst->name, value);
-            break;
+    char *src_prefix = value->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("float@0x");
+    char *dst_prefix = GetFrameString(dst_frame);
 
-        case LOCAL_FRAME:
-            fprintf(stdout, "FLOAT2INT LF@%s %s", dst->name, value);
-            break;
+    fprintf(stdout, "FLOAT2INT %s%s %s%s\n", dst_prefix, dst->name, src_prefix, value->attribute);
 
-        case TEMPORARY_FRAME:
-            fprintf(stdout, "FLOAT2INT TF@%s %s", dst->name, value);
-            break;
-    }
+    free(src_prefix);
+    free(dst_prefix);
 }
 
 void STRLEN(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame)
