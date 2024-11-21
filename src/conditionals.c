@@ -72,8 +72,11 @@ bool IsIfNullableType(Parser *parser)
 
 void ParseIfStatement(Parser *parser)
 {
+    // Set the index to this if statement to the current if label count
+    int if_id = (if_label_count)++;
+
     // Initial if label
-    IfLabel();
+    IfLabel(if_id);
 
     // Before the initial L_ROUND_BRACKET
     CheckTokenTypeVector(parser, L_ROUND_BRACKET);
@@ -103,30 +106,46 @@ void ParseIfStatement(Parser *parser)
     */
 
     // If(B0 == false) JUMP(else)
-    JUMPIFEQ("$else", "GF@$B0", "bool@false", if_label_count);
+    JUMPIFEQ("$else", "GF@$B0", "bool@false", if_id);
+
+    // Opening if '{'
+    CheckTokenTypeVector(parser, L_CURLY_BRACKET);
 
     // If body
     ProgramBody(parser);
 
     // JUMP(endif_order)
-    JUMP_WITH_ORDER("$endif", if_label_count);
+    JUMP_WITH_ORDER("$endif", if_id);
+
+    // Else keyword
+    CheckKeywordTypeVector(parser, ELSE);
+
+    // Opening else '{'
+    CheckTokenTypeVector(parser, L_CURLY_BRACKET);
 
     // Else label
-    ElseLabel();
+    ElseLabel(if_id);
+
+    // Pop the if body symtable
+    SymtableStackPush(parser->symtable_stack, InitSymtable(TABLE_COUNT));
+    parser->symtable = SymtableStackTop(parser->symtable_stack);
 
     // Else body
     ProgramBody(parser);
 
     // Final if label
-    EndIfLabel();
+    EndIfLabel(if_id);
 }
 
 void ParseNullableIfStatement(Parser *parser)
 {
     /* Just like with loops, this part is analogous to the normal if statement parsing */
 
+    // Initial if id
+    int if_id = (if_label_count)++;
+
     // Initial if label
-    IfLabel();
+    IfLabel(if_id);
 
     // Before the initial L_ROUND_BRACKET
     CheckTokenTypeVector(parser, L_ROUND_BRACKET);
@@ -180,6 +199,9 @@ void ParseNullableIfStatement(Parser *parser)
     // Get the "id_without_null" part
     token = CheckAndReturnTokenVector(parser, IDENTIFIER_TOKEN);
 
+    // Skip the other '|'
+    CheckTokenTypeVector(parser, VERTICAL_BAR_TOKEN);
+
     // Create a new variable symbol representing it
     VariableSymbol *new = VariableSymbolInit();
     new->defined = true;
@@ -191,7 +213,7 @@ void ParseNullableIfStatement(Parser *parser)
     InsertVariableSymbol(parser->symtable, new);
 
     // If(var == NULL) JUMP(else_order)
-    fprintf(stdout, "JUMPIFEQ $else%d LF@%s nil@nil\n", if_label_count, var->name);
+    fprintf(stdout, "JUMPIFEQ $else%d LF@%s nil@nil\n", if_id, var->name);
 
     // DEFVAR var
     DefineVariable(new->name, LOCAL_FRAME);
@@ -199,18 +221,31 @@ void ParseNullableIfStatement(Parser *parser)
     // id = var
     fprintf(stdout, "MOVE LF@%s LF@%s\n", new->name, var->name);
 
+    // Opening if '{'
+    CheckTokenTypeVector(parser, L_CURLY_BRACKET);
+
     // If body
     ProgramBody(parser);
 
     // JUMP endif_order
-    JUMP_WITH_ORDER("$endif", if_label_count);
+    JUMP_WITH_ORDER("$endif", if_id);
+
+    // Else keyword
+    CheckKeywordTypeVector(parser, ELSE);
+
+    // Opening else '{'
+    CheckTokenTypeVector(parser, L_CURLY_BRACKET);
 
     // LABEL else_order
-    ElseLabel();
+    ElseLabel(if_id);
+
+    // Pop the if body symtable
+    SymtableStackPush(parser->symtable_stack, InitSymtable(TABLE_COUNT));
+    parser->symtable = SymtableStackTop(parser->symtable_stack);
 
     // Else body
     ProgramBody(parser);
 
     // LABEL endif_order
-    EndIfLabel();
+    EndIfLabel(if_id);
 }

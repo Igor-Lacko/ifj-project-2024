@@ -33,7 +33,7 @@
 #define WRITE(symb) fprintf(stdout, "WRITE %s\n", symb);
 
 // Macros for IFJCode24 exits
-#define IFJ24SUCCESS fprintf(stdout, "EXIT 0\n");
+#define IFJ24SUCCESS fprintf(stdout, "EXIT int@0\n");
 
 // Macros for working with labels
 #define JUMP(label) fprintf(stdout, "JUMP %s\n", label);
@@ -94,19 +94,19 @@ void InitRegisters();
 void DefineVariable(const char *name, FRAME frame);
 
 // Generates a label if@ where @ is the index of the label
-void IfLabel();
+void IfLabel(int count);
 
 // The same but for else
-void ElseLabel();
+void ElseLabel(int count);
 
 // The same but for the end of if statements
-void EndIfLabel();
+void EndIfLabel(int count);
 
 // The same but for while loops
-void WhileLabel();
+void WhileLabel(int count);
 
 // The same but for end of whiles
-void EndWhileLabel();
+void EndWhileLabel(int count);
 
 /**
  * @brief Generates code for moving src to dst.
@@ -186,5 +186,14 @@ void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, F
  * @brief Writes the string literal passed in as a param in a IFJCode24 compatible way.
  */
 void WriteStringLiteral(const char *str);
+
+/**
+ * @brief Pushes the return value of a function to the data stack, depending on the return type.
+ * 
+ * @note The return value was in R0/F0/B0 before this function was called.
+ * 
+ * @param type The return type of the function.
+ */
+void PushRetValue(DATA_TYPE type);
 
 #endif

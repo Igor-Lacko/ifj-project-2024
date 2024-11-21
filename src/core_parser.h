@@ -34,19 +34,6 @@ do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type f
     exit(ERROR_SYNTACTIC);\
 } while(0);
 
-// Same but for return type
-#define CHECK_RETURN_VALUE do{\
-    if(func->was_called && func->return_type != return_type){\
-        PrintError("Error in semantic analysis: Invalid return value for function %s", func->name);\
-        DestroyToken(token);\
-        SymtableStackDestroy(parser->symtable_stack);\
-        DestroySymtable(parser->global_symtable);\
-        exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);\
-    }\
-    func->return_type = return_type;\
-} while(0);
-
-
 
 // Function declarations
 
@@ -121,13 +108,6 @@ VariableSymbol *IsVariableAssignment(Token *token, Parser *parser);
  * @param parser Pointer to the parser structure.
  */
 void Header(Parser *parser);
-
-/**
- * @brief Parses an expression.
- *
- * @param parser Pointer to the parser structure.
- */
-void Expression(Parser *parser);
 
 /**
  * @brief A function call, checks if the params fit and calls codegen on the fly.

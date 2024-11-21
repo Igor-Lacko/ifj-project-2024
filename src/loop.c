@@ -72,9 +72,11 @@ bool IsLoopNullableType(Parser *parser)
 
 void ParseWhileLoop(Parser *parser)
 {
+    // Label ID
+    int while_id = (while_label_count)++;
 
     // Initial while label
-    WhileLabel();
+    WhileLabel(while_id);
 
     // We are before the L_ROUND_BRACKET
     CheckTokenTypeVector(parser, L_ROUND_BRACKET);
@@ -100,19 +102,25 @@ void ParseWhileLoop(Parser *parser)
         LABEL endwhile_order
     */
 
-    JUMPIFEQ("$endwhile", "GF@$B0", "bool@false", while_label_count);
+    JUMPIFEQ("$endwhile", "GF@$B0", "bool@false", while_id);
+
+    // Opening loop '{'
+    CheckTokenTypeVector(parser, L_CURLY_BRACKET);
 
     // Loop body
     ProgramBody(parser);
 
     // Jump back to the beginning of the while
-    JUMP_WITH_ORDER("$while", while_label_count);
+    JUMP_WITH_ORDER("$while", while_id);
 
-    EndWhileLabel();
+    EndWhileLabel(while_id);
 }
 
 void ParseNullableWhileLoop(Parser *parser)
 {
+    // Label ID
+    int while_id = (while_label_count)++;
+
     /* This part is analogous to the normal while loop parsing except for while label after DEFVAR */
 
     // Must be done :((
@@ -167,24 +175,30 @@ void ParseNullableWhileLoop(Parser *parser)
     var2->name = strdup(token->attribute);
     var2->type = NullableToNormal(var->type);
 
+    // Closing '|'
+    CheckTokenTypeVector(parser, VERTICAL_BAR_TOKEN);
+
     // Make a new entry in the symtable
     InsertVariableSymbol(parser->symtable, var2);
     DefineVariable(var2->name, LOCAL_FRAME);
 
     // Initial while label
-    WhileLabel();
+    WhileLabel(while_id);
 
     // if(var == NULL) JUMP(endwhile_order)
-    fprintf(stdout, "JUMPIFEQ $endwhile%d LF@%s nil@nil\n", while_label_count, var->name);
+    fprintf(stdout, "JUMPIFEQ $endwhile%d LF@%s nil@nil\n", while_id, var->name);
 
     // var2 = var
     fprintf(stdout, "MOVE LF@%s LF@%s\n", var2->name, var->name);
+
+    // Opening loop '{'
+    CheckTokenTypeVector(parser, L_CURLY_BRACKET);
 
     // Loop body
     ProgramBody(parser);
 
     // JUMP while_order
-    JUMP_WITH_ORDER("$while", while_label_count)
+    JUMP_WITH_ORDER("$while", while_id)
 
-    EndWhileLabel();
+    EndWhileLabel(while_id);
 }

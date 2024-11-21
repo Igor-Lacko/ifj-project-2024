@@ -15,44 +15,60 @@ JUMP main
 LABEL main
 CREATEFRAME
 PUSHFRAME
-DEFVAR LF@a
-PUSHS int@5
-POPS LF@a
-CLEARS
-LABEL $while1
-PUSHS LF@a
-PUSHS int@2
+DEFVAR LF@str1
+MOVE LF@str1 string@Toto\032je\032text\032v\032programu\032jazyka\032IFJ24
+DEFVAR LF@str2
+MOVE LF@str2 string@,\032ktery\032jeste\032trochu\032obohatime
+CONCAT LF@str2 LF@str1 LF@str2
+WRITE LF@str1
+WRITE string@\010
+WRITE LF@str2
+WRITE string@\010
+WRITE string@Zadejte\032serazenou\032posloupnost\032malych\032pismen\032a-h:\010
+DEFVAR LF@newInput
+READ LF@newInput string
+DEFVAR LF@all
+MOVE LF@all string@
+DEFVAR LF@inpOK
+LABEL $while0
+JUMPIFEQ $endwhile0 LF@newInput nil@nil
+MOVE LF@inpOK LF@newInput
+DEFVAR LF@abcdefgh
+MOVE LF@abcdefgh string@abcdefgh
+DEFVAR LF@strcmpResult
+GT GF@$B1 LF@inpOK LF@abcdefgh
+GT GF@$B2 LF@abcdefgh LF@inpOK
+JUMPIFEQ FIRSTGREATER0 GF@$B1 bool@true
+JUMPIFEQ SECONDGREATER0 GF@$B2 bool@true
+JUMP AREEQUAL0
+LABEL FIRSTGREATER0
+MOVE LF@strcmpResult int@-1
+JUMP ENDSTRCMP0
+LABEL SECONDGREATER0
+MOVE LF@strcmpResult int@1
+JUMP ENDSTRCMP0
+LABEL AREEQUAL0
+MOVE LF@strcmpResult int@0
+LABEL ENDSTRCMP0
+LABEL $if0
+PUSHS LF@strcmpResult
+PUSHS int@0
 POPS GF@$R1
 POPS GF@$R2
-GT GF@$B0 GF@$R2 GF@$R1
+EQ GF@$B0 GF@$R1 GF@$R2
 PUSHS GF@$B0
 POPS GF@$B0
 CLEARS
-JUMPIFEQ $endwhile1 GF@$B0 bool@false
-PUSHS LF@a
-PUSHS int@1
-POPS GF@$R1
-POPS GF@$R2
-ADD GF@$R0 GF@$R1 GF@$R2
-PUSHS GF@$R0
-POPS LF@a
-CLEARS
-JUMP $while1
-LABEL $endwhile1
-CREATEFRAME
-DEFVAR TF@PARAM0
-MOVE TF@param0 LF@a
-CALL double
-POPS LF@a
-LABEL double
-PUSHFRAME
-DEFVAR LF@PARAM0
-DEFVAR LF@b
-PUSHS LF@a
-PUSHS int@2
-POPS GF@$R1
-POPS GF@$R2
-MUL GF@$R0 GF@$R1 GF@$R2
-PUSHS GF@$R0
-POPS LF@b
-CLEARS
+JUMPIFEQ $else0 GF@$B0 bool@false
+WRITE string@Spravne\032zadano!\010
+WRITE LF@all
+MOVE LF@newInput nil@nil
+JUMP $endif0
+LABEL $else0
+WRITE string@Spatne\032zadana\032posloupnost,\032zkuste\032znovu:\010
+CONCAT LF@all LF@all LF@inpOK
+READ LF@newInput string
+LABEL $endif0
+JUMP $while0
+LABEL $endwhile0
+EXIT int@0

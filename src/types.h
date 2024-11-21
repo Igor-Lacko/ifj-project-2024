@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 // Symtable size
-#define TABLE_COUNT 1009 // first prime over 1000, todo: change this
+#define TABLE_COUNT 107 // first prime over 1000, todo: change this
 
 // enum for token types
 typedef enum
@@ -132,14 +132,6 @@ typedef struct
     bool defined;
 } VariableSymbol;
 
-typedef struct
-{
-    char **strings;
-    int count;
-    int capacity;
-} StringArray;
-
-
 // structure of a function symbol
 typedef struct
 {
@@ -147,8 +139,7 @@ typedef struct
     int num_of_parameters;
     VariableSymbol **parameters;
     DATA_TYPE return_type;
-    bool was_called;
-    StringArray variables;
+    bool has_return;
 } FunctionSymbol;
 
 typedef struct
