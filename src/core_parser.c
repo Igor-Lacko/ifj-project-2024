@@ -282,8 +282,6 @@ void VarDeclaration(Parser *parser, bool is_const)
     var->is_const = is_const;
     var->type = VOID_TYPE;
 
-    // Define a variable in IFJCode24
-    DefineVariable(var->name, LOCAL_FRAME);
 
     // check if the variable is already declared in the current symtable
     VariableSymbol *var_in_stack = FindVariableSymbol(parser->symtable, var->name);
@@ -481,6 +479,12 @@ void FunctionDefinition(Parser *parser)
     if (!strcmp(func->name, "main"))
         CREATEFRAME
     PUSHFRAME
+
+
+    // define variables
+    for(int i = 0; i < func->variables.count; i++){
+        DefineVariable(func->variables.strings[i], LOCAL_FRAME);
+    }
 
     // Skip all tokens until the function body begins (so after '{')
     while ((token = GetNextToken(parser))->token_type != L_CURLY_BRACKET)

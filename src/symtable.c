@@ -4,6 +4,7 @@
 
 #include "symtable.h"
 #include "error.h"
+#include "types.h"
 
 Symtable *InitSymtable(unsigned long size)
 {
@@ -39,6 +40,7 @@ void DestroySymtable(Symtable *symtable)
         {
             if (symtable->table[i].symbol_type == FUNCTION_SYMBOL)
             {
+
                 DestroyFunctionSymbol((FunctionSymbol *)symtable->table[i].symbol);
             }
             else if (symtable->table[i].symbol_type == VARIABLE_SYMBOL)
@@ -52,6 +54,42 @@ void DestroySymtable(Symtable *symtable)
     free(symtable);
 }
 
+
+void InitStringArray(StringArray *string_array)
+{
+    string_array->count = 0;
+    string_array->capacity = 10; // Initial capacity
+    string_array->strings = calloc(string_array->capacity, sizeof(char *));
+    if (!string_array->strings)
+    {
+        ErrorExit(ERROR_INTERNAL, "Memory allocation for string array failed");
+    }
+}
+
+void AppendStringArray(StringArray *string_array, char *string)
+{
+    // Check if the vector needs to be resized
+    if (string_array->count >= string_array->capacity)
+    {
+        size_t new_capacity = string_array->capacity * 2;
+        char **new_strings = realloc(string_array->strings, new_capacity * sizeof(char *));
+        if (!new_strings)
+        {
+            ErrorExit(ERROR_INTERNAL, "Memory reallocation for string array failed");
+        }
+        string_array->strings = new_strings;
+        string_array->capacity = new_capacity;
+    }
+
+    // Add the string to the vector
+    string_array->strings[string_array->count] = strdup(string);
+    if (!string_array->strings[string_array->count])
+    {
+        ErrorExit(ERROR_INTERNAL, "Memory allocation for string failed");
+    }
+    string_array->count++;
+}
+
 FunctionSymbol *FunctionSymbolInit(void)
 {
     FunctionSymbol *function_symbol;
@@ -59,7 +97,8 @@ FunctionSymbol *FunctionSymbolInit(void)
     {
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
-
+    InitStringArray(&function_symbol->variables);
+    
     return function_symbol;
 }
 
@@ -105,6 +144,14 @@ void DestroyFunctionSymbol(FunctionSymbol *function_symbol)
             DestroyVariableSymbol(function_symbol->parameters[i]);
         }
     }
+
+    // free the array of variables
+    for (int i = 0; i < function_symbol->variables.count; i++)
+    {
+        free(function_symbol->variables.strings[i]);
+    }
+
+    free(function_symbol->variables.strings);
 
     if (function_symbol->parameters != NULL)
         free(function_symbol->parameters);
