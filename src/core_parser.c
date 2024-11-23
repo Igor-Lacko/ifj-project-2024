@@ -231,11 +231,29 @@ void PrintStreamTokens(Parser *parser)
 void Header(Parser *parser)
 {
     CheckKeywordTypeVector(parser, CONST);
-    CheckTokenTypeVector(parser, IDENTIFIER_TOKEN);
+
+    Token *ifj = CheckAndReturnTokenVector(parser, IDENTIFIER_TOKEN);
+    if(strcmp(ifj->attribute, "ifj") != 0)
+    {
+        DestroyTokenVector(stream);
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        ErrorExit(ERROR_SYNTACTIC, "Expected 'ifj' at line %d", parser->line_number);
+    }
+
     CheckTokenTypeVector(parser, ASSIGNMENT);
     CheckTokenTypeVector(parser, IMPORT_TOKEN);
     CheckTokenTypeVector(parser, L_ROUND_BRACKET);
-    CheckTokenTypeVector(parser, LITERAL_TOKEN);
+
+    Token *import_ifj24 = CheckAndReturnTokenVector(parser, LITERAL_TOKEN);
+    if(strcmp(import_ifj24->attribute, "ifj24.zig") != 0)
+    {
+        DestroyTokenVector(stream);
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        ErrorExit(ERROR_SYNTACTIC, "Expected 'ifj24.zig' at line %d", parser->line_number);
+    }
+
     CheckTokenTypeVector(parser, R_ROUND_BRACKET);
     CheckTokenTypeVector(parser, SEMICOLON);
 }
@@ -284,10 +302,13 @@ void VarDeclaration(Parser *parser, bool is_const)
 
 
     // check if the variable is already declared in the current symtable
-    VariableSymbol *var_in_stack = FindVariableSymbol(parser->symtable, var->name);
+    VariableSymbol *var_in_stack = SymtableStackFindVariable(parser->symtable_stack, var->name);
 
     if (var_in_stack != NULL)
     {
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
         ErrorExit(ERROR_SEMANTIC_REDEFINED, "Variable %s already declared", var->name);
     }
 
@@ -299,7 +320,7 @@ void VarDeclaration(Parser *parser, bool is_const)
     if (token->token_type != ASSIGNMENT && token->token_type != COLON_TOKEN)
     {
         SymtableStackDestroy(parser->symtable_stack);
-        DestroySymtable(parser->symtable);
+        DestroySymtable(parser->global_symtable);
         DestroyTokenVector(stream);
         ErrorExit(ERROR_SYNTACTIC, "Expected '=' or ':' at line %d", parser->line_number);
     }
@@ -309,15 +330,23 @@ void VarDeclaration(Parser *parser, bool is_const)
     {
         // data type
         token = GetNextToken(parser);
+
         if (token->token_type != KEYWORD || (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8))
         {
             DestroyTokenVector(stream);
-            DestroySymtable(parser->symtable);
+            DestroySymtable(parser->global_symtable);
             SymtableStackDestroy(parser->symtable_stack);
+            fprintf(stderr, "declaring var %s\n", var->name);
             ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
         }
         var->type = token->keyword_type == I32 ? INT32_TYPE : token->keyword_type == F64 ? DOUBLE64_TYPE
                                                                                          : U8_ARRAY_TYPE;
+
+        if(token->attribute[0] == '?')
+        {
+            var->type = token->keyword_type == I32 ? INT32_NULLABLE_TYPE : token->keyword_type == F64 ? DOUBLE64_NULLABLE_TYPE
+                                                                                         : U8_ARRAY_NULLABLE_TYPE;
+        }
 
 
         CheckTokenTypeVector(parser, ASSIGNMENT);
@@ -480,7 +509,6 @@ void FunctionDefinition(Parser *parser)
         CREATEFRAME
     PUSHFRAME
 
-
     // define variables
     for(int i = 0; i < func->variables.count; i++){
         DefineVariable(func->variables.strings[i], LOCAL_FRAME);
@@ -544,7 +572,7 @@ void FunctionReturn(Parser *parser)
         if ((token = GetNextToken(parser))->token_type != SEMICOLON)
         {
             SymtableStackDestroy(parser->symtable_stack);
-            DestroySymtable(parser->symtable);
+            DestroySymtable(parser->global_symtable);
             DestroyTokenVector(stream);
             ErrorExit(ERROR_SEMANTIC_MISSING_EXPR, "Line %d: Invalid usage of \"return\" in main function (unexpected expression)");
         }
@@ -603,7 +631,7 @@ void FunctionReturn(Parser *parser)
             SymtableStackDestroy(parser->symtable_stack);
             DestroySymtable(parser->global_symtable);
             DestroyTokenVector(stream);
-            exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+            exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
         }
 
         // Push the return value to the data stack and exit the function
@@ -642,6 +670,9 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
         DestroySymtable(parser->global_symtable);
         exit(ERROR_SEMANTIC_REDEFINED);
     }
+
+    // One checkmark marked off
+    var->was_assigned_to = true;
 
     stream_index++; // For IsFunctionCall to work correctly
     if (IsFunctionCall(parser))
@@ -905,6 +936,10 @@ int main()
     ParseFunctions(&parser);
     parser.current_function = NULL;
 
+    // Check for the header
+    ProgramBegin(&parser);
+    Header(&parser);
+
     // Check for the presence of a a main function
     if (!parser.has_main)
     {
@@ -915,8 +950,6 @@ int main()
     }
 
     // Second go-through of the stream file, parse the program body
-    ProgramBegin(&parser);
-    Header(&parser);
     ProgramBody(&parser);
 
 

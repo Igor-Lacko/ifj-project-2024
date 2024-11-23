@@ -61,7 +61,7 @@ void ParseConstDeclaration(Parser *parser){
         ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", parser->line_number);
     }
 
-    if(strcmp(token->attribute, "ifj") == 0)
+    if(strcmp(token->attribute, "ifj") == 0 || parser->current_function == NULL)
     {
         return;
     }

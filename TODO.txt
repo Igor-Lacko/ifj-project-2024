@@ -1,1 +1,7 @@
-1. MAIN PRIORITY: Parse variables on the first go-through of the input and add them to the function to later DEFVAR 
+1. Variable was used check - has to be used in a expression AND has to be assigned to
+2. Pseudo variable _ usage
+3. When generating variables at the start of a function, include variables defined in nullable conditionals
+    - So if(var) |VAR|{...} DEFVAR LF@VAR should be at the start of the function
+    - Same goes for while(bar) |BAR| {...} DEFVAR LF@BAR should be at the start of the function
+4. Test driven development
+5. Documentation

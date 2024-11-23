@@ -15,55 +15,60 @@ JUMP main
 LABEL main
 CREATEFRAME
 PUSHFRAME
-DEFVAR LF@a
-PUSHS int@5
-POPS LF@a
-CLEARS
+DEFVAR LF@str1
+DEFVAR LF@str2
+DEFVAR LF@newInput
+DEFVAR LF@all
+DEFVAR LF@abcdefgh
+DEFVAR LF@strcmpResult
+MOVE LF@str1 string@Toto\032je\032text\032v\032programu\032jazyka\032IFJ24
+MOVE LF@str2 string@,\032ktery\032jeste\032trochu\032obohatime
+CONCAT LF@str2 LF@str1 LF@str2
+WRITE LF@str1
+WRITE string@\010
+WRITE LF@str2
+WRITE string@\010
+WRITE string@Zadejte\032serazenou\032posloupnost\032malych\032pismen\032a-h:\010
+READ LF@newInput string
+MOVE LF@all string@
+DEFVAR LF@inpOK
 LABEL $while0
-PUSHS LF@a
-PUSHS int@2
+JUMPIFEQ $endwhile0 LF@newInput nil@nil
+MOVE LF@inpOK LF@newInput
+MOVE LF@abcdefgh string@abcdefgh
+GT GF@$B1 LF@inpOK LF@abcdefgh
+GT GF@$B2 LF@abcdefgh LF@inpOK
+JUMPIFEQ FIRSTGREATER0 GF@$B1 bool@true
+JUMPIFEQ SECONDGREATER0 GF@$B2 bool@true
+JUMP AREEQUAL0
+LABEL FIRSTGREATER0
+MOVE LF@strcmpResult int@-1
+JUMP ENDSTRCMP0
+LABEL SECONDGREATER0
+MOVE LF@strcmpResult int@1
+JUMP ENDSTRCMP0
+LABEL AREEQUAL0
+MOVE LF@strcmpResult int@0
+LABEL ENDSTRCMP0
+LABEL $if0
+PUSHS LF@strcmpResult
+PUSHS int@0
 POPS GF@$R1
 POPS GF@$R2
-GT GF@$B0 GF@$R2 GF@$R1
+EQ GF@$B0 GF@$R1 GF@$R2
 PUSHS GF@$B0
 POPS GF@$B0
 CLEARS
-JUMPIFEQ $endwhile0 GF@$B0 bool@false
-PUSHS LF@a
-PUSHS int@1
-POPS GF@$R1
-POPS GF@$R2
-SUB GF@$R0 GF@$R2 GF@$R1
-PUSHS GF@$R0
-POPS LF@a
-CLEARS
+JUMPIFEQ $else0 GF@$B0 bool@false
+WRITE string@Spravne\032zadano!\010
+WRITE LF@all
+MOVE LF@newInput nil@nil
+JUMP $endif0
+LABEL $else0
+WRITE string@Spatne\032zadana\032posloupnost,\032zkuste\032znovu:\010
+CONCAT LF@all LF@all LF@inpOK
+READ LF@newInput string
+LABEL $endif0
 JUMP $while0
 LABEL $endwhile0
-WRITE string@Vysledek:\032
-CREATEFRAME
-DEFVAR TF@PARAM0
-MOVE TF@PARAM0 int@5
-CALL double
-POPS LF@a
-WRITE LF@a
-WRITE string@\010
 EXIT int@0
-LABEL double
-PUSHFRAME
-DEFVAR LF@b
-DEFVAR LF@a
-MOVE LF@a LF@PARAM0
-PUSHS LF@a
-PUSHS int@2
-POPS GF@$R1
-POPS GF@$R2
-MUL GF@$R0 GF@$R1 GF@$R2
-PUSHS GF@$R0
-POPS LF@b
-CLEARS
-PUSHS LF@b
-POPS GF@$R0
-CLEARS
-PUSHS GF@$R0
-POPFRAME
-RETURN

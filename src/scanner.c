@@ -426,6 +426,11 @@ KEYWORD_TYPE IsKeyword(char *attribute)
         "void",
         "while"};
 
+    if(attribute[0] == '?')
+    {
+        return IsKeyword(attribute + 1);
+    }
+
     for (int i = 0; i < KEYWORD_COUNT; i++)
     {
         if (!strcmp(attribute, keyword_strings[i]))

@@ -130,15 +130,17 @@ typedef struct
     bool is_const;
     bool nullable;
     bool defined;
+    bool was_used;
+    bool was_assigned_to;   // If !(was_used || was_assigned_to), it should be an error (when const only was_used)
 } VariableSymbol;
 
+// String array to store variables for functions
 typedef struct
 {
     char **strings;
     int count;
     int capacity;
 } StringArray;
-
 
 // structure of a function symbol
 typedef struct

@@ -13,7 +13,7 @@ EXAMPLE_FOLDER = ../ifj24_examples
 VEDUCI = xpogad00
 
 #----CURRENT DEBUG FILE----#
-INPUT_FILE = $(EXAMPLE_FOLDER)/example_func.ifj24
+INPUT_FILE = $(EXAMPLE_FOLDER)/strings.ifj24
 
 #----CURRENT OUTPUT FILE----#
 OUTPUT_FILE = ../tests/test_outputs/testifj24.ifjcode
