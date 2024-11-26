@@ -45,11 +45,11 @@ void SymtableStackRemoveTop(Parser *parser)
 
                 if (!var->was_used)
                 {
-                    // SymtableStackDestroy(parser->symtable_stack);
+                    PrintError("Warning: Variable '%s' was declared but never used. %d", var->name, parser->line_number);
+                    SymtableStackDestroy(parser->symtable_stack);
                     DestroySymtable(parser->global_symtable);
                     DestroyTokenVector(stream);
-                    ErrorExit(ERROR_SEMANTIC_UNUSED_VARIABLE, "Warning: Variable '%s' was declared but never used. %d", var->name, parser->line_number);
-                    return;
+                    exit(ERROR_SEMANTIC_UNUSED_VARIABLE);
                 }
             }
         }
