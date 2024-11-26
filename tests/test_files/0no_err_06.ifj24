@@ -1,0 +1,13 @@
+const ifj = @import("ifj24.zig");
+
+pub fn main() void {
+    var m: i32 = 20;
+    var n: i32 = 4;
+    var o: i32 = 2;
+
+    var result: i32 = m / n + o;
+    
+    ifj.write(result); // Expected output: 7
+
+    return;
+}
