@@ -220,7 +220,7 @@ void ParseNullableIfStatement(Parser *parser)
     fprintf(stdout, "JUMPIFEQ $else%d LF@%s nil@nil\n", if_id, var->name);
 
     // DEFVAR var
-    DefineVariable(new->name, LOCAL_FRAME);
+    // DefineVariable(new->name, LOCAL_FRAME);
 
     // id = var
     fprintf(stdout, "MOVE LF@%s LF@%s\n", new->name, var->name);
