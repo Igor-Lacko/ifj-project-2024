@@ -182,6 +182,7 @@ char *GetTypeStringSymbol(DATA_TYPE type)
 // In case the variable has term_type, change it after
 void READ(VariableSymbol *var, FRAME frame, DATA_TYPE read_type)
 {
+    if(var == NULL) return;
     char *type;
     switch(var->type)
     {
@@ -246,6 +247,7 @@ void WRITEINSTRUCTION(Token *token, FRAME frame)
 
 void INT2FLOAT(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_frame)
 {
+    if(dst == NULL) return;
     char *src_prefix = value->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("int@");
     char *dst_prefix = GetFrameString(dst_frame);
 
@@ -257,6 +259,7 @@ void INT2FLOAT(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_fra
 
 void FLOAT2INT(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_frame)
 {
+    if(dst == NULL) return;
     char *src_prefix = value->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("float@0x");
     char *dst_prefix = GetFrameString(dst_frame);
 
@@ -268,6 +271,7 @@ void FLOAT2INT(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_fra
 
 void STRLEN(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame)
 {
+    if(var == NULL) return;
     // Get the prefixes
     char *dst_prefix = GetFrameString(dst_frame);
     char *src_prefix = src->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("string@");
@@ -280,6 +284,7 @@ void STRLEN(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame)
 
 void CONCAT(VariableSymbol *dst, Token *prefix, Token *postfix, FRAME dst_frame, FRAME prefix_frame, FRAME postfix_frame)
 {
+    if(dst == NULL) return;
     // Get the prefixes (maybe choose different variable names)
     char *dst_prefix = GetFrameString(dst_frame);
     char *prefix_prefix = prefix->token_type == IDENTIFIER_TOKEN ? GetFrameString(prefix_frame) : strdup("string@");
@@ -296,6 +301,7 @@ void CONCAT(VariableSymbol *dst, Token *prefix, Token *postfix, FRAME dst_frame,
 
 void STRI2INT(VariableSymbol *var, Token *src, Token *position, FRAME dst_frame, FRAME src_frame, FRAME position_frame)
 {
+    if(var == NULL) return;
     // Get the prefixes first
     char *dst_prefix = GetFrameString(dst_frame);
     char *src_prefix = src->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("string@");
@@ -312,6 +318,7 @@ void STRI2INT(VariableSymbol *var, Token *src, Token *position, FRAME dst_frame,
 
 void INT2CHAR(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_frame)
 {
+    if(dst == NULL) return;
     // Get prefixes
     char *dst_prefix = GetFrameString(dst_frame);
     char *src_prefix = value->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("int@");
@@ -324,6 +331,7 @@ void INT2CHAR(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_fram
 
 void STRCMP(VariableSymbol *var, Token *str1, Token *str2, FRAME dst_frame, FRAME str1_frame, FRAME str2_frame)
 {
+    if(var == NULL) return;
     // If this is being called, we assume that the needed type-checking has already been done so it won't be done here
     char *dst_frame_str = GetFrameString(dst_frame);
     (void) dst_frame_str;
@@ -388,6 +396,7 @@ void STRCMP(VariableSymbol *var, Token *str1, Token *str2, FRAME dst_frame, FRAM
 
 void STRING(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame)
 {
+    if(var == NULL) return;
     char *dst_prefix = GetFrameString(dst_frame);
     char *src_prefix = src->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("string@");
     fprintf(stdout, "MOVE %s%s %s", dst_prefix, var->name, src_prefix);
@@ -403,6 +412,7 @@ void STRING(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame)
 
 void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, FRAME string_frame, FRAME position_frame)
 {
+    if(var == NULL) return;
     // Get the prefixes first
     char *dst_prefix = GetFrameString(dst_frame);
     char *string_prefix = string->token_type == IDENTIFIER_TOKEN ? GetFrameString(string_frame) : strdup("string@");
@@ -416,20 +426,29 @@ void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, F
         - STRI2INT <dst> <str> <position>
     */
 
-    // Don't call STRLEN since it R0 is not represented by a token
+    // Don't call STRLEN() since R0 is not represented by a token
     fprintf(stdout, "STRLEN GF@$R0 %s%s\n", string_prefix, string->attribute);
 
     /* Pseudocode for how that might look like
         if R0 == 0 jump RETURN0ORD
-        B0 = position > R0
+        B0 = position > (R0 - 1) || (position < 0)
         if B0 jump RETURN0ORD
         STRI2INT ...
         jump ENDORD
     */
 
     // Initial conditionals
-    JUMPIFEQ("ORDRETURN0", "GF@$R0", "int@0", ord_count)
-    fprintf(stdout, "GT GF@$B0 %s%s GF@$R0\n", position_prefix, position->attribute);
+    JUMPIFEQ("ORDRETURN0", "GF@$R0", "int@0", ord_count)                            // If the string is empty, return 0
+
+    // Check if the position isn't < 0
+    fprintf(stdout, "LT GF@$B2 %s%s int@0\n", position_prefix, position->attribute); // B2 = position < 0
+
+    // Now check if position > (R0 - 1)
+    fprintf(stdout, "SUB GF@$R0 GF@$R0 int@1\n");                                   
+    fprintf(stdout, "GT GF@$B1 %s%s GF@$R0\n", position_prefix, position->attribute);
+
+    // OR those two
+    fprintf(stdout, "OR GF@$B0 GF@$B1 GF@$B2\n");                                    // B0 = B1 || B2
     JUMPIFEQ("ORDRETURN0", "GF@$B0", "bool@true", ord_count)
 
     // Call STRI2INT and skip the 0 assignment
@@ -451,6 +470,7 @@ void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, F
 
 void SUBSTRING(VariableSymbol *var, Token *str, Token *beginning_index, Token *end_index, FRAME dst_frame, FRAME src_frame, FRAME beginning_frame, FRAME end_frame)
 {
+    if(var == NULL) return;
     // Get all the prefixes first
     char *dst_prefix = GetFrameString(dst_frame);
     char *str_prefix = GetFrameString(src_frame);
@@ -504,7 +524,7 @@ void SUBSTRING(VariableSymbol *var, Token *str, Token *beginning_index, Token *e
         MOVE B2, true                           B2 = true (flag of the first character)
         LABEL SUBSTRINGWHILE
         LT B0 R0 R1                             B0 = beginning < end
-        JUMPIFEQ SUBSTRINGEND B0 bool@false     while(beginning < end)
+        JUMPIFEQ SUBSTRINGWHILEEND B0 bool@false     while(beginning < end)
         GETCHAR str S1                          S1 = str[beginning]
         JUMPIFEQ SUBSTRINGFIRSTCHAR, B2, true   if(B2) goto FIRSTCHAR
         CONCAT S0 S1 S0                         else{ S0 = S0 + S1
@@ -515,14 +535,15 @@ void SUBSTRING(VariableSymbol *var, Token *str, Token *beginning_index, Token *e
         LABEL SUBSTRINGNOTFIRSTCHAR
         ADD R0 R0 int@1                         beginning++
         JUMP SUBSTRINGWHILE
-        LABEL SUBSTRINGEND
+        LABEL SUBSTRINGWHILEEND
         MOVE var S0                             var = S0
+        JUMP SUBSTRINGEND
     */
 
     fprintf(stdout, "MOVE GF@$B2 bool@true\n");                                                     // B2 = true (flag of the first character)
     fprintf(stdout, "LABEL SUBSTRINGWHILE%d\n", substring_count);                                   // LABEL SUBSTRINGWHILE
     fprintf(stdout, "LT GF@$B0 GF@$R0 GF@$R1\n");                                                   // B0 = beginning < end
-    JUMPIFEQ("SUBSTRINGEND", "GF@$B0", "bool@false", substring_count);                              // while(beginning < end)
+    JUMPIFEQ("SUBSTRINGWHILEEND", "GF@$B0", "bool@false", substring_count);                         // while(beginning < end)
     fprintf(stdout, "GETCHAR GF@$S1 %s%s GF@$R0\n", str_prefix, str->attribute);                    // S1 = str[beginning]
     JUMPIFEQ("SUBSTRINGFIRSTCHAR", "GF@$B2", "bool@true", substring_count);                         // if(B2) goto FIRSTCHAR
     fprintf(stdout, "CONCAT GF@$S0 GF@$S0 GF@$S1\n");                                               // else{ S0 = S0 + S1
@@ -533,8 +554,16 @@ void SUBSTRING(VariableSymbol *var, Token *str, Token *beginning_index, Token *e
     fprintf(stdout, "LABEL SUBSTRINGNOTFIRSTCHAR%d\n", substring_count);                            // LABEL SUBSTRINGNOTFIRSTCHAR
     fprintf(stdout, "ADD GF@$R0 GF@$R0 int@1\n");                                                   // beginning++
     fprintf(stdout, "JUMP SUBSTRINGWHILE%d\n", substring_count);                                    // goto SUBSTRINGWHILE
-    fprintf(stdout, "LABEL SUBSTRINGEND%d\n", substring_count);                                     // LABEL SUBSTRINGEND
+    fprintf(stdout, "LABEL SUBSTRINGWHILEEND%d\n", substring_count);                                // LABEL SUBSTRINGWHILEEND
     fprintf(stdout, "MOVE %s%s GF@$S0\n", dst_prefix, var->name);                                   // var = S0
+    JUMP_WITH_ORDER("SUBSTRINGEND", substring_count);                                               // goto SUBSTRINGEND
+
+    // Case where we return NULL
+    fprintf(stdout, "LABEL SUBSTRINGRETURNNULL%d\n", substring_count);                              // LABEL SUBSTRINGRETURNNULL
+    fprintf(stdout, "MOVE %s%s nil@nil\n", dst_prefix, var->name);                                  // var = nil
+
+    // End of the function
+    fprintf(stdout, "LABEL SUBSTRINGEND%d\n", substring_count);                                     // LABEL SUBSTRINGEND
 
     // Increment the substring counter
     substring_count++;

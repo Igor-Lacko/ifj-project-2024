@@ -191,8 +191,25 @@ bool ConstValueAssignment(VariableSymbol *var);
  * @brief Generates the code for assignment to the variable passed in as a parameter
  * 
  * @param var Also check if it's not a const variable
+ * 
+ * @param is_underscore If yes, the value is thrown away
  */
-void VariableAssignment(Parser *parser, VariableSymbol *var);
+void VariableAssignment(Parser *parser, VariableSymbol *var, bool is_underscore);
+
+/**
+ * @brief Checks if the types of the literal and the variable are compatible for arithmetic operations.
+ */
+bool AreTypesCompatible(DATA_TYPE expected, DATA_TYPE got);
+
+/**
+ * @brief Basically VariableDeclaration, but for _. 
+ * 
+ * @note In case of embedded fucntions, no code is generated 
+ * @note In case of calls and expressions the stack is just cleared instead of popped and cleared.
+ * 
+ * @param parser 
+ */
+void ThrowAwayExpression(Parser *parser);
 
 /**
  * @brief Generates code for assigning a function return to variable, for example var a : i32 = Sum(10, 20, 30, 40);
@@ -200,8 +217,9 @@ void VariableAssignment(Parser *parser, VariableSymbol *var);
  * @param parser Parser instance.
  * @param var Symbol representing the variable to be assigned to.
  * @param func Symbol representing the function whose return value will be assigned to the variable.
+ * @param is_underscore If true, the return value is thrown away.
  */
-void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *func);
+void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *func, bool is_underscore);
 
 /**
  * @brief Returns a normal data type from a nullable one.
