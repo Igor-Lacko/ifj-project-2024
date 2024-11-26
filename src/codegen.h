@@ -190,6 +190,10 @@ void STRING(VariableSymbol *var, Token *src, FRAME dst_frame, FRAME src_frame);
 // Generates code for the ifj.ord(string, position) embedded function using STRCMP and STRI2INT
 void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, FRAME string_frame, FRAME position_frame);
 
+// Generates code for the ifj.substring(str, beginning_index, end_index) embedded function
+// Also comically large amount of arguments, but it's the most simple way to do it (even though FRAME is probably always local)
+void SUBSTRING(VariableSymbol *var, Token *str, Token *beginning_index, Token *end_index, FRAME dst_frame, FRAME src_frame, FRAME beginning_frame, FRAME end_frame);
+
 /**
  * @brief Writes the string literal passed in as a param in a IFJCode24 compatible way.
  */

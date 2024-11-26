@@ -62,6 +62,9 @@ dkms.conf
 *.sh*
 rozdeleni
 
+#tests from github
+*tests_github/
+
 #vscode files
 *vscode*
 .json*

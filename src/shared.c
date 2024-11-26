@@ -5,6 +5,7 @@ int if_label_count = 0;
 int while_label_count = 0;
 int strcmp_count = 0;
 int ord_count = 0;
+int substring_count = 0;
 
 const char token_types[TOKEN_COUNT][MAXLENGTH_TOKEN] = {
     "identifier",

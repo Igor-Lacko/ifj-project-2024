@@ -367,12 +367,12 @@ void STRCMP(VariableSymbol *var, Token *str1, Token *str2, FRAME dst_frame, FRAM
 
     // LABEL FIRSTGREATER
     fprintf(stdout, "LABEL FIRSTGREATER%d\n", strcmp_count);
-    MOVE(var->name, "int@-1", false, dst_frame);
+    MOVE(var->name, "int@1", false, dst_frame);
     fprintf(stdout, "JUMP ENDSTRCMP%d\n", strcmp_count);
 
     // LABEL SECONDGREATER
     fprintf(stdout, "LABEL SECONDGREATER%d\n", strcmp_count);
-    MOVE(var->name, "int@1", false, dst_frame);
+    MOVE(var->name, "int@-1", false, dst_frame);
     fprintf(stdout, "JUMP ENDSTRCMP%d\n", strcmp_count);
 
     // LABEL AREEQUAL
@@ -429,7 +429,7 @@ void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, F
 
     // Initial conditionals
     JUMPIFEQ("ORDRETURN0", "GF@$R0", "int@0", ord_count)
-    fprintf(stdout, "GT GF@$B0 %s%s GF@R0\n", position_prefix, string->attribute);
+    fprintf(stdout, "GT GF@$B0 %s%s GF@$R0\n", position_prefix, position->attribute);
     JUMPIFEQ("ORDRETURN0", "GF@$B0", "bool@true", ord_count)
 
     // Call STRI2INT and skip the 0 assignment
@@ -447,6 +447,97 @@ void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, F
 
     // Increment the ord counter
     ord_count++;
+}
+
+void SUBSTRING(VariableSymbol *var, Token *str, Token *beginning_index, Token *end_index, FRAME dst_frame, FRAME src_frame, FRAME beginning_frame, FRAME end_frame)
+{
+    // Get all the prefixes first
+    char *dst_prefix = GetFrameString(dst_frame);
+    char *str_prefix = GetFrameString(src_frame);
+    char *beginning_prefix = beginning_index->token_type == IDENTIFIER_TOKEN ? GetFrameString(beginning_frame) : strdup("int@");
+    char *end_prefix = end_index->token_type == IDENTIFIER_TOKEN ? GetFrameString(end_frame) : strdup("int@");
+
+    /* First, check the edge cases. The function ifj.substring(str, beginning_index, end_index) returns null when:
+        1. beginning_index < 0
+        2. end_index < 0
+        3. beginning_index > end_index
+        4. beginning_index >= ifj.length(str)
+        5. end_index > ifj.length(str)
+    */
+
+    /* Edge cases handling pseudocode
+        MOVE R0, beginning_index                    R0 = beginning
+        MOVE R1, end_index                          R1 = end
+        STRLEN R2, str                              R2 = length
+        LT B1 R0 int@0                              B1 = beginning < 0
+        LT B2 R1 int@0                              B2 = end < 0
+        OR B0 B1 B2                                 B0 = B1 || B2, conditions 1 and 2 marked off
+        GT B1 R0 R1                                 B1 = beginning > end
+        OR B0 B0 B1                                 B0 = B0 || B1, condition 3 marked off
+        GT B1 R0 R2                                 B1 = R0 > R2
+        EQ B2 R0 R2                                 B2 = R0 == R2
+        OR B1 B1 B2                                 B1 = B1 || B2
+        OR B0 B0 B1                                 B0 = B0 || B1, condition 4 marked off
+        GT B1 R1 R2                                 B1 = R1 > R2
+        OR B0 B0 B1                                 B0 = B0 || B1, condition 5 marked off
+        JUMPIFEQ SUBSTRINGRETURNNULL B0 bool@true   if(B0) return NULL
+    */
+
+    fprintf(stdout, "MOVE GF@$R0 %s%s\n", beginning_prefix, beginning_index->attribute);            // R0 = beginning
+    fprintf(stdout, "MOVE GF@$R1 %s%s\n", end_prefix, end_index->attribute);                        // R1 = end
+    fprintf(stdout, "STRLEN GF@$R2 %s%s\n", str_prefix, str->attribute);                            // R2 = length
+    fprintf(stdout, "LT GF@$B1 GF@$R0 int@0\n");                                                    // B1 = beginning < 0
+    fprintf(stdout, "LT GF@$B2 GF@$R1 int@0\n");                                                    // B2 = end < 0
+    fprintf(stdout, "OR GF@$B0 GF@$B1 GF@$B2\n");                                                   // B0 = B1 || B2, conditions 1 and 2 marked off
+    fprintf(stdout, "GT GF@$B1 GF@$R0 GF@$R1\n");                                                   // B1 = beginning > end
+    fprintf(stdout, "OR GF@$B0 GF@$B0 GF@$B1\n");                                                   // B0 = B0 || B1, condition 3 marked off
+    fprintf(stdout, "GT GF@$B1 GF@$R0 GF@$R2\n");                                                   // B1 = beginning > length
+    fprintf(stdout, "EQ GF@$B2 GF@$R0 GF@$R2\n");                                                   // B2 = beginning == length
+    fprintf(stdout, "OR GF@$B1 GF@$B1 GF@$B2\n");                                                   // B1 = B1 || B2
+    fprintf(stdout, "OR GF@$B0 GF@$B0 GF@$B1\n");                                                   // B0 = B0 || B1, condition 4 marked off
+    fprintf(stdout, "GT GF@$B1 GF@$R1 GF@$R2\n");                                                   // B1 = end > length
+    fprintf(stdout, "OR GF@$B0 GF@$B0 GF@$B1\n");                                                   // B0 = B0 || B1, condition 5 marked off
+    JUMPIFEQ("SUBSTRINGRETURNNULL", "GF@$B0", "bool@true", substring_count);                        // if(B0) return NULL
+
+
+    /* Substring getting pseudocode
+        MOVE B2, true                           B2 = true (flag of the first character)
+        LABEL SUBSTRINGWHILE
+        LT B0 R0 R1                             B0 = beginning < end
+        JUMPIFEQ SUBSTRINGEND B0 bool@false     while(beginning < end)
+        GETCHAR str S1                          S1 = str[beginning]
+        JUMPIFEQ SUBSTRINGFIRSTCHAR, B2, true   if(B2) goto FIRSTCHAR
+        CONCAT S0 S1 S0                         else{ S0 = S0 + S1
+        JUMP SUBSTRINGNOTFIRSTCHAR              goto NOTFIRSTCHAR }
+        LABEL SUBSTRINGFIRSTCHAR
+        MOVE S0 S1                              S0 = S1
+        MOVE B2, false                          B2 = false
+        LABEL SUBSTRINGNOTFIRSTCHAR
+        ADD R0 R0 int@1                         beginning++
+        JUMP SUBSTRINGWHILE
+        LABEL SUBSTRINGEND
+        MOVE var S0                             var = S0
+    */
+
+    fprintf(stdout, "MOVE GF@$B2 bool@true\n");                                                     // B2 = true (flag of the first character)
+    fprintf(stdout, "LABEL SUBSTRINGWHILE%d\n", substring_count);                                   // LABEL SUBSTRINGWHILE
+    fprintf(stdout, "LT GF@$B0 GF@$R0 GF@$R1\n");                                                   // B0 = beginning < end
+    JUMPIFEQ("SUBSTRINGEND", "GF@$B0", "bool@false", substring_count);                              // while(beginning < end)
+    fprintf(stdout, "GETCHAR GF@$S1 %s%s GF@$R0\n", str_prefix, str->attribute);                    // S1 = str[beginning]
+    JUMPIFEQ("SUBSTRINGFIRSTCHAR", "GF@$B2", "bool@true", substring_count);                         // if(B2) goto FIRSTCHAR
+    fprintf(stdout, "CONCAT GF@$S0 GF@$S0 GF@$S1\n");                                               // else{ S0 = S0 + S1
+    fprintf(stdout, "JUMP SUBSTRINGNOTFIRSTCHAR%d\n", substring_count);                             // goto NOTFIRSTCHAR
+    fprintf(stdout, "LABEL SUBSTRINGFIRSTCHAR%d\n", substring_count);                               // LABEL SUBSTRINGFIRSTCHAR
+    fprintf(stdout, "MOVE GF@$S0 GF@$S1\n");                                                        // S0 = S1
+    fprintf(stdout, "MOVE GF@$B2 bool@false\n");                                                    // B2 = false
+    fprintf(stdout, "LABEL SUBSTRINGNOTFIRSTCHAR%d\n", substring_count);                            // LABEL SUBSTRINGNOTFIRSTCHAR
+    fprintf(stdout, "ADD GF@$R0 GF@$R0 int@1\n");                                                   // beginning++
+    fprintf(stdout, "JUMP SUBSTRINGWHILE%d\n", substring_count);                                    // goto SUBSTRINGWHILE
+    fprintf(stdout, "LABEL SUBSTRINGEND%d\n", substring_count);                                     // LABEL SUBSTRINGEND
+    fprintf(stdout, "MOVE %s%s GF@$S0\n", dst_prefix, var->name);                                   // var = S0
+
+    // Increment the substring counter
+    substring_count++;
 }
 
 void WriteStringLiteral(const char *str)

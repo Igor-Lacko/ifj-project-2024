@@ -15,43 +15,155 @@ JUMP main
 LABEL main
 CREATEFRAME
 PUSHFRAME
-DEFVAR LF@a
-DEFVAR LF@b
-DEFVAR LF@c
-DEFVAR LF@d
-DEFVAR LF@result
-MOVE LF@a int@5
-MOVE LF@b float@0x1.4p+1
-MOVE LF@c int@10
-MOVE LF@d float@0x1.d333333333333p+2
-PUSHS int@5
-PUSHS float@0x1.4p+1
-POPS GF@$F0
-INT2FLOATS
-PUSHS GF@$F0
-ADDS
-PUSHS int@10
-PUSHS int@3
-SUBS
-INT2FLOATS
-MULS
-PUSHS float@0x1p+1
-DIVS
-PUSHS float@0x1.d333333333333p+2
-PUSHS int@3
-INT2FLOATS
-MULS
-ADDS
-PUSHS int@10
-PUSHS int@5
-ADDS
-PUSHS float@0x1.4p+1
-POPS GF@$F0
-INT2FLOATS
-PUSHS GF@$F0
-DIVS
-SUBS
-POPS LF@result
-CLEARS
-WRITE LF@result
+DEFVAR LF@inputStr
+DEFVAR LF@inputInt
+DEFVAR LF@intToFloat
+DEFVAR LF@inputFloat
+DEFVAR LF@floatToInt
+DEFVAR LF@str1
+DEFVAR LF@str2
+DEFVAR LF@concatenated
+DEFVAR LF@len
+DEFVAR LF@subStr
+DEFVAR LF@comparisonResult
+DEFVAR LF@ordValue
+DEFVAR LF@charFromOrd
+WRITE string@Enter\032a\032string:\032
+READ LF@inputStr string
+LABEL $if0
+JUMPIFEQ $else0 LF@inputStr nil@nil
+DEFVAR LF@str
+MOVE LF@str LF@inputStr
+WRITE string@You\032entered\032the\032string:\032
+WRITE LF@str
+WRITE string@\010
+JUMP $endif0
+LABEL $else0
+WRITE string@Error:\032Invalid\032string\032input.\010
+LABEL $endif0
+WRITE string@Enter\032an\032integer:\032
+READ LF@inputInt int
+LABEL $if1
+JUMPIFEQ $else1 LF@inputInt nil@nil
+DEFVAR LF@intVal
+MOVE LF@intVal LF@inputInt
+WRITE string@You\032entered\032the\032integer:\032
+WRITE LF@intVal
+WRITE string@\010
+INT2FLOAT LF@intToFloat LF@intVal
+WRITE string@Converted\032integer\032to\032float:\032
+WRITE LF@intToFloat
+WRITE string@\010
+JUMP $endif1
+LABEL $else1
+WRITE string@Error:\032Invalid\032integer\032input.\010
+LABEL $endif1
+WRITE string@Enter\032a\032floating-point\032number:\032
+READ LF@inputFloat float
+LABEL $if2
+JUMPIFEQ $else2 LF@inputFloat nil@nil
+DEFVAR LF@floatVal
+MOVE LF@floatVal LF@inputFloat
+WRITE string@You\032entered\032the\032float:\032
+WRITE LF@floatVal
+WRITE string@\010
+FLOAT2INT LF@floatToInt LF@floatVal
+WRITE string@Converted\032float\032to\032integer:\032
+WRITE LF@floatToInt
+WRITE string@\010
+JUMP $endif2
+LABEL $else2
+WRITE string@Error:\032Invalid\032floating-point\032input.\010
+LABEL $endif2
+MOVE LF@str1 string@Hello
+MOVE LF@str2 string@,\032World!
+CONCAT LF@concatenated LF@str1 LF@str2
+WRITE string@Concatenated\032string:\032
+WRITE LF@concatenated
+WRITE string@\010
+WRITE string@Length\032of\032concatenated\032string:\032
+STRLEN LF@len LF@concatenated
+WRITE LF@len
+WRITE string@\010
+MOVE GF@$R0 int@0
+MOVE GF@$R1 int@5
+STRLEN GF@$R2 LF@concatenated
+LT GF@$B1 GF@$R0 int@0
+LT GF@$B2 GF@$R1 int@0
+OR GF@$B0 GF@$B1 GF@$B2
+GT GF@$B1 GF@$R0 GF@$R1
+OR GF@$B0 GF@$B0 GF@$B1
+GT GF@$B1 GF@$R0 GF@$R2
+EQ GF@$B2 GF@$R0 GF@$R2
+OR GF@$B1 GF@$B1 GF@$B2
+OR GF@$B0 GF@$B0 GF@$B1
+GT GF@$B1 GF@$R1 GF@$R2
+OR GF@$B0 GF@$B0 GF@$B1
+JUMPIFEQ SUBSTRINGRETURNNULL0 GF@$B0 bool@true
+MOVE GF@$B2 bool@true
+LABEL SUBSTRINGWHILE0
+LT GF@$B0 GF@$R0 GF@$R1
+JUMPIFEQ SUBSTRINGEND0 GF@$B0 bool@false
+GETCHAR GF@$S1 LF@concatenated GF@$R0
+JUMPIFEQ SUBSTRINGFIRSTCHAR0 GF@$B2 bool@true
+CONCAT GF@$S0 GF@$S0 GF@$S1
+JUMP SUBSTRINGNOTFIRSTCHAR0
+LABEL SUBSTRINGFIRSTCHAR0
+MOVE GF@$S0 GF@$S1
+MOVE GF@$B2 bool@false
+LABEL SUBSTRINGNOTFIRSTCHAR0
+ADD GF@$R0 GF@$R0 int@1
+JUMP SUBSTRINGWHILE0
+LABEL SUBSTRINGEND0
+MOVE LF@subStr GF@$S0
+LABEL $if3
+JUMPIFEQ $else3 LF@subStr nil@nil
+DEFVAR LF@sub
+MOVE LF@sub LF@subStr
+WRITE string@Substring\032(first\0325\032chars):\032
+WRITE LF@sub
+WRITE string@\010
+JUMP $endif3
+LABEL $else3
+WRITE string@Error:\032Invalid\032substring\032operation.\010
+LABEL $endif3
+WRITE string@Str\0321:\032
+WRITE LF@str1
+WRITE string@\010
+WRITE string@Str\0322:\032
+WRITE LF@str2
+WRITE string@\010
+GT GF@$B1 LF@str1 LF@str2
+GT GF@$B2 LF@str2 LF@str1
+JUMPIFEQ FIRSTGREATER0 GF@$B1 bool@true
+JUMPIFEQ SECONDGREATER0 GF@$B2 bool@true
+JUMP AREEQUAL0
+LABEL FIRSTGREATER0
+MOVE LF@comparisonResult int@1
+JUMP ENDSTRCMP0
+LABEL SECONDGREATER0
+MOVE LF@comparisonResult int@-1
+JUMP ENDSTRCMP0
+LABEL AREEQUAL0
+MOVE LF@comparisonResult int@0
+LABEL ENDSTRCMP0
+WRITE string@String\032comparison\032result\032(str1\032vs\032str2):\032
+WRITE LF@comparisonResult
+WRITE string@\010
+STRLEN GF@$R0 LF@concatenated
+JUMPIFEQ ORDRETURN00 GF@$R0 int@0
+GT GF@$B0 int@1 GF@$R0
+JUMPIFEQ ORDRETURN00 GF@$B0 bool@true
+STRI2INT LF@ordValue LF@concatenated int@1
+JUMP ENDORD0
+LABEL ORDRETURN00
+MOVE LF@ordValue int@0
+LABEL ENDORD0
+WRITE string@Ordinal\032value\032of\0322nd\032character\032in\032concatenated\032string:\032
+WRITE LF@ordValue
+WRITE string@\010
+INT2CHAR LF@charFromOrd LF@ordValue
+WRITE string@Character\032created\032from\032ordinal\032value:\032
+WRITE LF@charFromOrd
+WRITE string@\010
 EXIT int@0

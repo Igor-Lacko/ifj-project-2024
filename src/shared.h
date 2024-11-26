@@ -19,6 +19,7 @@ extern int if_label_count;
 extern int while_label_count;
 extern int strcmp_count;
 extern int ord_count;
+extern int substring_count;
 
 // Contains string representation of token types
 extern const char token_types[TOKEN_COUNT][MAXLENGTH_TOKEN];
