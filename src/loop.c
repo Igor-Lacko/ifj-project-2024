@@ -83,7 +83,7 @@ void ParseWhileLoop(Parser *parser)
 
     // Parse the expression
     TokenVector *postfix = InfixToPostfix(parser);
-    DATA_TYPE expr_type = GeneratePostfixExpression(parser, postfix, NULL);
+    DATA_TYPE expr_type = ParseExpression(postfix, parser);
 
     // Check if the expression wasn't of a incorrect type
     if(expr_type != BOOLEAN)
@@ -93,6 +93,10 @@ void ParseWhileLoop(Parser *parser)
         DestroySymtable(parser->global_symtable);
         ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Expected boolean expression in while loop", parser->line_number);
     }
+
+    // Pop the expression result and clear the data stack
+    PopToRegister(BOOLEAN);
+    CLEARS
 
     /* Loop pseudocode
         LABEL while_order

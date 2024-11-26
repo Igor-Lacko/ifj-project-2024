@@ -126,12 +126,12 @@ typedef enum
 typedef struct
 {
     char *name;
+    char *value;            // for constants
     DATA_TYPE type;
     bool is_const;
     bool nullable;
     bool defined;
     bool was_used;
-    bool was_assigned_to;   // If !(was_used || was_assigned_to), it should be an error (when const only was_used)
 } VariableSymbol;
 
 // String array to store variables for functions

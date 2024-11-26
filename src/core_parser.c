@@ -360,8 +360,63 @@ void VarDeclaration(Parser *parser, bool is_const)
         ErrorExit(ERROR_SYNTACTIC, "Expected '=' at line %d", parser->line_number);
     }
 
+    // Try to remember the variable's value at compile-time
+    if(var->is_const && ConstValueAssignment(var)) return;
+
     // Assign to the variable
-    VariableAssignment(parser, var);
+    else VariableAssignment(parser, var);
+}
+
+bool ConstValueAssignment(VariableSymbol *var)
+{
+    Token *potential_value = stream->token_string[stream_index];
+    Token *potential_semicolon = stream->token_string[stream_index + 1];
+
+    // If the [next + 1] token is a semicolon, we can check the value
+    if(potential_semicolon->token_type == SEMICOLON)
+    {
+        switch(potential_value->token_type)
+        {
+            // Valid types in expression
+            case INTEGER_32:
+                if(var->type == INT32_TYPE || var->type == INT32_NULLABLE_TYPE || var->type == VOID_TYPE)
+                {
+                    var->value = strdup(potential_value->attribute);
+                    stream_index += 2;
+                    fprintf(stdout, "MOVE LF@%s int@%s\n", var->name, var->value);
+                    return true;
+                }
+
+                break;
+
+            case DOUBLE_64:
+                if(var->type == DOUBLE64_TYPE || var->type == DOUBLE64_NULLABLE_TYPE || var->type == VOID_TYPE)
+                {
+                    var->value = strdup(potential_value->attribute);
+                    stream_index += 2;
+                    fprintf(stdout, "MOVE LF@%s float@%s\n", var->name, var->value);
+                    return true;
+                }
+
+                break;
+
+            case KEYWORD:
+                if(potential_value->keyword_type == NULL_TYPE && var->nullable)
+                {
+                    var->value = strdup(potential_value->attribute);
+                    stream_index += 2;
+                    fprintf(stdout, "MOVE LF@%s nil@nil\n", var->name);
+                    return true;
+                }
+
+                break;
+
+            default:
+                return false;
+        }
+    }
+
+    return false;
 }
 
 // TODO: revamp this to work accordingly with function_parser.c
@@ -619,9 +674,9 @@ void FunctionReturn(Parser *parser)
 
         stream_index--; // Revert the stream to the beginning of the expression
 
-        // The returned type is now in R0/B0/F0
+        // The returned type is now on top of the data stack
         TokenVector *postfix = InfixToPostfix(parser);
-        DATA_TYPE expr_type = GeneratePostfixExpression(parser, postfix, NULL);
+        DATA_TYPE expr_type = ParseExpression(postfix, parser);
 
         // Invalid return type
         if (expr_type != parser->current_function->return_type)
@@ -634,8 +689,7 @@ void FunctionReturn(Parser *parser)
             exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
         }
 
-        // Push the return value to the data stack and exit the function
-        PushRetValue(expr_type);
+        // exit the function
         POPFRAME
         FUNCTION_RETURN
         return;
@@ -670,9 +724,6 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
         DestroySymtable(parser->global_symtable);
         exit(ERROR_SEMANTIC_REDEFINED);
     }
-
-    // One checkmark marked off
-    var->was_assigned_to = true;
 
     stream_index++; // For IsFunctionCall to work correctly
     if (IsFunctionCall(parser))
@@ -721,7 +772,7 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
     DATA_TYPE expr_type;
     TokenVector *postfix = InfixToPostfix(parser);
 
-    if ((expr_type = GeneratePostfixExpression(parser, postfix, var)) != var->type && var->type != VOID_TYPE)
+    if ((expr_type = ParseExpression(postfix, parser)) != var->type && var->type != VOID_TYPE)
     {
         PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\", expected %d, got %d",
                    parser->line_number, var->name, var->type, expr_type);
@@ -730,6 +781,9 @@ void VariableAssignment(Parser *parser, VariableSymbol *var)
         DestroySymtable(parser->global_symtable);
         exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
     }
+
+    fprintf(stdout, "POPS LF@%s\n", var->name);
+    CLEARS
 
     // if the variable doesn't have a type yet, derive it from the expression (TODO: Add check for invalid types, etc.)
     if (var->type == VOID_TYPE)
@@ -780,6 +834,7 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
     */
     fprintf(stdout, "CALL %s\n", func->name);
     fprintf(stdout, "POPS LF@%s\n", var->name);
+    CLEARS
 }
 
 void ProgramBody(Parser *parser)

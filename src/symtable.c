@@ -167,6 +167,9 @@ void DestroyVariableSymbol(VariableSymbol *variable_symbol)
     if (variable_symbol->name != NULL)
         free(variable_symbol->name);
 
+    if(variable_symbol->value != NULL)
+        free(variable_symbol->value);
+
     free(variable_symbol);
 }
 

@@ -3,5 +3,6 @@
 3. When generating variables at the start of a function, include variables defined in nullable conditionals
     - So if(var) |VAR|{...} DEFVAR LF@VAR should be at the start of the function
     - Same goes for while(bar) |BAR| {...} DEFVAR LF@BAR should be at the start of the function
+4. ?i32 == NULL can be, todo
 4. Test driven development
 5. Documentation

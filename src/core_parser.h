@@ -34,6 +34,13 @@ do {   PrintError("Error in semantic analysis: Line %d: Invalid parameter type f
     exit(ERROR_SYNTACTIC);\
 } while(0);
 
+// Macro that frees resources that are destroyed in case of basically every error
+#define CLEANUP do{\
+    DestroyTokenVector(stream);\
+    SymtableStackDestroy(parser->symtable_stack);\
+    DestroySymtable(parser->global_symtable);\
+} while(0);
+
 
 // Function declarations
 
@@ -110,13 +117,6 @@ VariableSymbol *IsVariableAssignment(Token *token, Parser *parser);
 void Header(Parser *parser);
 
 /**
- * @brief Parses an expression.
- *
- * @param parser Pointer to the parser structure.
- */
-void Expression(Parser *parser);
-
-/**
  * @brief A function call, checks if the params fit and calls codegen on the fly.
  * 
  * @param parser Pointer to the parser structure.
@@ -178,6 +178,14 @@ void WhileLoop(Parser *parser);
  * @param parser Pointer to the parser structure.
  */
 void VarDeclaration(Parser *parser, bool const);
+
+/**
+ * @brief Used when declaring a variable of type const. If rhs is a literal, it's assigned directly and remembered
+ * 
+ * @param parser Pointer to the parser structure.
+ * @param var The variable to be assigned to.
+ */
+bool ConstValueAssignment(VariableSymbol *var);
 
 /**
  * @brief Generates the code for assignment to the variable passed in as a parameter

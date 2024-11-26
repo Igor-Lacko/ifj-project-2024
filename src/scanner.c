@@ -135,6 +135,19 @@ void ConsumeNumber(Token *token, int *line_number)
     // c is the first character after the number, so put it back to the stream
     ungetc(c, stdin);
 
+    // We need to sprintf it with %a
+    if(token->token_type == DOUBLE_64)
+    {
+        double float_res = strtod(vector->value, NULL);
+        unsigned long length = snprintf(NULL, 0, "%a", float_res);
+        if((token->attribute = malloc((length + 1) * sizeof(char))) == NULL)
+            ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+
+        sprintf(token->attribute, "%a", float_res);
+        DestroyVector(vector);
+        return;
+    }
+
     // copy the number to the token's value
     if ((token->attribute = malloc(vector->length * sizeof(char))) == NULL)
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
@@ -189,6 +202,8 @@ void ConsumeIdentifier(Token *token, int *line_number)
     if ((c = getchar()) == '_' && !isalnum(NextChar()))
     {
         token->token_type = UNDERSCORE_TOKEN;
+        token->attribute = strdup("_");
+        token->line_number = *line_number;
         DestroyVector(vector);
         return;
     }

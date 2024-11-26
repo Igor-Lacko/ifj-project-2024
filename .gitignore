@@ -59,7 +59,7 @@ dkms.conf
 *ifjcode24_examples/
 *ifj24_examples/
 *submit_folder/
-*.sh
+*.sh*
 rozdeleni
 
 #vscode files

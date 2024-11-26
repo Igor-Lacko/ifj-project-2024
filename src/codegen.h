@@ -26,8 +26,27 @@
 #define NEWPARAM(order) fprintf(stdout, "DEFVAR TF@PARAM%d\n", order); // Defines a new parameter on the temporary frame
 #define DEFPARAM(order) fprintf(stdout, "DEFVAR LF@PARAM%d\n", order); // Defines a new parameter on the local frame (so after the func label)
 
-// Macros for working with the data stack
+/***** Macros for working with the data stack ******/
 #define CLEARS fprintf(stdout, "CLEARS\n");
+
+// Arithmetic instruction macros
+#define ADDS fprintf(stdout, "ADDS\n");
+#define SUBS fprintf(stdout, "SUBS\n");
+#define MULS fprintf(stdout, "MULS\n");
+#define DIVS fprintf(stdout, "DIVS\n");
+#define IDIVS fprintf(stdout, "IDIVS\n");
+#define FLOAT2INTS fprintf(stdout, "FLOAT2INTS\n");
+#define INT2FLOATS fprintf(stdout, "INT2FLOATS\n");
+
+// Comparison instruction macros
+#define EQS fprintf(stdout, "EQS\n");
+#define LTS fprintf(stdout, "LTS\n");
+#define GTS fprintf(stdout, "GTS\n");
+
+// Logical instruction macros
+#define ANDS fprintf(stdout, "ANDS\n");
+#define ORS fprintf(stdout, "ORS\n");
+#define NOTS fprintf(stdout, "NOTS\n");
 
 // I/O instruction macros
 #define WRITE(symb) fprintf(stdout, "WRITE %s\n", symb);
@@ -70,17 +89,6 @@ DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, Variab
  * @note We use a register structure here: The operands are in the registers R1 and R2
  */
 void IntExpression(TOKEN_TYPE operator);
-
-/**
- * @brief Similar to IntExpression, but throws an error in case of a compatibility error (so int variable @ float)
- * @note Here we actually need access to the operands to check for compatibility
- */
-void FloatExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *are_incompatible);
-
-/**
- * @brief Boolean version of FloatExpression, also can throw an error
- */
-void BoolExpression(Parser *parser, Token *operand_1, Token *operand_2, TOKEN_TYPE operator, bool *are_incompatible);
 
 // Initial codegen that prints the IFJCode24 for defining some global registers
 void InitRegisters();

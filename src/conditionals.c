@@ -83,7 +83,7 @@ void ParseIfStatement(Parser *parser)
 
     // Parse the inside expression
     TokenVector *postfix = InfixToPostfix(parser);
-    DATA_TYPE expr_type = GeneratePostfixExpression(parser, postfix, NULL);
+    DATA_TYPE expr_type = ParseExpression(postfix, parser);
 
     // Check if the expression is a boolean
     if(expr_type != BOOLEAN)
@@ -93,6 +93,10 @@ void ParseIfStatement(Parser *parser)
         DestroySymtable(parser->global_symtable);
         ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Expected boolean expression in conditional", parser->line_number);
     }
+
+    // Pop the return value and clear the data stack
+    PopToRegister(BOOLEAN);
+    CLEARS
 
     /* If statement pseudocode
         LABEL if_order
