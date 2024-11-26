@@ -731,6 +731,9 @@ void VariableAssignment(Parser *parser, VariableSymbol *var, bool is_underscore)
         exit(ERROR_SEMANTIC_REDEFINED);
     }
 
+    if (!is_underscore && var->defined)
+        var->was_used = true;
+
     stream_index++; // For IsFunctionCall to work correctly
     if (IsFunctionCall(parser))
     {
@@ -955,7 +958,7 @@ void ProgramBody(Parser *parser)
 
         case R_CURLY_BRACKET:
             --(parser->nested_level);
-            SymtableStackRemoveTop(parser->symtable_stack);
+            SymtableStackRemoveTop(parser);
             parser->symtable = SymtableStackTop(parser->symtable_stack);
             return;
 

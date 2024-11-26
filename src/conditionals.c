@@ -181,6 +181,7 @@ void ParseNullableIfStatement(Parser *parser)
         DestroyTokenVector(stream);
         exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
     }
+    var->was_used = true;
 
     /* Loop pseudocode
         LABEL if_order

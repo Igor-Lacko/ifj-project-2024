@@ -138,7 +138,7 @@ TokenVector *ParseEmbeddedFunctionParams(Parser *parser, FunctionSymbol *func)
                 DestroySymtable(parser->global_symtable);
                 exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
             }
-
+            var->was_used = true;
             // If we got here, we have a valid parameter
             AppendToken(operands, CopyToken(token));
             loaded++;

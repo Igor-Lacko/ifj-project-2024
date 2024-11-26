@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 // Symtable size
-#define TABLE_COUNT 1009 // first prime over 1000, todo: change this
+#define TABLE_COUNT 109 // first prime over 1000, todo: change this
 
 // enum for token types
 typedef enum
@@ -126,7 +126,7 @@ typedef enum
 typedef struct
 {
     char *name;
-    char *value;            // for constants
+    char *value; // for constants
     DATA_TYPE type;
     bool is_const;
     bool nullable;

@@ -6,6 +6,8 @@
 #include "error.h"
 #include "symtable.h"
 #include "scanner.h"
+#include "shared.h"
+#include "vector.h"
 
 // Symtable stack operations
 SymtableStack *SymtableStackInit(void)
@@ -24,8 +26,47 @@ Symtable *SymtableStackTop(SymtableStack *stack)
     return stack->size == 0 ? NULL : stack->top->table;
 }
 
-void SymtableStackRemoveTop(SymtableStack *stack)
+void SymtableStackRemoveTop(Parser *parser)
 {
+    SymtableStack *stack = parser->symtable_stack;
+    if (stack->size == 0)
+        return; // do nothing if stack is empty
+
+    SymtableStackNode *previous_top = stack->top;
+    Symtable *s = previous_top->table;
+    for (unsigned long i = 0; i < s->capacity; i++)
+    {
+        if (s->table[i].is_occupied)
+        {
+            // Check if the symbol is a variable
+            if (s->table[i].symbol_type == VARIABLE_SYMBOL)
+            {
+                VariableSymbol *var = (VariableSymbol *)s->table[i].symbol;
+
+                if (!var->was_used)
+                {
+                    // SymtableStackDestroy(parser->symtable_stack);
+                    DestroySymtable(parser->global_symtable);
+                    DestroyTokenVector(stream);
+                    ErrorExit(ERROR_SEMANTIC_UNUSED_VARIABLE, "Warning: Variable '%s' was declared but never used. %d", var->name, parser->line_number);
+                    return;
+                }
+            }
+        }
+    }
+
+    stack->top = previous_top->next; // can also be NULL
+
+    // Free resources
+    DestroySymtable(previous_top->table);
+    free(previous_top);
+
+    --(stack->size);
+}
+
+void SymtableStackPop(SymtableStack *stack)
+{
+
     if (stack->size != 0)
     { // do nothing if stack is empty
         SymtableStackNode *previous_top = stack->top;
@@ -37,22 +78,6 @@ void SymtableStackRemoveTop(SymtableStack *stack)
 
         --(stack->size);
     }
-}
-
-Symtable *SymtableStackPop(SymtableStack *stack)
-{
-    // look if the stack is not empty
-    if ((stack->size)-- == 0)
-        return NULL;
-
-    // retrieve the top and pop it from the symtable
-    Symtable *symtable = SymtableStackTop(stack);
-    SymtableStackNode *previous_top = stack->top;
-    stack->top = previous_top->next; // can also be NULL
-
-    free(previous_top);
-
-    return symtable;
 }
 
 void SymtableStackPush(SymtableStack *stack, Symtable *symtable)
@@ -76,7 +101,7 @@ void SymtableStackDestroy(SymtableStack *stack)
 {
     while (stack->size != 0)
     {
-        SymtableStackRemoveTop(stack);
+        SymtableStackPop(stack);
     }
 
     free(stack);
@@ -91,7 +116,8 @@ bool SymtableStackIsEmpty(SymtableStack *stack)
 VariableSymbol *SymtableStackFindVariable(SymtableStack *stack, char *name)
 {
     // For expression intermediate results which don't have a name
-    if(name == NULL) return NULL;
+    if (name == NULL)
+        return NULL;
 
     SymtableStackNode *current = stack->top;
     while (current != NULL)

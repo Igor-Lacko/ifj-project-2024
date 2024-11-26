@@ -25,17 +25,16 @@ Symtable *SymtableStackTop(SymtableStack *stack);
 /**
  * @brief Removes the symtable at the top of the stack, or does nothing if stack is empty
  *
- * @param stack Stack instance
+ * @param parser Parser state
  */
-void SymtableStackRemoveTop(SymtableStack *stack);
+void SymtableStackRemoveTop(Parser *parser);
 
 /**
- * @brief Removes an element at the top of the stack and returns it, or returns NULL if stack is empty
+ * @brief Same as abov but used just for destroying symtable
  *
  * @param stack Stack instance
- * @return Symtable* The top element, or NULL if stack is empty
  */
-Symtable *SymtableStackPop(SymtableStack *stack);
+void SymtableStackPop(SymtableStack *stack);
 
 /**
  * @brief Pushes a new symtable onto the top of the stack
