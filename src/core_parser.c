@@ -351,7 +351,8 @@ void VarDeclaration(Parser *parser, bool is_const)
         return;
 
     // Assign to the variable
-    else VariableAssignment(parser, var, false);
+    else
+        VariableAssignment(parser, var, false);
 }
 
 bool ConstValueAssignment(VariableSymbol *var)
@@ -570,7 +571,7 @@ void FunctionDefinition(Parser *parser)
     for (int i = 0; i < func->num_of_parameters; i++)
     {
         // Check for redefinition of the parameter
-        if(FindVariableSymbol(symtable, func->parameters[i]->name) != NULL)
+        if (FindVariableSymbol(symtable, func->parameters[i]->name) != NULL)
         {
             PrintError("Error in semantic analysis: Line %d: Redefinition of parameter \"%s\" in function \"%s\"",
                        parser->line_number, func->parameters[i]->name, func->name);
@@ -584,7 +585,7 @@ void FunctionDefinition(Parser *parser)
         VariableSymbol *param = VariableSymbolCopy(func->parameters[i]);
         param->is_const = true; // Parameters are always constants for some reason
         param->defined = true;
-        InsertVariableSymbol(symtable, param);
+        InsertVariableSymbol(parser, param);
     }
 
     // Set the current function
@@ -744,7 +745,7 @@ void VariableAssignment(Parser *parser, VariableSymbol *var, bool is_underscore)
     if (!strcmp(token->attribute, "ifj"))
     {
         FunctionSymbol *func = IsEmbeddedFunction(parser);
-        stream_index += 2; // skip the 'ifj' and the '.' token
+        stream_index += 2;                       // skip the 'ifj' and the '.' token
         EmbeddedFunctionCall(parser, func, var); // If var is null, that means is_underscore is true
         return;
     }
@@ -753,10 +754,10 @@ void VariableAssignment(Parser *parser, VariableSymbol *var, bool is_underscore)
     else if (token->keyword_type == NULL_TYPE)
     {
         // Assigning only NULL
-        if(GetNextToken(parser)->token_type == SEMICOLON)
+        if (GetNextToken(parser)->token_type == SEMICOLON)
         {
             // Type derivation error
-            if(!is_underscore && var->type == VOID_TYPE)
+            if (!is_underscore && var->type == VOID_TYPE)
             {
                 PrintError("Error in semantic analysis: Line %d: Assigning NULL to variable \"%s\" with no type",
                            parser->line_number, var->name);
@@ -775,17 +776,18 @@ void VariableAssignment(Parser *parser, VariableSymbol *var, bool is_underscore)
             }
 
             // Assign NULL to the variable
-            if(!is_underscore) MOVE(var->name, "nil@nil", false, LOCAL_FRAME);
+            if (!is_underscore)
+                MOVE(var->name, "nil@nil", false, LOCAL_FRAME);
             else
             {
                 fprintf(stdout, "PUSHS nil@nil\n");
                 CLEARS
             }
             return;
-
         }
 
-        else stream_index--; // Move the stream back to before the potential semicolon
+        else
+            stream_index--; // Move the stream back to before the potential semicolon
     }
 
     // If the 'ifj' token is not present, and NULL is not present move the stream back and expect an expression
@@ -805,10 +807,12 @@ void VariableAssignment(Parser *parser, VariableSymbol *var, bool is_underscore)
         exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
     }
 
-    if(!is_underscore) fprintf(stdout, "POPS LF@%s\n", var->name);
+    if (!is_underscore)
+        fprintf(stdout, "POPS LF@%s\n", var->name);
     CLEARS
 
-    if(is_underscore) return;
+    if (is_underscore)
+        return;
 
     // if the variable doesn't have a type yet, derive it from the expression (TODO: Add check for invalid types, etc.)
     if (var->type == VOID_TYPE)
@@ -835,7 +839,7 @@ void ThrowAwayExpression(Parser *parser)
 void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *func, bool is_underscore)
 {
     // If the variable is not thrown away, we have to perform semantic analysis
-    if(!is_underscore)
+    if (!is_underscore)
     {
         // Function has no return value
         if (func->return_type == VOID_TYPE)
@@ -847,15 +851,15 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
         }
 
         // Var type yet to be derived
-        if(var->type == VOID_TYPE)
+        if (var->type == VOID_TYPE)
             var->type = func->return_type;
 
         // Incompatible return type
         if ( // But for example, a U8 function return to ?U8 would be valid, since the latter can have a U8 or NULL type
             func->return_type != var->type &&
             ((var->type == U8_ARRAY_NULLABLE_TYPE && func->return_type != U8_ARRAY_TYPE) ||
-            (var->type == INT32_NULLABLE_TYPE && func->return_type != INT32_TYPE) ||
-            (var->type == DOUBLE64_NULLABLE_TYPE && func->return_type != DOUBLE64_TYPE)) &&
+             (var->type == INT32_NULLABLE_TYPE && func->return_type != INT32_TYPE) ||
+             (var->type == DOUBLE64_NULLABLE_TYPE && func->return_type != DOUBLE64_TYPE)) &&
             var->type != VOID_TYPE // VOID_TYPE on variable --> the variable is just being declared, so the type has to be derived from the function
         )
         {
@@ -864,7 +868,6 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
             DestroySymtable(parser->global_symtable);
             ErrorExit(ERROR_SEMANTIC_TYPE_COMPATIBILITY, "Line %d: Invalid type in assigning to variable");
         }
-
     }
 
     // Since we are expecting '(' as the next token, we need to load the params
@@ -878,7 +881,8 @@ void FunctionToVariable(Parser *parser, VariableSymbol *var, FunctionSymbol *fun
         - Note: Default IFJ24 doesn't have booleans, maybe expand this for the BOOLTHEN extension later?
     */
     fprintf(stdout, "CALL %s\n", func->name);
-    if(!is_underscore) fprintf(stdout, "POPS LF@%s\n", var->name);
+    if (!is_underscore)
+        fprintf(stdout, "POPS LF@%s\n", var->name);
     CLEARS
 }
 
