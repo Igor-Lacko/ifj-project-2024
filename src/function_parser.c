@@ -14,7 +14,8 @@
 // sekvence_příkazů
 // }
 
-void ParseIf(Parser *parser)
+
+void ParseIfWhile(Parser *parser)
 {
 
     CheckTokenTypeStream(parser, L_ROUND_BRACKET);
@@ -374,8 +375,13 @@ void ParseFunctions(Parser *parser)
             ParseConstDeclaration(parser);
         }
 
-        if(token->keyword_type == IF){
-            ParseIf(parser);
+        if(token->keyword_type == IF || token->keyword_type == WHILE){
+            ParseIfWhile(parser);
+            parser->nested_level++;
+        }
+
+        if(token->keyword_type == WHILE){
+            ParseWhile(parser);
             parser->nested_level++;
         }
     }

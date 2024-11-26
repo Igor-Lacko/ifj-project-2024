@@ -185,7 +185,7 @@ void ParseNullableWhileLoop(Parser *parser)
 
     // Make a new entry in the symtable
     InsertVariableSymbol(parser, var2);
-    DefineVariable(var2->name, LOCAL_FRAME);
+    // DefineVariable(var2->name, LOCAL_FRAME);
 
     // Initial while label
     WhileLabel(while_id);

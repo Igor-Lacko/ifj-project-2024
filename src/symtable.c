@@ -83,6 +83,15 @@ void AppendStringArray(StringArray *string_array, char *string)
         string_array->capacity = new_capacity;
     }
 
+    // Check if the string is already in the array
+    for(int i = 0; i < string_array->count; i++)
+    {
+        if (strcmp(string_array->strings[i], string) == 0)
+        {
+            return; // String already in the array
+        }
+    }
+
     // Add the string to the vector
     string_array->strings[string_array->count] = strdup(string);
     if (!string_array->strings[string_array->count])
