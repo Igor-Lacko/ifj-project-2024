@@ -296,6 +296,10 @@ void ConsumeLiteral(Token *token, int *line_number)
                 AppendChar(vector, '\t');
                 break;
 
+            case 'x':
+                ConsumeHexadecimalEscapeSequence(vector, line_number);
+                break;
+
             case '\\':
                 AppendChar(vector, c);
                 break;
@@ -333,6 +337,156 @@ void ConsumeLiteral(Token *token, int *line_number)
         DestroyVector(vector);
         ErrorExit(ERROR_LEXICAL, "Line %d: String missing a second \"", *line_number);
     }
+}
+
+void ConsumeMultiLineLiteral(Token *token, int *line_number)
+{
+    int c;
+    Vector *vector = InitVector();
+
+    // At the start, we are after the initial '\\' duo
+    while(true)
+    {
+        c = getchar();
+
+        // Non-escape sequence or newline characters
+        if(c != '\n' && c != EOF)
+        {
+            AppendChar(vector, c);
+            continue;
+        }
+
+        // // escape sequence
+        // else if(c == '\\')
+        // {
+        //     switch(c = getchar())
+        //     {
+        //         case 'n':
+        //             AppendChar(vector, '\n');
+        //             break;
+
+        //         case 'r':
+        //             AppendChar(vector, '\r');
+        //             break;
+
+        //         case 't':
+        //             AppendChar(vector, '\t');
+        //             break;
+
+        //         case 'x':
+        //             ConsumeHexadecimalEscapeSequence(vector, line_number);
+        //             break;
+
+        //         case '"':
+        //             AppendChar(vector, '\"');
+        //             break;
+
+        //         case '\\':
+        //             AppendChar(vector, '\\');
+        //             break;
+
+        //         default:
+        //             DestroyToken(token);
+        //             DestroyVector(vector);
+        //             ErrorExit(ERROR_LEXICAL, "Line %d: Invalid escape sequence '\\%c' in a multi-line literal", *line_number, c);
+        //     }
+        // }
+
+        else if(c == EOF)
+        {
+            DestroyToken(token);
+            DestroyVector(vector);
+            ErrorExit(ERROR_LEXICAL, "Line %d: Unexpected end of file", *line_number);
+        }
+
+        else
+        {
+            ++(*line_number);
+            if(DoesMultiLineLiteralContinue(line_number))
+            {
+                AppendChar(vector, '\n');
+                continue;
+            }
+            else break;
+        }
+    }
+
+    // Terminate the string
+    AppendChar(vector, '\0');
+
+    // Copy the string to the token's attribute
+    token->attribute = strdup(vector->value);
+    DestroyVector(vector);
+}
+
+bool DoesMultiLineLiteralContinue(int *line_number)
+{
+    int c;
+    while((c = getchar()) != EOF)
+    {
+        if(c != '\\' && c != '\n')
+        {
+            if(!isspace(c))
+            {
+                ungetc(c, stdin);
+                return false;
+            }
+        }
+
+        else if(c == '\n')
+        {
+            ++(*line_number);
+            return false;
+        }
+
+        else
+        {
+            if((c = NextChar()) == '\\')
+            {
+                getchar();
+                return true;
+            }
+
+            else
+            {
+                ungetc(c, stdin);
+                return false;
+            }
+        }
+    }
+
+    ungetc(c, stdin);
+    return false;
+}
+
+void ConsumeHexadecimalEscapeSequence(Vector *vector, int *line_number)
+{
+    int c;
+    char digit_1, digit_2;
+
+    // Do this twice :))
+    if(!isdigit(c=getchar()))
+    {
+        DestroyVector(vector);
+        ErrorExit(ERROR_LEXICAL, "Line %d: Invalid hexadecimal escape sequence '\\x%c'", *line_number, c);
+    }
+
+    else digit_1 = c;
+
+    if(!isdigit(c=getchar()))
+    {
+        DestroyVector(vector);
+        ErrorExit(ERROR_LEXICAL, "Line %d: Invalid hexadecimal escape sequence '\\x%c'", *line_number, c);
+    }
+
+    else digit_2 = c;
+
+    // Convert the two digits to a hexadecimal number
+    char hex[3] = {digit_1, digit_2, '\0'};
+    int value = strtol(hex, NULL, 16);
+
+    // Append the character to the vector
+    AppendChar(vector, value);
 }
 
 int ConsumeComment(int *line_number)
@@ -692,6 +846,26 @@ Token *LoadTokenFromStream(int *line_number)
 
             token->line_number = *line_number;
             return token;
+
+        // Signals the start of a multiline string
+        case '\\':
+            if((next = NextChar()) == '\\')
+            {
+                getchar();
+                token->token_type = LITERAL_TOKEN;
+                token->line_number = *line_number;
+                ConsumeMultiLineLiteral(token, line_number);
+
+                return token;
+            }
+
+            else
+            {
+                DestroyToken(token);
+                ErrorExit(ERROR_LEXICAL, "Line %d: Invalid token '\\%c'", *line_number, next);
+            }
+
+            break;
 
         /*call GetSymbolType to determine next token*/
         default:

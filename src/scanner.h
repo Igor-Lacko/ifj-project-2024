@@ -60,6 +60,31 @@ bool ConsumeExponent(Vector *vector, Token *token, bool has_floating_point);
 void ConsumeLiteral(Token *token, int *line_number);
 
 /**
+ * @brief Consumes whitespace until it encounters the next non-whitespace character
+ * 
+ * @param line_number Current line number
+ * @return true If the next two non-whitespace characters == '\\'
+ * @return false Otherwise
+ */
+bool DoesMultiLineLiteralContinue(int *line_number);
+
+/**
+ * @brief Consumes and validates a escape sequence of the form \xHH in a literal
+ * 
+ * @param vector Vector containing the overlapping literal
+ * @param line_number Current line number
+ */
+void ConsumeHexadecimalEscapeSequence(Vector *vector, int *line_number);
+
+/**
+ * @brief Handles a multi-line string literal
+ *
+ * @param token token to add to
+ * @param line_number to keep track of the current line number
+ */
+void ConsumeMultiLineLiteral(Token *token, int *line_number);
+
+/**
  * @brief Handles a identifier/keyword
  *
  * @param token loaded token with attribute: "name" (so int i: attribute would be i), type KEYWORD/IDENTIFIER and if KEYWORD, a non empty keyword type

@@ -15,209 +15,256 @@ JUMP main
 LABEL main
 CREATEFRAME
 PUSHFRAME
-DEFVAR LF@a
-DEFVAR LF@b
-DEFVAR LF@result
-DEFVAR LF@i
-DEFVAR LF@factorialInput
-DEFVAR LF@factorialResult
-DEFVAR LF@str1
-DEFVAR LF@str2
-DEFVAR LF@combined
-DEFVAR LF@sum
-DEFVAR LF@brk
+DEFVAR LF@viewportWidth
+DEFVAR LF@viewportHeight
+DEFVAR LF@sphereX
+DEFVAR LF@sphereY
+DEFVAR LF@sphereRadius
+DEFVAR LF@lightX
+DEFVAR LF@lightY
+DEFVAR LF@y
+DEFVAR LF@x
+DEFVAR LF@rayX
+DEFVAR LF@rayY
+DEFVAR LF@dx
+DEFVAR LF@dy
+DEFVAR LF@distSq
+DEFVAR LF@nx
+DEFVAR LF@ny
+DEFVAR LF@lx
+DEFVAR LF@ly
 DEFVAR LF@input
-DEFVAR LF@inputStr
-DEFVAR LF@expected
-DEFVAR LF@same
-WRITE string@Vitaj\032v\032komplexnom\032testovacom\032programe\032pre\032jazyk\032IFJ24!\010
-MOVE LF@a int@42
-MOVE LF@b int@13
-PUSHS int@42
-PUSHS int@13
-ADDS
-POPS LF@result
-CLEARS
-WRITE string@Sucet\032cisel:\032
-WRITE LF@result
-WRITE string@\010
-LABEL $if0
-PUSHS LF@result
-PUSHS int@50
-GTS
-POPS GF@$B0
-CLEARS
-JUMPIFEQ $else0 GF@$B0 bool@false
-PUSHS int@10
-POPS LF@result
-CLEARS
-WRITE string@Vysledok\032je\032vacsi\032ako\03250.\010
-JUMP $endif0
-LABEL $else0
-WRITE string@Vysledok\032je\032mensi\032alebo\032rovny\03250.\010
-LABEL $endif0
-WRITE string@Vypis\032cisel\032od\0321\032do\0325:\010
+DEFVAR LF@lenL
+DEFVAR LF@normLx
+DEFVAR LF@normLy
+DEFVAR LF@dot
+MOVE LF@viewportWidth float@0x1.4p+4
+MOVE LF@viewportHeight float@0x1.4p+3
+MOVE LF@sphereX float@0x0p+0
+MOVE LF@sphereY float@0x0p+0
+MOVE LF@sphereRadius float@0x1.4p+2
+MOVE LF@lightX float@0x1.4p+3
+MOVE LF@lightY float@0x1.4p+3
+PUSHS int@0
 PUSHS int@1
-POPS LF@i
+SUBS
+PUSHS float@0x1.4p+3
+POPS GF@$F0
+INT2FLOATS
+PUSHS GF@$F0
+MULS
+PUSHS int@2
+INT2FLOATS
+DIVS
+POPS LF@y
 CLEARS
 LABEL $while0
-PUSHS LF@i
-PUSHS int@5
+PUSHS LF@y
+PUSHS float@0x1.4p+3
+PUSHS int@2
+INT2FLOATS
+DIVS
 GTS
 NOTS
 POPS GF@$B0
 CLEARS
 JUMPIFEQ $endwhile0 GF@$B0 bool@false
-WRITE LF@i
-WRITE string@\010
-PUSHS LF@i
-PUSHS int@1
-ADDS
-POPS LF@i
-CLEARS
-JUMP $while0
-LABEL $endwhile0
-MOVE LF@factorialInput int@5
-CREATEFRAME
-DEFVAR TF@PARAM0
-MOVE TF@PARAM0 LF@factorialInput
-CALL factorial
-POPS LF@factorialResult
-CLEARS
-WRITE string@Faktorial\032cisla\032
-WRITE LF@factorialInput
-WRITE string@\032je\032
-WRITE LF@factorialResult
-WRITE string@.\010
-MOVE LF@str1 string@Testovanie\032prace\032s\032retazcami.
-MOVE LF@str2 string@\032IFJ24\032je\032super!
-CONCAT LF@combined LF@str1 LF@str2
-WRITE string@Spojeny\032retazec:\032
-WRITE LF@combined
-WRITE string@\010
 PUSHS int@0
-POPS LF@sum
-CLEARS
-WRITE string@Zadajte\032cisla\032na\032scitanie\032(0\032ukonci\032vstup):\010
 PUSHS int@1
-POPS LF@brk
+SUBS
+PUSHS float@0x1.4p+4
+POPS GF@$F0
+INT2FLOATS
+PUSHS GF@$F0
+MULS
+PUSHS float@0x1p+1
+DIVS
+POPS LF@x
 CLEARS
 LABEL $while1
-PUSHS LF@brk
-PUSHS int@0
-EQS
-NOTS
-POPS GF@$B0
-CLEARS
-JUMPIFEQ $endwhile1 GF@$B0 bool@false
-READ LF@input int
-LABEL $if1
-JUMPIFEQ $else1 LF@input nil@nil
-DEFVAR LF@num
-MOVE LF@num LF@input
-LABEL $if2
-PUSHS LF@num
-PUSHS int@0
-EQS
-POPS GF@$B0
-CLEARS
-JUMPIFEQ $else2 GF@$B0 bool@false
-PUSHS int@0
-POPS LF@brk
-CLEARS
-JUMP $endif2
-LABEL $else2
-PUSHS LF@sum
-PUSHS LF@num
-ADDS
-POPS LF@sum
-CLEARS
-LABEL $endif2
-JUMP $endif1
-LABEL $else1
-WRITE string@Neplatny\032vstup!\032Skuste\032znova.\010
-LABEL $endif1
-JUMP $while1
-LABEL $endwhile1
-WRITE string@Sucet\032zadanych\032cisel\032je:\032
-WRITE LF@sum
-WRITE string@\010
-WRITE string@Zadajte\032\039ahoj\039,\032aby\032ste\032pokracovali:\010
-READ LF@inputStr string
-MOVE LF@expected string@ahoj
-LABEL $if3
-JUMPIFEQ $else3 LF@inputStr nil@nil
-DEFVAR LF@in_str
-MOVE LF@in_str LF@inputStr
-GT GF@$B1 LF@in_str LF@expected
-GT GF@$B2 LF@expected LF@in_str
-JUMPIFEQ FIRSTGREATER0 GF@$B1 bool@true
-JUMPIFEQ SECONDGREATER0 GF@$B2 bool@true
-JUMP AREEQUAL0
-LABEL FIRSTGREATER0
-MOVE LF@same int@1
-JUMP ENDSTRCMP0
-LABEL SECONDGREATER0
-MOVE LF@same int@-1
-JUMP ENDSTRCMP0
-LABEL AREEQUAL0
-MOVE LF@same int@0
-LABEL ENDSTRCMP0
-LABEL $if4
-PUSHS LF@same
-PUSHS int@0
-EQS
-POPS GF@$B0
-CLEARS
-JUMPIFEQ $else4 GF@$B0 bool@false
-WRITE string@Zadany\032retazec\032je\032spravny!\010
-JUMP $endif4
-LABEL $else4
-WRITE string@Nespravny\032retazec.\032Koncim\032program.\0321\010
-POPFRAME
-EXIT int@0
-LABEL $endif4
-JUMP $endif3
-LABEL $else3
-WRITE string@Nespravny\032retazec.\032Koncim\032program.\0322\010
-POPFRAME
-EXIT int@0
-LABEL $endif3
-WRITE string@Testovaci\032program\032ukonceny\032uspesne.\010
-EXIT int@0
-LABEL factorial
-PUSHFRAME
-DEFVAR LF@n_
-DEFVAR LF@a
-DEFVAR LF@n
-MOVE LF@n LF@PARAM0
-LABEL $if5
-PUSHS LF@n
-PUSHS int@1
+PUSHS LF@x
+PUSHS float@0x1.4p+4
+PUSHS int@2
+INT2FLOATS
+DIVS
 GTS
 NOTS
 POPS GF@$B0
 CLEARS
-JUMPIFEQ $else5 GF@$B0 bool@false
-PUSHS int@1
-POPFRAME
-RETURN
-JUMP $endif5
-LABEL $else5
-LABEL $endif5
-PUSHS LF@n
-PUSHS int@1
+JUMPIFEQ $endwhile1 GF@$B0 bool@false
+PUSHS LF@x
+PUSHS float@0x1p+0
+MULS
+POPS LF@rayX
+CLEARS
+PUSHS LF@y
+PUSHS float@0x1p+0
+MULS
+POPS LF@rayY
+CLEARS
+PUSHS LF@rayX
+PUSHS float@0x0p+0
 SUBS
-POPS LF@n_
+POPS LF@dx
+CLEARS
+PUSHS LF@rayY
+PUSHS float@0x0p+0
+SUBS
+POPS LF@dy
+CLEARS
+PUSHS LF@dx
+PUSHS LF@dx
+MULS
+PUSHS LF@dy
+PUSHS LF@dy
+MULS
+ADDS
+POPS LF@distSq
+CLEARS
+LABEL $if0
+PUSHS LF@distSq
+PUSHS float@0x1.4p+2
+PUSHS float@0x1.4p+2
+MULS
+GTS
+NOTS
+POPS GF@$B0
+CLEARS
+JUMPIFEQ $else0 GF@$B0 bool@false
+PUSHS LF@dx
+PUSHS float@0x1.4p+2
+DIVS
+POPS LF@nx
+CLEARS
+PUSHS LF@dy
+PUSHS float@0x1.4p+2
+DIVS
+POPS LF@ny
+CLEARS
+PUSHS float@0x1.4p+3
+PUSHS LF@rayX
+SUBS
+POPS LF@lx
+CLEARS
+PUSHS float@0x1.4p+3
+PUSHS LF@rayY
+SUBS
+POPS LF@ly
+CLEARS
+PUSHS LF@lx
+PUSHS LF@lx
+MULS
+PUSHS LF@ly
+PUSHS LF@ly
+MULS
+ADDS
+POPS LF@input
 CLEARS
 CREATEFRAME
 DEFVAR TF@PARAM0
-MOVE TF@PARAM0 LF@n_
-CALL factorial
-POPS LF@a
+MOVE TF@PARAM0 LF@input
+CALL sqrt
+POPS LF@lenL
 CLEARS
-PUSHS LF@n
-PUSHS LF@a
+LABEL $if1
+PUSHS LF@lenL
+PUSHS float@0x0p+0
+GTS
+POPS GF@$B0
+CLEARS
+JUMPIFEQ $else1 GF@$B0 bool@false
+PUSHS LF@lx
+PUSHS LF@lenL
+DIVS
+POPS LF@normLx
+CLEARS
+PUSHS LF@ly
+PUSHS LF@lenL
+DIVS
+POPS LF@normLy
+CLEARS
+PUSHS LF@nx
+PUSHS LF@normLx
 MULS
+PUSHS LF@ny
+PUSHS LF@normLy
+MULS
+ADDS
+POPS LF@dot
+CLEARS
+LABEL $if2
+PUSHS LF@dot
+PUSHS float@0x0p+0
+GTS
+POPS GF@$B0
+CLEARS
+JUMPIFEQ $else2 GF@$B0 bool@false
+WRITE string@*
+JUMP $endif2
+LABEL $else2
+WRITE string@.
+LABEL $endif2
+JUMP $endif1
+LABEL $else1
+WRITE string@.
+LABEL $endif1
+JUMP $endif0
+LABEL $else0
+WRITE string@\032
+LABEL $endif0
+PUSHS LF@x
+PUSHS int@1
+INT2FLOATS
+ADDS
+POPS LF@x
+CLEARS
+JUMP $while1
+LABEL $endwhile1
+WRITE string@\010
+PUSHS LF@y
+PUSHS int@1
+INT2FLOATS
+ADDS
+POPS LF@y
+CLEARS
+JUMP $while0
+LABEL $endwhile0
+WRITE string@Raytracing\032complete.\010
+EXIT int@0
+LABEL sqrt
+PUSHFRAME
+DEFVAR LF@guess
+DEFVAR LF@tolerance
+DEFVAR LF@x
+MOVE LF@x LF@PARAM0
+PUSHS LF@x
+PUSHS float@0x1p+1
+DIVS
+POPS LF@guess
+CLEARS
+MOVE LF@tolerance float@0x1.0c6f7a0b5ed8dp-20
+LABEL $while2
+PUSHS LF@guess
+PUSHS LF@guess
+MULS
+PUSHS LF@x
+PUSHS float@0x1.0c6f7a0b5ed8dp-20
+ADDS
+GTS
+POPS GF@$B0
+CLEARS
+JUMPIFEQ $endwhile2 GF@$B0 bool@false
+PUSHS LF@guess
+PUSHS LF@x
+PUSHS LF@guess
+DIVS
+ADDS
+PUSHS float@0x1p+1
+DIVS
+POPS LF@guess
+CLEARS
+JUMP $while2
+LABEL $endwhile2
+PUSHS LF@guess
 POPFRAME
 RETURN
