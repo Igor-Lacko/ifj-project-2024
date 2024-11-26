@@ -24,38 +24,38 @@ bool IsLoopNullableType(Parser *parser)
 
     // Skip all tokens until we find the corresponding R_ROUND_BRACKET token
     Token *token;
-    while(counter)
+    while (counter)
     {
         token = GetNextToken(parser);
         // 3 possible cases which we don't skip: L_ROUND_BRACKET, R_ROUND_BRACKET, EOF
-        switch(token->token_type)
+        switch (token->token_type)
         {
-            // Nest deeper into the expression
-            case L_ROUND_BRACKET:
-                counter++;
-                break;
+        // Nest deeper into the expression
+        case L_ROUND_BRACKET:
+            counter++;
+            break;
 
-            // Nest outer from the expression
-            case R_ROUND_BRACKET:
-                counter--;
-                break;
+        // Nest outer from the expression
+        case R_ROUND_BRACKET:
+            counter--;
+            break;
 
-            // Invalid expression
-            case EOF_TOKEN:
-                SymtableStackDestroy(parser->symtable_stack);
-                DestroySymtable(parser->global_symtable);
-                DestroyTokenVector(stream);
-                ErrorExit(ERROR_SYNTACTIC, "Line %d: Incorrectly ended while loop", parser->line_number);
-                break; // gcc would complain about missing break, but it's not needed here
+        // Invalid expression
+        case EOF_TOKEN:
+            SymtableStackDestroy(parser->symtable_stack);
+            DestroySymtable(parser->global_symtable);
+            DestroyTokenVector(stream);
+            ErrorExit(ERROR_SYNTACTIC, "Line %d: Incorrectly ended while loop", parser->line_number);
+            break; // gcc would complain about missing break, but it's not needed here
 
-            // Skip the token
-            default:
-                break;
+        // Skip the token
+        default:
+            break;
         }
     }
 
     // |id_without_null| (the null check is in a separate function)
-    if((token = GetNextToken(parser))->token_type == VERTICAL_BAR_TOKEN)
+    if ((token = GetNextToken(parser))->token_type == VERTICAL_BAR_TOKEN)
     {
         CheckTokenTypeVector(parser, IDENTIFIER_TOKEN);
         CheckTokenTypeVector(parser, VERTICAL_BAR_TOKEN);
@@ -86,7 +86,7 @@ void ParseWhileLoop(Parser *parser)
     DATA_TYPE expr_type = ParseExpression(postfix, parser);
 
     // Check if the expression wasn't of a incorrect type
-    if(expr_type != BOOLEAN)
+    if (expr_type != BOOLEAN)
     {
         DestroyTokenVector(stream);
         SymtableStackDestroy(parser->symtable_stack);
@@ -137,7 +137,7 @@ void ParseNullableWhileLoop(Parser *parser)
 
     // Check if it's a defined variable
     VariableSymbol *var = SymtableStackFindVariable(parser->symtable_stack, token->attribute);
-    if(var == NULL)
+    if (var == NULL)
     {
         PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"", token->attribute);
         SymtableStackDestroy(parser->symtable_stack);
@@ -146,7 +146,7 @@ void ParseNullableWhileLoop(Parser *parser)
         exit(ERROR_SEMANTIC_UNDEFINED);
     }
 
-    else if(!IsNullable(var->type))
+    else if (!IsNullable(var->type))
     {
         PrintError("Error in semantic analysis: Line %d: Variable \"%s\" is not of a nullable type", var->name);
         SymtableStackDestroy(parser->symtable_stack);
@@ -183,7 +183,7 @@ void ParseNullableWhileLoop(Parser *parser)
     CheckTokenTypeVector(parser, VERTICAL_BAR_TOKEN);
 
     // Make a new entry in the symtable
-    InsertVariableSymbol(parser->symtable, var2);
+    InsertVariableSymbol(parser, var2);
     DefineVariable(var2->name, LOCAL_FRAME);
 
     // Initial while label

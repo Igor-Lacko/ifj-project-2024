@@ -5,6 +5,9 @@
 #include "symtable.h"
 #include "error.h"
 #include "types.h"
+#include "stack.h"
+#include "shared.h"
+#include "vector.h"
 
 Symtable *InitSymtable(unsigned long size)
 {
@@ -54,7 +57,6 @@ void DestroySymtable(Symtable *symtable)
     free(symtable);
 }
 
-
 void InitStringArray(StringArray *string_array)
 {
     string_array->count = 0;
@@ -98,7 +100,7 @@ FunctionSymbol *FunctionSymbolInit(void)
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
     InitStringArray(&function_symbol->variables);
-    
+
     return function_symbol;
 }
 
@@ -167,7 +169,7 @@ void DestroyVariableSymbol(VariableSymbol *variable_symbol)
     if (variable_symbol->name != NULL)
         free(variable_symbol->name);
 
-    if(variable_symbol->value != NULL)
+    if (variable_symbol->value != NULL)
         free(variable_symbol->value);
 
     free(variable_symbol);
@@ -236,68 +238,78 @@ VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name)
     return NULL; // Symbol not found
 }
 
-bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol)
+void InsertVariableSymbol(Parser *parser, VariableSymbol *variable_symbol)
 {
-    unsigned long index = GetSymtableHash(variable_symbol->name, symtable->capacity);
+    unsigned long index = GetSymtableHash(variable_symbol->name, parser->symtable->capacity);
     unsigned long start_index = index;
 
-    if (FindVariableSymbol(symtable, variable_symbol->name) != NULL || FindFunctionSymbol(symtable, variable_symbol->name) != NULL)
+    if (SymtableStackFindVariable(parser->symtable_stack, variable_symbol->name) != NULL || FindFunctionSymbol(parser->global_symtable, variable_symbol->name) != NULL)
     {
-        return false; // Symbol already in table
+        // Symbol already in table
+        SymtableStackDestroy(parser->symtable_stack);
+        DestroySymtable(parser->global_symtable);
+        DestroyTokenVector(stream);
+        ErrorExit(ERROR_SEMANTIC_REDEFINED, "Variable already %s declared on line %d", variable_symbol->name, parser->line_number);
     }
 
-    while (symtable->table[index].is_occupied)
+    while (parser->symtable->table[index].is_occupied)
     {
-        if (symtable->table[index].symbol_type == VARIABLE_SYMBOL &&
-            strcmp(((VariableSymbol *)symtable->table[index].symbol)->name, variable_symbol->name) == 0)
+        if (parser->symtable->table[index].symbol_type == VARIABLE_SYMBOL &&
+            strcmp(((VariableSymbol *)parser->symtable->table[index].symbol)->name, variable_symbol->name) == 0)
         {
-            return false; // Symbol already exists
+            // Symbol already exists
+            SymtableStackDestroy(parser->symtable_stack);
+            DestroySymtable(parser->global_symtable);
+            DestroyTokenVector(stream);
+            ErrorExit(ERROR_SEMANTIC_REDEFINED, "Variable already %s declared on line %d", variable_symbol->name, parser->line_number);
         }
 
-        index = (index + 1) % symtable->capacity;
+        index = (index + 1) % parser->symtable->capacity;
         if (index == start_index)
         {
-            return false; // Table is full
+            // Table is full
+            SymtableStackDestroy(parser->symtable_stack);
+            DestroySymtable(parser->global_symtable);
+            DestroyTokenVector(stream);
+            ErrorExit(ERROR_INTERNAL, "Symbol table is full");
         }
     }
 
-    symtable->table[index].symbol_type = VARIABLE_SYMBOL;
-    symtable->table[index].symbol = variable_symbol;
-    symtable->table[index].is_occupied = true;
-    symtable->size++;
-
-    return true;
+    parser->symtable->table[index].symbol_type = VARIABLE_SYMBOL;
+    parser->symtable->table[index].symbol = variable_symbol;
+    parser->symtable->table[index].is_occupied = true;
+    parser->symtable->size++;
 }
 
-bool InsertFunctionSymbol(Symtable *symtable, FunctionSymbol *function_symbol)
+bool InsertFunctionSymbol(Parser *parser, FunctionSymbol *function_symbol)
 {
-    unsigned long index = GetSymtableHash(function_symbol->name, symtable->capacity);
+    unsigned long index = GetSymtableHash(function_symbol->name, parser->global_symtable->capacity);
     unsigned long start_index = index;
 
-    if (FindVariableSymbol(symtable, function_symbol->name) != NULL || FindFunctionSymbol(symtable, function_symbol->name) != NULL)
+    if (SymtableStackFindVariable(parser->symtable_stack, function_symbol->name) != NULL || FindFunctionSymbol(parser->global_symtable, function_symbol->name) != NULL)
     {
         return false; // Symbol already in table
     }
 
-    while (symtable->table[index].is_occupied)
+    while (parser->global_symtable->table[index].is_occupied)
     {
-        if (symtable->table[index].symbol_type == FUNCTION_SYMBOL &&
-            strcmp(((FunctionSymbol *)symtable->table[index].symbol)->name, function_symbol->name) == 0)
+        if (parser->global_symtable->table[index].symbol_type == FUNCTION_SYMBOL &&
+            strcmp(((FunctionSymbol *)parser->global_symtable->table[index].symbol)->name, function_symbol->name) == 0)
         {
             return false; // Symbol already exists
         }
 
-        index = (index + 1) % symtable->capacity;
+        index = (index + 1) % parser->global_symtable->capacity;
         if (index == start_index)
         {
             return false; // Table is full
         }
     }
 
-    symtable->table[index].symbol_type = FUNCTION_SYMBOL;
-    symtable->table[index].symbol = function_symbol;
-    symtable->table[index].is_occupied = true;
-    symtable->size++;
+    parser->global_symtable->table[index].symbol_type = FUNCTION_SYMBOL;
+    parser->global_symtable->table[index].symbol = function_symbol;
+    parser->global_symtable->table[index].is_occupied = true;
+    parser->global_symtable->size++;
 
     return true;
 }

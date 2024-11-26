@@ -49,15 +49,13 @@ VariableSymbol *FindVariableSymbol(Symtable *symtable, char *variable_name);
 /**
  * @brief Inserts a variable symbol into the symtable
  *
- * @param symtable Pointer to the symtable instance
+ * @param parser Pointer to parser structure
  * @param variable_symbol Pointer to the symbol to insert
- * @return true If the symbol wasn't in the symtable, the symbol is inserted in this case
- * @return false If the symbol already was in the sytmtable, it's not inserted in this case
  */
-bool InsertVariableSymbol(Symtable *symtable, VariableSymbol *variable_symbol);
+void InsertVariableSymbol(Parser *parser, VariableSymbol *variable_symbol);
 
 // The same but for functions
-bool InsertFunctionSymbol(Symtable *symtable, FunctionSymbol *function_symbol);
+bool InsertFunctionSymbol(Parser *parser, FunctionSymbol *function_symbol);
 
 /**
  * @brief Prints the symtable to the stdout

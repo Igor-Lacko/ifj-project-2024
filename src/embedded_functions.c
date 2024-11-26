@@ -41,7 +41,7 @@ FunctionSymbol *IsEmbeddedFunction(Parser *parser)
         if (!strcmp(embedded_names[i], token->attribute)) // Match found
         {
             FunctionSymbol *func = FindFunctionSymbol(parser->global_symtable, token->attribute);
-            stream_index-=2; // Move the stream back to the beginning of the embedded function
+            stream_index -= 2; // Move the stream back to the beginning of the embedded function
             return func;
         }
     }
@@ -83,7 +83,7 @@ void InsertEmbeddedFunctions(Parser *parser)
         }
 
         // Insert the function symbol into the parser's global symtable
-        if (!InsertFunctionSymbol(parser->global_symtable, func))
+        if (!InsertFunctionSymbol(parser, func))
         {
             // This condition should never be false, but just in case put this here
             SymtableStackDestroy(parser->symtable_stack);
@@ -92,7 +92,6 @@ void InsertEmbeddedFunctions(Parser *parser)
             ErrorExit(ERROR_INTERNAL, "Multiple instances of embedded function in the global symtable. Fix your code!!!");
         }
     }
-
 }
 
 TokenVector *ParseEmbeddedFunctionParams(Parser *parser, FunctionSymbol *func)
@@ -109,108 +108,108 @@ TokenVector *ParseEmbeddedFunctionParams(Parser *parser, FunctionSymbol *func)
     // Parameter counter -- we could go by the length of the operands TokenVector, but this is more readable
     int loaded = 0;
 
-    while((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET)
+    while ((token = GetNextToken(parser))->token_type != R_ROUND_BRACKET)
     {
-        switch(token->token_type)
+        switch (token->token_type)
         {
-            // ID token --> we have to check if it's a defined variable and if the types are compatible
-            case IDENTIFIER_TOKEN:
+        // ID token --> we have to check if it's a defined variable and if the types are compatible
+        case IDENTIFIER_TOKEN:
 
-                // Undefined variable case
-                if((var=SymtableStackFindVariable(parser->symtable_stack, token->attribute)) == NULL)
-                {
-                    fprintf(stderr, "Undefined variable \"%s\"\n", token->attribute);
-                    PrintError("Error in syntax analysis: Line %d: Undefined variable \"%s\"", parser->line_number, token->attribute);
-                    DestroyTokenVector(operands);
-                    DestroyTokenVector(stream);
-                    SymtableStackDestroy(parser->symtable_stack);
-                    DestroySymtable(parser->global_symtable);
-                    exit(ERROR_SEMANTIC_UNDEFINED);
-                }
-
-                // Incompatible types case
-                else if(!CheckParamType(func->parameters[loaded]->type, var->type))
-                {
-                    PrintError("Error in semantic analysis: Line %d: Incompatible types in parameter %d of function call \"%s\"", parser->line_number, loaded+1, func->name);
-                    fprintf(stderr, "Expected type %d, got %d\n", func->parameters[loaded]->type, var->type);
-                    DestroyTokenVector(operands);
-                    DestroyTokenVector(stream);
-                    SymtableStackDestroy(parser->symtable_stack);
-                    DestroySymtable(parser->global_symtable);
-                    exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
-                }
-
-                // If we got here, we have a valid parameter
-                AppendToken(operands, CopyToken(token));
-                loaded++;
-                break;
-
-            case INTEGER_32:
-
-                // Incompatible types case
-                if(!CheckParamType(func->parameters[loaded]->type, INT32_TYPE))
-                {
-                    PrintError("Error in semantic analysis: Line %d: Incompatible types in parameter %d of function call \"%s\"", parser->line_number, loaded+1, func->name);
-                    DestroyTokenVector(operands);
-                    DestroyTokenVector(stream);
-                    SymtableStackDestroy(parser->symtable_stack);
-                    DestroySymtable(parser->global_symtable);
-                    exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
-                }
-
-                // Valid parameter
-                AppendToken(operands, CopyToken(token));
-                loaded++;
-                break;
-
-            case DOUBLE_64:
-
-                // Incompatible types case
-                if(!CheckParamType(func->parameters[loaded]->type, DOUBLE64_TYPE))
-                {
-                    PrintError("Error in semantic analysis: Line %d: Incompatible types in parameter %d of function call \"%s\"", parser->line_number, loaded+1, func->name);
-                    DestroyTokenVector(operands);
-                    DestroyTokenVector(stream);
-                    SymtableStackDestroy(parser->symtable_stack);
-                    DestroySymtable(parser->global_symtable);
-                    exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
-                }
-
-                // Valid parameter
-                AppendToken(operands, CopyToken(token));
-                loaded++;
-                break;
-
-            case LITERAL_TOKEN:
-
-                // Incompatible types case
-                if(!CheckParamType(func->parameters[loaded]->type, U8_ARRAY_TYPE))
-                {
-                    PrintError("Error in semantic analysis: Line %d: Incompatible types in parameter %d of function call \"%s\"", parser->line_number, loaded+1, func->name);
-                    DestroyTokenVector(operands);
-                    DestroyTokenVector(stream);
-                    SymtableStackDestroy(parser->symtable_stack);
-                    DestroySymtable(parser->global_symtable);
-                    exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
-                }
-
-                // Valid parameter
-                AppendToken(operands, CopyToken(token));
-                loaded++;
-                break;
-
-            // Invalid/unexpected token
-            default:
-                PrintError("Error in syntax analysis: Line %d: Unexpected token \"%s\" in function call \"%s\"", parser->line_number, token->attribute, func->name);
+            // Undefined variable case
+            if ((var = SymtableStackFindVariable(parser->symtable_stack, token->attribute)) == NULL)
+            {
+                fprintf(stderr, "Undefined variable \"%s\"\n", token->attribute);
+                PrintError("Error in syntax analysis: Line %d: Undefined variable \"%s\"", parser->line_number, token->attribute);
                 DestroyTokenVector(operands);
                 DestroyTokenVector(stream);
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroySymtable(parser->global_symtable);
-                exit(ERROR_SYNTACTIC);
+                exit(ERROR_SEMANTIC_UNDEFINED);
+            }
+
+            // Incompatible types case
+            else if (!CheckParamType(func->parameters[loaded]->type, var->type))
+            {
+                PrintError("Error in semantic analysis: Line %d: Incompatible types in parameter %d of function call \"%s\"", parser->line_number, loaded + 1, func->name);
+                fprintf(stderr, "Expected type %d, got %d\n", func->parameters[loaded]->type, var->type);
+                DestroyTokenVector(operands);
+                DestroyTokenVector(stream);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
+            }
+
+            // If we got here, we have a valid parameter
+            AppendToken(operands, CopyToken(token));
+            loaded++;
+            break;
+
+        case INTEGER_32:
+
+            // Incompatible types case
+            if (!CheckParamType(func->parameters[loaded]->type, INT32_TYPE))
+            {
+                PrintError("Error in semantic analysis: Line %d: Incompatible types in parameter %d of function call \"%s\"", parser->line_number, loaded + 1, func->name);
+                DestroyTokenVector(operands);
+                DestroyTokenVector(stream);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
+            }
+
+            // Valid parameter
+            AppendToken(operands, CopyToken(token));
+            loaded++;
+            break;
+
+        case DOUBLE_64:
+
+            // Incompatible types case
+            if (!CheckParamType(func->parameters[loaded]->type, DOUBLE64_TYPE))
+            {
+                PrintError("Error in semantic analysis: Line %d: Incompatible types in parameter %d of function call \"%s\"", parser->line_number, loaded + 1, func->name);
+                DestroyTokenVector(operands);
+                DestroyTokenVector(stream);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
+            }
+
+            // Valid parameter
+            AppendToken(operands, CopyToken(token));
+            loaded++;
+            break;
+
+        case LITERAL_TOKEN:
+
+            // Incompatible types case
+            if (!CheckParamType(func->parameters[loaded]->type, U8_ARRAY_TYPE))
+            {
+                PrintError("Error in semantic analysis: Line %d: Incompatible types in parameter %d of function call \"%s\"", parser->line_number, loaded + 1, func->name);
+                DestroyTokenVector(operands);
+                DestroyTokenVector(stream);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
+            }
+
+            // Valid parameter
+            AppendToken(operands, CopyToken(token));
+            loaded++;
+            break;
+
+        // Invalid/unexpected token
+        default:
+            PrintError("Error in syntax analysis: Line %d: Unexpected token \"%s\" in function call \"%s\"", parser->line_number, token->attribute, func->name);
+            DestroyTokenVector(operands);
+            DestroyTokenVector(stream);
+            SymtableStackDestroy(parser->symtable_stack);
+            DestroySymtable(parser->global_symtable);
+            exit(ERROR_SYNTACTIC);
         }
 
         // Check the param count
-        if(loaded > func->num_of_parameters)
+        if (loaded > func->num_of_parameters)
         {
             PrintError("Error in semantic analysis: Line %d: Invalid parameter count when calling function '%s': Expected %d, got %d", parser->line_number, func->name, func->num_of_parameters, loaded);
             DestroyTokenVector(operands);
@@ -221,14 +220,15 @@ TokenVector *ParseEmbeddedFunctionParams(Parser *parser, FunctionSymbol *func)
         }
 
         // If we have reached the last param, we can exit the function
-        if(loaded == func->num_of_parameters)
+        if (loaded == func->num_of_parameters)
         {
             CheckTokenTypeVector(parser, R_ROUND_BRACKET);
             break;
         }
 
         // Check for a comma (in this case, the function is being called so the last param can't be empty)
-        else CheckTokenTypeVector(parser, COMMA_TOKEN);
+        else
+            CheckTokenTypeVector(parser, COMMA_TOKEN);
     }
 
     return operands;
@@ -238,7 +238,7 @@ void EmbeddedFunctionCall(Parser *parser, FunctionSymbol *func, VariableSymbol *
 {
 
     // Give the variable a type derived from the function if it doen't have one yet
-    if(var != NULL && var->type == VOID_TYPE)
+    if (var != NULL && var->type == VOID_TYPE)
         var->type = func->return_type;
 
     CheckTokenTypeVector(parser, L_ROUND_BRACKET);
@@ -249,44 +249,44 @@ void EmbeddedFunctionCall(Parser *parser, FunctionSymbol *func, VariableSymbol *
     CheckTokenTypeVector(parser, SEMICOLON);
 
     // Now we can generate the code depending on the function
-    if(!strcmp(func->name, "readi32"))
+    if (!strcmp(func->name, "readi32"))
         READ(var, LOCAL_FRAME, INT32_TYPE);
 
-    else if(!strcmp(func->name, "readf64"))
+    else if (!strcmp(func->name, "readf64"))
         READ(var, LOCAL_FRAME, DOUBLE64_TYPE);
 
-    else if(!strcmp(func->name, "readstr"))
+    else if (!strcmp(func->name, "readstr"))
         READ(var, LOCAL_FRAME, U8_ARRAY_TYPE);
 
-    else if(!strcmp(func->name, "write"))
+    else if (!strcmp(func->name, "write"))
         WRITEINSTRUCTION(params->token_string[0], LOCAL_FRAME);
 
-    else if(!strcmp(func->name, "i2f"))
+    else if (!strcmp(func->name, "i2f"))
         INT2FLOAT(var, params->token_string[0], LOCAL_FRAME, LOCAL_FRAME);
 
-    else if(!strcmp(func->name, "f2i"))
+    else if (!strcmp(func->name, "f2i"))
         FLOAT2INT(var, params->token_string[0], LOCAL_FRAME, LOCAL_FRAME);
 
-    else if(!strcmp(func->name, "length"))
+    else if (!strcmp(func->name, "length"))
         STRLEN(var, params->token_string[0], LOCAL_FRAME, LOCAL_FRAME);
 
-    else if(!strcmp(func->name, "concat"))
+    else if (!strcmp(func->name, "concat"))
         CONCAT(var, params->token_string[0], params->token_string[1], LOCAL_FRAME, LOCAL_FRAME, LOCAL_FRAME);
 
-    else if(!strcmp(func->name, "strcmp"))
+    else if (!strcmp(func->name, "strcmp"))
         STRCMP(var, params->token_string[0], params->token_string[1], LOCAL_FRAME, LOCAL_FRAME, LOCAL_FRAME);
 
-    else if(!strcmp(func->name, "string"))
+    else if (!strcmp(func->name, "string"))
         STRING(var, params->token_string[0], LOCAL_FRAME, LOCAL_FRAME);
 
-    else if(!strcmp(func->name, "ord"))
+    else if (!strcmp(func->name, "ord"))
         ORD(var, params->token_string[0], params->token_string[1], LOCAL_FRAME, LOCAL_FRAME, LOCAL_FRAME);
 
-    else if(!strcmp(func->name, "chr"))
+    else if (!strcmp(func->name, "chr"))
         INT2CHAR(var, params->token_string[0], LOCAL_FRAME, LOCAL_FRAME);
 
     // This is by far the most complicated out of these :(
-    else if(!strcmp(func->name, "substring"))
+    else if (!strcmp(func->name, "substring"))
         SUBSTRING(var, params->token_string[0], params->token_string[1], params->token_string[2], LOCAL_FRAME, LOCAL_FRAME, LOCAL_FRAME, LOCAL_FRAME);
 
     // TODO: substring, and check other instructions for more "optimal" arguments

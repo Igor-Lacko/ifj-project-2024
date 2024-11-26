@@ -233,7 +233,7 @@ void Header(Parser *parser)
     CheckKeywordTypeVector(parser, CONST);
 
     Token *ifj = CheckAndReturnTokenVector(parser, IDENTIFIER_TOKEN);
-    if(strcmp(ifj->attribute, "ifj") != 0)
+    if (strcmp(ifj->attribute, "ifj") != 0)
     {
         DestroyTokenVector(stream);
         SymtableStackDestroy(parser->symtable_stack);
@@ -246,7 +246,7 @@ void Header(Parser *parser)
     CheckTokenTypeVector(parser, L_ROUND_BRACKET);
 
     Token *import_ifj24 = CheckAndReturnTokenVector(parser, LITERAL_TOKEN);
-    if(strcmp(import_ifj24->attribute, "ifj24.zig") != 0)
+    if (strcmp(import_ifj24->attribute, "ifj24.zig") != 0)
     {
         DestroyTokenVector(stream);
         SymtableStackDestroy(parser->symtable_stack);
@@ -271,7 +271,6 @@ void IfElse(Parser *parser)
 
     else
         ParseNullableIfStatement(parser);
-
 }
 
 void WhileLoop(Parser *parser)
@@ -285,7 +284,6 @@ void WhileLoop(Parser *parser)
 
     else
         ParseNullableWhileLoop(parser);
-
 }
 
 // const/var id = expression;
@@ -300,20 +298,8 @@ void VarDeclaration(Parser *parser, bool is_const)
     var->is_const = is_const;
     var->type = VOID_TYPE;
 
-
-    // check if the variable is already declared in the current symtable
-    VariableSymbol *var_in_stack = SymtableStackFindVariable(parser->symtable_stack, var->name);
-
-    if (var_in_stack != NULL)
-    {
-        SymtableStackDestroy(parser->symtable_stack);
-        DestroySymtable(parser->global_symtable);
-        DestroyTokenVector(stream);
-        ErrorExit(ERROR_SEMANTIC_REDEFINED, "Variable %s already declared", var->name);
-    }
-
     // insert into symtable on top of the stack
-    InsertVariableSymbol(SymtableStackTop(parser->symtable_stack), var);
+    InsertVariableSymbol(parser, var);
 
     token = GetNextToken(parser);
 
@@ -342,13 +328,12 @@ void VarDeclaration(Parser *parser, bool is_const)
         var->type = token->keyword_type == I32 ? INT32_TYPE : token->keyword_type == F64 ? DOUBLE64_TYPE
                                                                                          : U8_ARRAY_TYPE;
 
-        if(token->attribute[0] == '?')
+        if (token->attribute[0] == '?')
         {
             var->nullable = true;
             var->type = token->keyword_type == I32 ? INT32_NULLABLE_TYPE : token->keyword_type == F64 ? DOUBLE64_NULLABLE_TYPE
-                                                                                         : U8_ARRAY_NULLABLE_TYPE;
+                                                                                                      : U8_ARRAY_NULLABLE_TYPE;
         }
-
 
         CheckTokenTypeVector(parser, ASSIGNMENT);
     }
@@ -362,7 +347,8 @@ void VarDeclaration(Parser *parser, bool is_const)
     }
 
     // Try to remember the variable's value at compile-time
-    if(var->is_const && ConstValueAssignment(var)) return;
+    if (var->is_const && ConstValueAssignment(var))
+        return;
 
     // Assign to the variable
     else VariableAssignment(parser, var, false);
@@ -374,46 +360,46 @@ bool ConstValueAssignment(VariableSymbol *var)
     Token *potential_semicolon = stream->token_string[stream_index + 1];
 
     // If the [next + 1] token is a semicolon, we can check the value
-    if(potential_semicolon->token_type == SEMICOLON)
+    if (potential_semicolon->token_type == SEMICOLON)
     {
-        switch(potential_value->token_type)
+        switch (potential_value->token_type)
         {
-            // Valid types in expression
-            case INTEGER_32:
-                if(var->type == INT32_TYPE || var->type == INT32_NULLABLE_TYPE || var->type == VOID_TYPE)
-                {
-                    var->value = strdup(potential_value->attribute);
-                    stream_index += 2;
-                    fprintf(stdout, "MOVE LF@%s int@%s\n", var->name, var->value);
-                    return true;
-                }
+        // Valid types in expression
+        case INTEGER_32:
+            if (var->type == INT32_TYPE || var->type == INT32_NULLABLE_TYPE || var->type == VOID_TYPE)
+            {
+                var->value = strdup(potential_value->attribute);
+                stream_index += 2;
+                fprintf(stdout, "MOVE LF@%s int@%s\n", var->name, var->value);
+                return true;
+            }
 
-                break;
+            break;
 
-            case DOUBLE_64:
-                if(var->type == DOUBLE64_TYPE || var->type == DOUBLE64_NULLABLE_TYPE || var->type == VOID_TYPE)
-                {
-                    var->value = strdup(potential_value->attribute);
-                    stream_index += 2;
-                    fprintf(stdout, "MOVE LF@%s float@%s\n", var->name, var->value);
-                    return true;
-                }
+        case DOUBLE_64:
+            if (var->type == DOUBLE64_TYPE || var->type == DOUBLE64_NULLABLE_TYPE || var->type == VOID_TYPE)
+            {
+                var->value = strdup(potential_value->attribute);
+                stream_index += 2;
+                fprintf(stdout, "MOVE LF@%s float@%s\n", var->name, var->value);
+                return true;
+            }
 
-                break;
+            break;
 
-            case KEYWORD:
-                if(potential_value->keyword_type == NULL_TYPE && var->nullable)
-                {
-                    var->value = strdup(potential_value->attribute);
-                    stream_index += 2;
-                    fprintf(stdout, "MOVE LF@%s nil@nil\n", var->name);
-                    return true;
-                }
+        case KEYWORD:
+            if (potential_value->keyword_type == NULL_TYPE && var->nullable)
+            {
+                var->value = strdup(potential_value->attribute);
+                stream_index += 2;
+                fprintf(stdout, "MOVE LF@%s nil@nil\n", var->name);
+                return true;
+            }
 
-                break;
+            break;
 
-            default:
-                return false;
+        default:
+            return false;
         }
     }
 
@@ -566,7 +552,8 @@ void FunctionDefinition(Parser *parser)
     PUSHFRAME
 
     // define variables
-    for(int i = 0; i < func->variables.count; i++){
+    for (int i = 0; i < func->variables.count; i++)
+    {
         DefineVariable(func->variables.strings[i], LOCAL_FRAME);
     }
 
@@ -607,10 +594,12 @@ void FunctionDefinition(Parser *parser)
     ProgramBody(parser);
 
     // If the function is main, exit at the end
-    if (!strcmp(func->name, "main")) IFJ24SUCCESS
+    if (!strcmp(func->name, "main"))
+        IFJ24SUCCESS
 
     // Also if it's a void function put a return at the end
-    else if (func->return_type == VOID_TYPE) FUNCTION_RETURN
+    else if (func->return_type == VOID_TYPE)
+        FUNCTION_RETURN
 
     // If it's not a void function and doesn't have a return statement, throw an error
     else if (!func->has_return)
@@ -676,7 +665,7 @@ void FunctionReturn(Parser *parser)
     else
     {
         // Check if an expression follows the return statement and revert the stream
-        if((token = GetNextToken(parser))->token_type == SEMICOLON)
+        if ((token = GetNextToken(parser))->token_type == SEMICOLON)
         {
             PrintError("Error in semantic analysis: Line %d: Missing expression in return statement for function \"%s\"",
                        parser->line_number, parser->current_function->name);
@@ -904,9 +893,9 @@ void ProgramBody(Parser *parser)
         token = GetNextToken(parser);
         // Code can't be outside of a function, so if we aren't in a function the next token has to be pub
 
-        if(!parser->current_function)
+        if (!parser->current_function)
         {
-            if(token->token_type != EOF_TOKEN && token->keyword_type != PUB)
+            if (token->token_type != EOF_TOKEN && token->keyword_type != PUB)
             {
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroySymtable(parser->global_symtable);
@@ -1004,7 +993,7 @@ void ProgramBody(Parser *parser)
 
         case EOF_TOKEN:
             // EOF can't be inside of a code block
-            if(parser->current_function)
+            if (parser->current_function)
             {
                 SymtableStackDestroy(parser->symtable_stack);
                 DestroySymtable(parser->global_symtable);
@@ -1012,7 +1001,8 @@ void ProgramBody(Parser *parser)
                 ErrorExit(ERROR_SYNTACTIC, "Unexpected end of file");
             }
 
-            else return;
+            else
+                return;
 
             break; // Shut up gcc
 
@@ -1066,7 +1056,6 @@ int main()
 
     // Second go-through of the stream file, parse the program body
     ProgramBody(&parser);
-
 
     SymtableStackDestroy(parser.symtable_stack);
     DestroySymtable(parser.global_symtable);

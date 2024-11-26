@@ -11,11 +11,9 @@
 #include "stack.h"
 #include "scanner.h"
 
-
 // pub fn id ( seznam_parametrů ) návratový_typ {
 // sekvence_příkazů
 // }
-
 
 void ParseVariableDeclaration(Parser *parser)
 {
@@ -32,7 +30,7 @@ void ParseVariableDeclaration(Parser *parser)
         exit(ERROR_SYNTACTIC);
     }
 
-    if(parser->current_function == NULL)
+    if (parser->current_function == NULL)
     {
         PrintError("Error in semantic analysis: Line %d: Variable declaration outside of a function", parser->line_number);
         SymtableStackDestroy(parser->symtable_stack);
@@ -41,18 +39,17 @@ void ParseVariableDeclaration(Parser *parser)
         exit(ERROR_SEMANTIC_OTHER); // TODO
     }
 
-    if(strcmp(token->attribute, "ifj") == 0)
+    if (strcmp(token->attribute, "ifj") == 0)
     {
         return;
     }
 
     // Add the variable name to the current function's variables array
     AppendStringArray(&parser->current_function->variables, token->attribute);
-
-
 }
 
-void ParseConstDeclaration(Parser *parser){
+void ParseConstDeclaration(Parser *parser)
+{
     Token *token;
     token = CheckAndReturnTokenStream(parser, IDENTIFIER_TOKEN);
 
@@ -61,14 +58,13 @@ void ParseConstDeclaration(Parser *parser){
         ErrorExit(ERROR_SYNTACTIC, "Expected identifier at line %d", parser->line_number);
     }
 
-    if(strcmp(token->attribute, "ifj") == 0 || parser->current_function == NULL)
+    if (strcmp(token->attribute, "ifj") == 0 || parser->current_function == NULL)
     {
         return;
     }
 
     AppendStringArray(&parser->current_function->variables, token->attribute);
 }
-
 
 void ParseFunctionDefinition(Parser *parser)
 {
@@ -86,7 +82,7 @@ void ParseFunctionDefinition(Parser *parser)
     {
         func = FunctionSymbolInit();
         func->name = strdup(token->attribute);
-        InsertFunctionSymbol(parser->global_symtable, func);
+        InsertFunctionSymbol(parser, func);
         parser->current_function = func;
     }
 
@@ -101,7 +97,6 @@ void ParseFunctionDefinition(Parser *parser)
         exit(ERROR_SEMANTIC_REDEFINED);
     }
 
-
     // check if the main function is present
     if (!strcmp(func->name, "main"))
     {
@@ -112,8 +107,8 @@ void ParseFunctionDefinition(Parser *parser)
     token = CheckAndReturnTokenStream(parser, L_ROUND_BRACKET);
     ParseParameters(parser, func); // params with )
 
-    if ((token = LoadTokenFromStream(&parser->line_number))->token_type != KEYWORD || 
-    (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8 && token->keyword_type != VOID))
+    if ((token = LoadTokenFromStream(&parser->line_number))->token_type != KEYWORD ||
+        (token->keyword_type != I32 && token->keyword_type != F64 && token->keyword_type != U8 && token->keyword_type != VOID))
     {
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
@@ -146,7 +141,7 @@ void ParseFunctionDefinition(Parser *parser)
     {
         DestroySymtable(parser->global_symtable);
         SymtableStackDestroy(parser->symtable_stack);
-        DestroyTokenVector(stream); 
+        DestroyTokenVector(stream);
         ErrorExit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION, "Main function has incorrect return type or parameters");
     }
 
@@ -186,9 +181,9 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
             var->name = strdup(token->attribute);
             var->is_const = false;
 
-            for(int i = 0; i < func->num_of_parameters; i++)
+            for (int i = 0; i < func->num_of_parameters; i++)
             {
-                if(!strcmp(func->parameters[i]->name, var->name))
+                if (!strcmp(func->parameters[i]->name, var->name))
                 {
                     PrintError("Error in semantic analysis: Line %d: Multiple parameters with name '%s' in function '%s'",
                                parser->line_number, var->name, func->name);
@@ -308,26 +303,27 @@ void ParseFunctions(Parser *parser)
                 DestroySymtable(parser->global_symtable);
                 DestroyTokenVector(stream);
                 ErrorExit(ERROR_SEMANTIC_OTHER, "Line %d: Function definition cannot be nested inside another block!!!",
-                            parser->line_number);
+                          parser->line_number);
             }
 
             // Increment due to the '{' at the end after the function definition to avoid the previous error
             parser->nested_level++;
         }
 
-        if(token->keyword_type == VAR){
+        if (token->keyword_type == VAR)
+        {
             ParseVariableDeclaration(parser);
         }
 
-        if(token->keyword_type == CONST){
+        if (token->keyword_type == CONST)
+        {
             ParseConstDeclaration(parser);
         }
-
     }
 
     // Append the EOF token
     AppendToken(stream, token);
 
     // The line number of the first token
-    parser->line_number = stream->token_string[0]->line_number; 
+    parser->line_number = stream->token_string[0]->line_number;
 }
