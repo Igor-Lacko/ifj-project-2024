@@ -3,6 +3,10 @@
 
 #include "types.h"
 
+
+// Used to check if a float has zero decimal places
+#define EPSILON 1e-9
+
 /**
  * @brief Initializes a precedence table
  * 
@@ -62,6 +66,13 @@ bool IsNullable(DATA_TYPE type);
  * @param stack The stack to search in and destroy
  */
 void DestroyStackAndVector(TokenVector *postfix, ExpressionStack *stack);
+
+/**
+ * @brief Checks if a float value has zero decimal places
+ * 
+ * @param float_value String representation of the float value
+ */
+bool HasZeroDecimalPlaces(char *float_value);
 
 /**
  * @brief Generates code for a arithmetic operation between two literals

@@ -217,13 +217,13 @@ void ParseParameters(Parser *parser, FunctionSymbol *func)
             switch (token->keyword_type)
             {
             case I32:
-                var->type = INT32_TYPE;
+                var->type = token->attribute[0] == '?' ? INT32_NULLABLE_TYPE : INT32_TYPE;
                 break;
             case F64:
-                var->type = DOUBLE64_TYPE;
+                var->type = token->attribute[0] == '?' ? DOUBLE64_NULLABLE_TYPE : DOUBLE64_TYPE;
                 break;
             case U8:
-                var->type = U8_ARRAY_TYPE;
+                var->type = token->attribute[0] == '?' ? U8_ARRAY_NULLABLE_TYPE : U8_ARRAY_TYPE;
                 break;
             default:
                 var->type = VOID_TYPE;

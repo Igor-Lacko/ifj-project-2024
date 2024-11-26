@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "expression_parser.h"
 #include "stack.h"
@@ -312,6 +313,15 @@ void ReplaceConstants(TokenVector *postfix, Parser *parser)
     }
 }
 
+bool HasZeroDecimalPlaces(char *float_value)
+{
+    double val = strtod(float_value, NULL);
+    int int_part = (int)val;
+
+    if(val - int_part < 0.0) return (val - int_part) > (0.0 - EPSILON);
+    return (val - int_part) < EPSILON;
+}
+
 DATA_TYPE ArithmeticOperationTwoLiterals(Token *operand_left, Token *operand_right, Token *operator)
 {
     // Get the resulting type of the operation
@@ -391,6 +401,26 @@ DATA_TYPE ArithmeticOperationLiteralId(Token *literal, VariableSymbol *id, Token
         }
     }
 
+    // Do the same for floats
+    else if(literal->token_type == DOUBLE_64 && id->type == INT32_TYPE)
+    {
+        // If the literal is on top of the stack, we can convert it directly
+        if(literal_on_top) FLOAT2INTS
+
+        // The other case, we will need to use temporary variables, the variable is an int so we will temporarily store it in R0
+        else
+        {
+            // Store the variable in R0
+            PopToRegister(INT32_TYPE);
+
+            // Convert the literal to an int
+            FLOAT2INTS
+
+            // Push the variable back
+            fprintf(stdout, "PUSHS GF@$R0\n");
+        }
+    }
+
     // Perform the given operation
     switch(operator->token_type)
     {
@@ -439,10 +469,12 @@ int CheckLiteralVarCompatibilityArithmetic(Token *literal, Token *var, Parser *p
     /*  The types are compatible if:
         1. Their types are equal
         2. The literal is an integer and the variable is a double (implicit conversion)
+        3. The literal is a double with zero decimal places and the variable is an integer (implicit conversion) TODO
     */
     if(literal->token_type == INTEGER_32 && var_symbol->type == INT32_TYPE) return 0; // case 1
     else if(literal->token_type == DOUBLE_64 && var_symbol->type == DOUBLE64_TYPE) return 0; // case 1
     else if(literal->token_type == INTEGER_32 && var_symbol->type == DOUBLE64_TYPE) return 0; // case 2, later convert to float
+    else if(literal->token_type == DOUBLE_64 && HasZeroDecimalPlaces(literal->attribute) && var_symbol->type == INT32_TYPE) return 0; // case 3, later convert to int
 
     // If none of the cases are met, the types are incompatible
     PrintError("Error in semantic analysis: Line %d: Incompatible types in expression", parser->line_number);
@@ -599,7 +631,7 @@ int CheckLiteralVarCompatibilityBoolean(Token *literal, Token *var, Parser *pars
     }
 
     // Double literal and int variable
-    else if(literal->token_type == DOUBLE_64 && var_symbol->type == INT32_TYPE)
+    else if(literal->token_type == DOUBLE_64 && var_symbol->type == INT32_TYPE && !HasZeroDecimalPlaces(literal->attribute))
     {
         PrintError("Error in semantic analysis: Line %d: Incompatible types in expression", parser->line_number);
         return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
@@ -627,6 +659,26 @@ void BooleanOperationLiteralId(Token *literal, VariableSymbol *id, Token *operat
 
             // Push the variable back
             fprintf(stdout, "PUSHS GF@$F0\n");
+        }
+    }
+
+    // Do the same for float to int conversion
+    else if(literal->token_type == DOUBLE_64 && id->type == INT32_TYPE)
+    {
+        // If the literal is on top of the stack, we can convert it directly
+        if(literal_top_stack) FLOAT2INTS
+
+        // The other case, we will need to use temporary variables, the variable is an int so we will temporarily store it in R0
+        else
+        {
+            // Store the variable in R0
+            PopToRegister(INT32_TYPE);
+
+            // Convert the literal to an int
+            FLOAT2INTS
+
+            // Push the variable back
+            fprintf(stdout, "PUSHS GF@$R0\n");
         }
     }
 

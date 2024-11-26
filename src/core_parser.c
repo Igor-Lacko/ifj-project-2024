@@ -492,6 +492,8 @@ void ParametersOnCall(Parser *parser, FunctionSymbol *func)
             else if (!CheckParamType(func->parameters[loaded]->type, symb1->type))
                 INVALID_PARAM_TYPE
 
+            symb1->was_used = true;
+
             // Generate code
             NEWPARAM(loaded)
             SETPARAM(loaded++, token->attribute, token->token_type, LOCAL_FRAME);
