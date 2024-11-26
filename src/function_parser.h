@@ -34,4 +34,11 @@ void ParseFunctions(Parser *parser);
  */
 void ParseVariableDeclaration(Parser *parser);
 
+/**
+ * @brief In case of nullable if statement, stores the variable into an array
+ * 
+ * @param parser 
+ */
+void ParseIf(Parser *parser);
+
 #endif

@@ -10,10 +10,64 @@
 #include "vector.h"
 #include "stack.h"
 #include "scanner.h"
-
 // pub fn id ( seznam_parametrů ) návratový_typ {
 // sekvence_příkazů
 // }
+
+void ParseIf(Parser *parser)
+{
+
+    CheckTokenTypeStream(parser, L_ROUND_BRACKET);
+
+    Token *token;
+    int counter = 1;
+    //loops through expression until )
+    while (counter)
+    {
+        token = LoadTokenFromStream(&parser->line_number);
+        if(token->token_type == L_ROUND_BRACKET)
+        {
+            AppendToken(stream, token);
+            counter++;
+        }
+        else if(token->token_type == R_ROUND_BRACKET)
+        {
+            AppendToken(stream, token);
+            counter--;
+        }
+        else if(token->token_type == EOF_TOKEN)
+        {
+            ErrorExit(ERROR_SYNTACTIC, "Line %d: Incorrectly ended if statement", parser->line_number);
+        }
+        else{
+            AppendToken(stream, token);
+        }
+    }
+
+    //checks if the next token is a vertical bar
+    token = LoadTokenFromStream(&parser->line_number);
+    if(token->token_type == VERTICAL_BAR_TOKEN)
+    {
+        AppendToken(stream, token);
+        token = CheckAndReturnTokenStream(parser, IDENTIFIER_TOKEN);
+        AppendStringArray(&parser->current_function->variables, token->attribute);
+        CheckTokenTypeStream(parser, VERTICAL_BAR_TOKEN);
+        CheckTokenTypeStream(parser, L_CURLY_BRACKET);
+        return;
+    }
+    
+    if(token->token_type != L_CURLY_BRACKET)
+    {
+        ErrorExit(ERROR_SYNTACTIC, "Line %d: Expected '{' after variable declaration", parser->line_number);
+    }
+
+    AppendToken(stream, token);
+    return;
+}
+
+
+
+
 
 void ParseVariableDeclaration(Parser *parser)
 {
@@ -318,6 +372,11 @@ void ParseFunctions(Parser *parser)
         if (token->keyword_type == CONST)
         {
             ParseConstDeclaration(parser);
+        }
+
+        if(token->keyword_type == IF){
+            ParseIf(parser);
+            parser->nested_level++;
         }
     }
 
