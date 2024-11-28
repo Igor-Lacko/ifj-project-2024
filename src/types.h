@@ -4,7 +4,10 @@
 #include <stdbool.h>
 
 // Symtable size
-#define TABLE_COUNT 109 // first prime over 1000, todo: change this
+#define TABLE_COUNT 5009 // first prime over 5000
+
+// Number of precedence table rows/columns
+#define PTABLE_SIZE 14
 
 // enum for token types
 typedef enum
@@ -210,7 +213,36 @@ typedef struct
     ExpressionStackNode *top;
 } ExpressionStack;
 
-// Structures for precedential analysis
+/******************** STRUCTURES FOR PRECEDENTIAL ANALYSIS ********************/
+typedef enum
+{
+    PTABLE_ID,
+    PTABLER_MULTIPLICATION,
+    PTABLE_DIVISION,
+    PTABLE_ADDITION,
+    PTABLE_SUBSTRACTION,
+    PTABLE_EQUAL,
+    PTABLE_NOT_EQUAL,
+    PTABLE_LESS_THAN,
+    PTABLE_LARGER_THAN,
+    PTABLE_LESSER_EQUAL,
+    PTABLE_LARGER_EQUAL,
+    PTABLE_LEFT_BRACKET,
+    PTABLE_RIGHT_BRACKET,
+    PTABLE_DOLLAR
+} PtableKey;
+
+typedef enum
+{
+    SHIFT,
+    REDUCE,
+    MATCH,
+    ACCEPT,
+    INVALID
+} PtableValue;
+
+typedef PtableValue Ptable[PTABLE_SIZE][PTABLE_SIZE];
+
 typedef struct
 {                                   // simple precedence table struct
     TOKEN_TYPE PRIORITY_HIGHEST[2]; // * and /

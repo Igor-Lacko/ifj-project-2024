@@ -356,42 +356,6 @@ void ConsumeMultiLineLiteral(Token *token, int *line_number)
             continue;
         }
 
-        // // escape sequence
-        // else if(c == '\\')
-        // {
-        //     switch(c = getchar())
-        //     {
-        //         case 'n':
-        //             AppendChar(vector, '\n');
-        //             break;
-
-        //         case 'r':
-        //             AppendChar(vector, '\r');
-        //             break;
-
-        //         case 't':
-        //             AppendChar(vector, '\t');
-        //             break;
-
-        //         case 'x':
-        //             ConsumeHexadecimalEscapeSequence(vector, line_number);
-        //             break;
-
-        //         case '"':
-        //             AppendChar(vector, '\"');
-        //             break;
-
-        //         case '\\':
-        //             AppendChar(vector, '\\');
-        //             break;
-
-        //         default:
-        //             DestroyToken(token);
-        //             DestroyVector(vector);
-        //             ErrorExit(ERROR_LEXICAL, "Line %d: Invalid escape sequence '\\%c' in a multi-line literal", *line_number, c);
-        //     }
-        // }
-
         else if(c == EOF)
         {
             DestroyToken(token);
