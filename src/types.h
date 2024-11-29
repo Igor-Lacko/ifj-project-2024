@@ -170,9 +170,9 @@ typedef struct
     HashEntry *table;       // Array of hash entries
 } Symtable;
 
-// ************************************************************* //
+/******************** VECTOR (DYNAMIC ARRAY) STRUCTURES ********************/
 
-// Vector (dynamic array) structures
+// "Dynamic string"
 typedef struct
 {
     int length;
@@ -188,24 +188,35 @@ typedef struct
     int capacity;         // max
 } TokenVector;
 
-// Stack structures
+
+/********************* STACK STRUCTURES ********************/
+
 typedef struct SymStackNode
 { // Linked list for symtable stack implementation
     Symtable *table;
     struct SymStackNode *next;
 } SymtableStackNode;
 
-typedef struct ExprStackNode
-{ // Linked list for expression parser stack implementation
-    Token *token;
-    struct ExprStackNode *next;
-} ExpressionStackNode;
-
 typedef struct
 { // Stack for symtables
     unsigned long size;
     SymtableStackNode *top;
 } SymtableStack;
+
+typedef enum
+{ // Expression stack node types
+    HANDLE,                                     // Handle symbol, represents start of a reduction
+    TERMINAL,                                   // Terminal symbol, represented by the token inside the node
+    NONTERMINAL                                 // There don't need to bne multiple types for this, since we only have one non-terminal -> E
+} STACK_NODE_TYPE;
+
+typedef struct ExprStackNode
+{ // Linked list for expression parser stack implementation
+    Token *token;
+    STACK_NODE_TYPE node_type;
+    PtableKey key_type;
+    struct ExprStackNode *next;
+} ExpressionStackNode;
 
 typedef struct
 { // Stack for expression parsing
@@ -214,10 +225,29 @@ typedef struct
 } ExpressionStack;
 
 /******************** STRUCTURES FOR PRECEDENTIAL ANALYSIS ********************/
+
+// Enumeration of grammar rules for reduction in expressions
+typedef enum
+{
+    IDENTIFIER_RULE,                // E -> id
+    BRACKET_RULE,                   // E -> (E)
+    MULTIPLICATION_RULE,            // E -> E * E
+    DIVISION_RULE,                  // E -> E / E
+    ADDITION_RULE,                  // E -> E + E
+    SUBSTRACTION_RULE,              // E -> E - E
+    EQUAL_RULE,                     // E -> E == E
+    NOT_EQUAL_RULE,                 // E -> E != E
+    LESS_THAN_RULE,                 // E -> E < E
+    LARGER_THAN_RULE,               // E -> E > E
+    LESSER_EQUAL_RULE,              // E -> E <= E
+    LARGER_EQUAL_RULE,              // E -> E >= E
+    NOT_FOUND_RULE                  // Rule not found, error
+} EXPRESSION_RULE;
+
 typedef enum
 {
     PTABLE_ID,
-    PTABLER_MULTIPLICATION,
+    PTABLE_MULTIPLICATION,
     PTABLE_DIVISION,
     PTABLE_ADDITION,
     PTABLE_SUBSTRACTION,
@@ -229,7 +259,9 @@ typedef enum
     PTABLE_LARGER_EQUAL,
     PTABLE_LEFT_BRACKET,
     PTABLE_RIGHT_BRACKET,
-    PTABLE_DOLLAR
+    PTABLE_DOLLAR,
+    PTABLE_ERROR,       // Invalid token in expression
+    PTABLE_NOKEY        // When pushing a Non-terminal/Handle to the stack
 } PtableKey;
 
 typedef enum
@@ -241,23 +273,10 @@ typedef enum
     INVALID
 } PtableValue;
 
-typedef PtableValue Ptable[PTABLE_SIZE][PTABLE_SIZE];
+typedef PtableValue PrecedenceTable[PTABLE_SIZE][PTABLE_SIZE];
 
-typedef struct
-{                                   // simple precedence table struct
-    TOKEN_TYPE PRIORITY_HIGHEST[2]; // * and /
-    TOKEN_TYPE PRIORITY_MIDDLE[2];  // + and -
-    TOKEN_TYPE PRIORITY_LOWEST[6];  // ==, !=, >, <, >=, <=
-} PrecedenceTable;
 
-typedef enum
-{ // helper enum for operator priority (probably only used once)
-    HIGHEST = 3,
-    MIDDLE = 2,
-    LOWEST = 1
-} OPERATOR_PRIORITY;
-
-// Enum for IFJCode24 frames
+/******************** ENUM FOR IFJCODE24 FRAMES ********************/
 typedef enum
 {
     GLOBAL_FRAME,
@@ -265,7 +284,7 @@ typedef enum
     TEMPORARY_FRAME
 } FRAME;
 
-// Core parser structure
+/******************** CORE PARSER STRUCTURE ********************/
 typedef struct
 {
     int nested_level;

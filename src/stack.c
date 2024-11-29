@@ -153,9 +153,24 @@ ExpressionStack *ExpressionStackInit(void)
     return stack;
 }
 
-Token *ExpressionStackTop(ExpressionStack *stack)
+ExpressionStackNode *ExpressionStackNodeInit(Token *token, STACK_NODE_TYPE node_type, PtableKey key)
 {
-    return stack->size == 0 ? NULL : stack->top->token;
+    ExpressionStackNode *node;
+    if((node = calloc(1, sizeof(ExpressionStackNode))) == NULL)
+    {
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    }
+
+    node->token = token;
+    node->node_type = node_type;
+    node->key_type = key;
+
+    return node;
+}
+
+ExpressionStackNode *ExpressionStackTop(ExpressionStack *stack)
+{
+    return stack->size == 0 ? NULL : stack->top;
 }
 
 void ExpressionStackRemoveTop(ExpressionStack *stack)
@@ -172,37 +187,68 @@ void ExpressionStackRemoveTop(ExpressionStack *stack)
     }
 }
 
-Token *ExpressionStackPop(ExpressionStack *stack)
+ExpressionStackNode *ExpressionStackPop(ExpressionStack *stack)
 {
     // look if the stack is not empty
     if (stack->size == 0)
         return NULL;
 
     // retrieve the top and pop it from the symtable
-    Token *token = ExpressionStackTop(stack);
     ExpressionStackNode *previous_top = stack->top;
     stack->top = previous_top->next; // can also be NULL
     --(stack->size);
 
-    free(previous_top);
-    return token;
+    return previous_top;
 }
 
-void ExpressionStackPush(ExpressionStack *stack, Token *token)
+ExpressionStackNode *TopmostTerminal(ExpressionStack *stack)
 {
-    ExpressionStackNode *node;
-    if ((node = malloc(sizeof(ExpressionStackNode))) == NULL)
+    ExpressionStackNode *current = stack->top;
+    while (current != NULL)
     {
-        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+        if (current->node_type == TERMINAL)
+            return current;
+        current = current->next;
     }
+    return NULL;
+}
 
+ExpressionStackNode *TopmostHandle(ExpressionStack *stack, int *distance)
+{
+    *distance = 0; // Should be already set to 0, but just in case
+    ExpressionStackNode *current = stack->top;
+    while (current != NULL)
+    {
+        ++(*distance);
+        if (current->node_type == HANDLE)
+            return current;
+        current = current->next;
+    }
+    (*distance) = 0; // No handle found, probably an error anyway?
+    return NULL;
+}
+
+void ExpressionStackPush(ExpressionStack *stack, ExpressionStackNode *node){
     // add data
     node->next = stack->top;
-    node->token = token;
 
     // push to the stack and increase size
     stack->top = node;
     ++(stack->size);
+}
+
+void PushHandleAfterTopmost(ExpressionStack *stack)
+{
+    // Get the topmost terminal
+    ExpressionStackNode *topmost = TopmostTerminal(stack);
+    if (topmost == NULL) ErrorExit(ERROR_INTERNAL, "Stack has no terminals!");
+
+    // Create a new handle node
+    ExpressionStackNode *handle = ExpressionStackNodeInit(NULL, HANDLE, GetPtableKey(topmost->token, 1));
+
+    // Insert the handle after the topmost terminal
+    handle->next = topmost->next;
+    topmost->next = handle;
 }
 
 void ExpressionStackDestroy(ExpressionStack *stack)
