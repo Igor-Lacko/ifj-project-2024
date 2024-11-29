@@ -8,20 +8,38 @@
 #define EPSILON 1e-9
 
 /**
- * @brief Initializes a precedence table
+ * @brief For compatibility of tokens and the precedence table, converts TOKEN_TYPE to PtableKey to allow indexing
  * 
- * @return PrecedenceTable Initialized precedence table with it's array filled by operators
+ * @param bracket_count Since R_ROUND_BRACKET can be a dollar sign if bracket_count is below 0
  */
-PrecedenceTable InitPrecedenceTable(void);
+PtableKey GetPtableKey(Token *token, int bracket_count);
 
 /**
- * @brief Compares the priority of the two operators
- * 
- * @param operator_1 First operator
- * @param operator_2 Second operator
- * @return int -1 if priority of the first is lesser than priority of the second, 0 if equal, 1 if greater and 2 if one of the arguments wasn't an operator
+ * @brief Checks if a token is an valid operand in an expression (so ID, or a non-string literal)
  */
-int ComparePriority(TOKEN_TYPE operator_1, TOKEN_TYPE operator_2);
+bool IsOperand(Token *token);
+
+/**
+ * @brief Tries to find a rule that can be applied in precedential analysis.
+ * @brief That is to say, tries to reduce the items in the stack between the top and the handle to a single item.
+ * @brief If no reduction can be applied, returns NOT_FOUND_RULE
+ * 
+ * 
+ * @param stack Stack instance
+ * @param distance Distance from the top of the stack to the handle (limits the number of possible rules that can be applied)
+ * 
+ * @return EXPRESSION_RULE Rule to be applied, or NOT_FOUND_RULE if no rule can be applied
+ */
+EXPRESSION_RULE FindRule(ExpressionStack *stack, int distance);
+
+/**
+ * @brief Performs reduction on the stack according to the given rule
+ * 
+ * @param stack Stack instance
+ * @param postfix Postfix representation of the expression, append the right side of the rule to this
+ * @param rule Rule to be applied
+ */
+void ReduceToNonterminal(ExpressionStack *stack, TokenVector *postfix, EXPRESSION_RULE rule);
 
 /**
  * @brief Converts the next expression starting at getchar() to postfix notation
@@ -65,7 +83,10 @@ bool IsNullable(DATA_TYPE type);
  * @param postfix The token vector to search in and destroy
  * @param stack The stack to search in and destroy
  */
-void DestroyStackAndVector(TokenVector *postfix, ExpressionStack *stack);
+void DestroyExpressionStackAndVector(TokenVector *postfix, ExpressionStack *stack);
+
+// The same as the previous function, but for the EvaluationStack
+void DestroyEvaluationStackAndVector(TokenVector *postfix, EvaluationStack *stack);
 
 /**
  * @brief Checks if a float value has zero decimal places

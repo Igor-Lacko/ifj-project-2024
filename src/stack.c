@@ -8,8 +8,11 @@
 #include "scanner.h"
 #include "shared.h"
 #include "vector.h"
+#include "expression_parser.h"
 
-// Symtable stack operations
+
+/*********************** SYMTABLE STACK OPERATIONS ********************/
+
 SymtableStack *SymtableStackInit(void)
 {
     SymtableStack *stack;
@@ -141,7 +144,8 @@ void SymtableStackPrint(SymtableStack *stack)
     }
 }
 
-// Expression stack operations
+/********************** EXPRESSION STACK OPERATIONS *********************/
+
 ExpressionStack *ExpressionStackInit(void)
 {
     ExpressionStack *stack;
@@ -153,9 +157,24 @@ ExpressionStack *ExpressionStackInit(void)
     return stack;
 }
 
-Token *ExpressionStackTop(ExpressionStack *stack)
+ExpressionStackNode *ExpressionStackNodeInit(Token *token, STACK_NODE_TYPE node_type, PtableKey key)
 {
-    return stack->size == 0 ? NULL : stack->top->token;
+    ExpressionStackNode *node;
+    if((node = calloc(1, sizeof(ExpressionStackNode))) == NULL)
+    {
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    }
+
+    node->token = token;
+    node->node_type = node_type;
+    node->key_type = key;
+
+    return node;
+}
+
+ExpressionStackNode *ExpressionStackTop(ExpressionStack *stack)
+{
+    return stack->size == 0 ? NULL : stack->top;
 }
 
 void ExpressionStackRemoveTop(ExpressionStack *stack)
@@ -164,44 +183,93 @@ void ExpressionStackRemoveTop(ExpressionStack *stack)
     {
         ExpressionStackNode *previous_top = stack->top;
         stack->top = previous_top->next;
+        if(previous_top->token != NULL) DestroyToken(previous_top->token);
         // free allocated memory resources
-        DestroyToken(previous_top->token);
         free(previous_top);
 
         --(stack->size);
     }
 }
 
-Token *ExpressionStackPop(ExpressionStack *stack)
+ExpressionStackNode *ExpressionStackPop(ExpressionStack *stack)
 {
     // look if the stack is not empty
     if (stack->size == 0)
         return NULL;
 
     // retrieve the top and pop it from the symtable
-    Token *token = ExpressionStackTop(stack);
     ExpressionStackNode *previous_top = stack->top;
     stack->top = previous_top->next; // can also be NULL
     --(stack->size);
 
-    free(previous_top);
-    return token;
+    return previous_top;
 }
 
-void ExpressionStackPush(ExpressionStack *stack, Token *token)
+ExpressionStackNode *TopmostTerminal(ExpressionStack *stack)
 {
-    ExpressionStackNode *node;
-    if ((node = malloc(sizeof(ExpressionStackNode))) == NULL)
+    ExpressionStackNode *current = stack->top;
+    while (current != NULL)
     {
-        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+        if (current->node_type == TERMINAL)
+            return current;
+        current = current->next;
     }
+    return NULL;
+}
 
+int TopmostHandleDistance(ExpressionStack *stack)
+{
+    int distance = 0; // Should be already set to 0, but just in case
+    ExpressionStackNode *current = stack->top;
+    while (current != NULL)
+    {
+        if (current->node_type == HANDLE)
+            return distance;
+
+        ++distance;
+        current = current->next;
+    }
+    return -1;      // No handle found, probably an error anyway?
+}
+
+void ExpressionStackPush(ExpressionStack *stack, ExpressionStackNode *node){
     // add data
     node->next = stack->top;
-    node->token = token;
 
     // push to the stack and increase size
     stack->top = node;
+    ++(stack->size);
+}
+
+void PushHandleAfterTopmost(ExpressionStack *stack)
+{
+    // Get the topmost terminal
+    ExpressionStackNode *topmost = TopmostTerminal(stack);
+    if (topmost == NULL) ErrorExit(ERROR_INTERNAL, "Stack has no terminals!");
+
+    // Create a new handle node
+    ExpressionStackNode *handle = ExpressionStackNodeInit(NULL, HANDLE, GetPtableKey(topmost->token, 1));
+
+    if(stack->top == topmost)
+    {
+        (++stack->size);
+        handle->next = stack->top;
+        stack->top = handle;
+        return;
+    }
+
+    // Insert the handle after the topmost terminal
+    ExpressionStackNode *current = stack->top;
+
+    while((current->next != NULL) && (current->next != topmost))
+    {
+        current = current->next;
+    }
+
+    if(current->next == NULL) ErrorExit(ERROR_INTERNAL, "Topmost terminal not found in the stack!");
+
+    current->next = handle;
+    handle->next = topmost;
     ++(stack->size);
 }
 
@@ -215,7 +283,123 @@ void ExpressionStackDestroy(ExpressionStack *stack)
     free(stack);
 }
 
+void ExpressionStackClear(ExpressionStack *stack, TokenVector *postfix)
+{
+    ExpressionStackNode *current = stack->top;
+    while (current != NULL)
+    {
+        if (current->token != NULL && !IsTokenInString(postfix, current->token))
+        {
+            DestroyToken(current->token);
+            current->token = NULL;
+        }
+        current = current->next;
+    }
+}
+
 bool ExpressionStackIsEmpty(ExpressionStack *stack)
+{
+    return (stack->size) == 0;
+}
+
+void ExpressionStackPrint(ExpressionStack *stack)
+{
+    fprintf(stderr, "Expression stack:\n");
+    ExpressionStackNode *current = stack->top;
+    while (current != NULL)
+    {
+        if (current->node_type == TERMINAL)
+        {
+            fprintf(stderr, "Terminal: ");
+            current->token == NULL ? fprintf(stderr, "$\n") : fprintf(stderr, "%s\n", current->token->attribute);
+        }
+        else if (current->node_type == HANDLE)
+            fprintf(stderr, "Handle\n");
+        else
+            fprintf(stderr, "Non-terminal\n");
+        current = current->next;
+    }
+
+    fprintf(stderr, "\n");
+}
+
+/********************** EVALUATION STACK OPERATIONS *********************/
+
+EvaluationStack *EvaluationStackInit(void)
+{
+    EvaluationStack *stack;
+    if ((stack = calloc(1, sizeof(EvaluationStack))) == NULL)
+    {
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    }
+
+    return stack;
+}
+
+Token *EvaluationStackTop(EvaluationStack *stack)
+{
+    return stack->size == 0 ? NULL : stack->top->token;
+}
+
+void EvaluationStackRemoveTop(EvaluationStack *stack)
+{
+    if (stack->size != 0)
+    {
+        EvaluationStackNode *previous_top = stack->top;
+        stack->top = previous_top->next;
+        // free allocated memory resources
+        if(previous_top->token != NULL) DestroyToken(previous_top->token);
+        free(previous_top);
+
+        --(stack->size);
+    }
+}
+
+void EvaluationStackPush(EvaluationStack *stack,Token *token)
+{
+    EvaluationStackNode *node;
+    if((node = calloc(1, sizeof(EvaluationStackNode))) == NULL)
+    {
+        ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
+    }
+
+    // add data
+    node->next = stack->top;
+    node->token = token;
+
+    // push to the stack and increase size
+    stack->top = node;
+    ++(stack->size);
+}
+
+Token *EvaluationStackPop(EvaluationStack *stack)
+{
+    // look if the stack is not empty
+    if (stack->size == 0)
+        return NULL;
+
+    // retrieve the top
+    EvaluationStackNode *previous_top = stack->top;
+    stack->top = previous_top->next; // can also be NULL
+    --(stack->size);
+
+    Token *token = previous_top->token;
+    free(previous_top);
+
+    return token;
+}
+
+void EvaluationStackDestroy(EvaluationStack *stack)
+{
+    while (stack->size != 0)
+    {
+        EvaluationStackRemoveTop(stack);
+    }
+
+    free(stack);
+}
+
+bool EvaluationStackIsEmpty(EvaluationStack *stack)
 {
     return (stack->size) == 0;
 }

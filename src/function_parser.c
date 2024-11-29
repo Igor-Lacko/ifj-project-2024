@@ -380,10 +380,6 @@ void ParseFunctions(Parser *parser)
             parser->nested_level++;
         }
 
-        if(token->keyword_type == WHILE){
-            ParseWhile(parser);
-            parser->nested_level++;
-        }
     }
 
     // Append the EOF token

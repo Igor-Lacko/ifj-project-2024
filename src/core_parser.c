@@ -340,6 +340,7 @@ void VarDeclaration(Parser *parser, bool is_const)
 
     else if (token->token_type != ASSIGNMENT)
     {
+    fprintf(stderr, "bndfsaihdsoa\n");
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
         DestroyTokenVector(stream);
@@ -382,7 +383,7 @@ bool ConstValueAssignment(VariableSymbol *var)
             {
                 var->value = strdup(potential_value->attribute);
                 stream_index += 2;
-                fprintf(stdout, "MOVE LF@%s float@%s\n", var->name, var->value);
+                fprintf(stdout, "MOVE LF@%s float@%a\n", var->name, strtod(var->value, NULL));
                 return true;
             }
 
@@ -782,7 +783,7 @@ void VariableAssignment(Parser *parser, VariableSymbol *var, bool is_underscore)
 
             // Assign NULL to the variable
             if (!is_underscore)
-                MOVE(var->name, "nil@nil", false, LOCAL_FRAME);
+                fprintf(stdout, "MOVE LF@%s nil@nil\n", var->name);
             else
             {
                 fprintf(stdout, "PUSHS nil@nil\n");

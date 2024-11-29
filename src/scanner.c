@@ -139,11 +139,11 @@ void ConsumeNumber(Token *token, int *line_number)
     if(token->token_type == DOUBLE_64)
     {
         double float_res = strtod(vector->value, NULL);
-        unsigned long length = snprintf(NULL, 0, "%a", float_res);
+        unsigned long length = snprintf(NULL, 0, "%lf", float_res);
         if((token->attribute = malloc((length + 1) * sizeof(char))) == NULL)
             ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
 
-        sprintf(token->attribute, "%a", float_res);
+        sprintf(token->attribute, "%lf", float_res);
         DestroyVector(vector);
         return;
     }
@@ -355,42 +355,6 @@ void ConsumeMultiLineLiteral(Token *token, int *line_number)
             AppendChar(vector, c);
             continue;
         }
-
-        // // escape sequence
-        // else if(c == '\\')
-        // {
-        //     switch(c = getchar())
-        //     {
-        //         case 'n':
-        //             AppendChar(vector, '\n');
-        //             break;
-
-        //         case 'r':
-        //             AppendChar(vector, '\r');
-        //             break;
-
-        //         case 't':
-        //             AppendChar(vector, '\t');
-        //             break;
-
-        //         case 'x':
-        //             ConsumeHexadecimalEscapeSequence(vector, line_number);
-        //             break;
-
-        //         case '"':
-        //             AppendChar(vector, '\"');
-        //             break;
-
-        //         case '\\':
-        //             AppendChar(vector, '\\');
-        //             break;
-
-        //         default:
-        //             DestroyToken(token);
-        //             DestroyVector(vector);
-        //             ErrorExit(ERROR_LEXICAL, "Line %d: Invalid escape sequence '\\%c' in a multi-line literal", *line_number, c);
-        //     }
-        // }
 
         else if(c == EOF)
         {

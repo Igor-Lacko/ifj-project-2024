@@ -45,37 +45,29 @@ MOVE LF@sphereY float@0x0p+0
 MOVE LF@sphereRadius float@0x1.4p+2
 MOVE LF@lightX float@0x1.4p+3
 MOVE LF@lightY float@0x1.4p+3
-PUSHS int@0
-PUSHS int@1
+PUSHS float@0x0p+0
+PUSHS float@0x1p+0
 SUBS
 PUSHS float@0x1.4p+3
-POPS GF@$F0
-INT2FLOATS
-PUSHS GF@$F0
 MULS
-PUSHS int@2
-INT2FLOATS
+PUSHS float@0x1p+1
 DIVS
 POPS LF@y
 CLEARS
 LABEL $while0
 PUSHS LF@y
 PUSHS float@0x1.4p+3
-PUSHS int@2
-INT2FLOATS
+PUSHS float@0x1p+1
 DIVS
 GTS
 NOTS
 POPS GF@$B0
 CLEARS
 JUMPIFEQ $endwhile0 GF@$B0 bool@false
-PUSHS int@0
-PUSHS int@1
+PUSHS float@0x0p+0
+PUSHS float@0x1p+0
 SUBS
 PUSHS float@0x1.4p+4
-POPS GF@$F0
-INT2FLOATS
-PUSHS GF@$F0
 MULS
 PUSHS float@0x1p+1
 DIVS
@@ -168,7 +160,8 @@ POPS LF@lenL
 CLEARS
 LABEL $if1
 PUSHS LF@lenL
-PUSHS float@0x0p+0
+PUSHS int@0
+INT2FLOATS
 GTS
 POPS GF@$B0
 CLEARS
@@ -194,7 +187,8 @@ POPS LF@dot
 CLEARS
 LABEL $if2
 PUSHS LF@dot
-PUSHS float@0x0p+0
+PUSHS int@0
+INT2FLOATS
 GTS
 POPS GF@$B0
 CLEARS

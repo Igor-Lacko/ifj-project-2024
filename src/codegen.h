@@ -124,7 +124,7 @@ void EndWhileLabel(int count);
  * @param is_literal If the source is a literal.
  * @param dst_frame Destination frame type.
  */
-void MOVE(const char *dst, const char *src, bool is_literal, FRAME dst_frame);
+void MOVE(Token *dst, Token *src, FRAME dst_frame);
 
 /**
  * @brief Generates code for pushing a symbol to the data stack.
