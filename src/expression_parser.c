@@ -32,9 +32,13 @@ const PrecedenceTable precedence_table = {
 
 PtableKey GetPtableKey(Token *token, int bracket_count)
 {
+    // The only time this will happen is with the initial terminal dollar
+    if (token == NULL)
+        return PTABLE_DOLLAR;
+
     switch (token->token_type)
     {
-        case IDENTIFIER_TOKEN:
+        case IDENTIFIER_TOKEN: case INTEGER_32: case DOUBLE_64:
             return PTABLE_ID;
 
         case MULTIPLICATION_OPERATOR:
@@ -71,7 +75,7 @@ PtableKey GetPtableKey(Token *token, int bracket_count)
             return PTABLE_LEFT_BRACKET;
 
         case R_ROUND_BRACKET:
-            bracket_count == -1 ? PTABLE_DOLLAR : PTABLE_RIGHT_BRACKET;
+            return bracket_count == -1 ? PTABLE_DOLLAR : PTABLE_RIGHT_BRACKET;
 
         case SEMICOLON:
             return PTABLE_DOLLAR;
@@ -94,7 +98,7 @@ bool IsNullable(DATA_TYPE type)
            type == NULL_DATA_TYPE; // This specific one shouldn't ever happen i guess?
 }
 
-EXPRESSION_RULE FindRule(ExpressionStack *stack, ExpressionStackNode *handle, int distance)
+EXPRESSION_RULE FindRule(ExpressionStack *stack, int distance)
 {
     // Get the stack top
     ExpressionStackNode *top = ExpressionStackTop(stack);
@@ -112,15 +116,15 @@ EXPRESSION_RULE FindRule(ExpressionStack *stack, ExpressionStackNode *handle, in
     }
 
     // Check if the stack size can actually contain a rule
-    if(stack->size < 3) return NOT_FOUND_RULE;
+    if(stack->size < 4) return NOT_FOUND_RULE; // 4 since we need 3 nodes + the handle
 
     // Special case, brackets rule (E -> (E)) --> only other type when a terminal can be on the top of the stack
     if(top->node_type == TERMINAL)
     {
-        if(top->token->token_type != L_ROUND_BRACKET) return NOT_FOUND_RULE;
+        if(top->token->token_type != R_ROUND_BRACKET) return NOT_FOUND_RULE;
         if(top->next->node_type != NONTERMINAL) return NOT_FOUND_RULE;
         if(top->next->next->node_type != TERMINAL
-        && top->next->next->token->token_type != R_ROUND_BRACKET) return NOT_FOUND_RULE;
+        && top->next->next->token->token_type != L_ROUND_BRACKET) return NOT_FOUND_RULE;
 
         return BRACKET_RULE;
     }
@@ -138,33 +142,43 @@ EXPRESSION_RULE FindRule(ExpressionStack *stack, ExpressionStackNode *handle, in
     {
         case MULTIPLICATION_OPERATOR:
             rule = MULTIPLICATION_RULE;
+            break;
 
         case DIVISION_OPERATOR:
             rule = DIVISION_RULE;
+            break;
 
         case ADDITION_OPERATOR:
             rule = ADDITION_RULE;
+            break;
 
         case SUBSTRACTION_OPERATOR:
             rule = SUBSTRACTION_RULE;
+            break;
 
         case EQUAL_OPERATOR:
             rule = EQUAL_RULE;
+            break;
 
         case NOT_EQUAL_OPERATOR:
             rule = NOT_EQUAL_RULE;
+            break;
 
         case LESS_THAN_OPERATOR:
             rule = LESS_THAN_RULE;
+            break;
 
         case LARGER_THAN_OPERATOR:
             rule = LARGER_THAN_RULE;
+            break;
 
         case LESSER_EQUAL_OPERATOR:
             rule = LESSER_EQUAL_RULE;
+            break;
 
         case LARGER_EQUAL_OPERATOR:
             rule = LARGER_EQUAL_RULE;
+            break;
 
         default:
             return NOT_FOUND_RULE;
@@ -176,41 +190,124 @@ EXPRESSION_RULE FindRule(ExpressionStack *stack, ExpressionStackNode *handle, in
     return rule;
 }
 
+void ReduceToNonterminal(ExpressionStack *stack, TokenVector *postfix, EXPRESSION_RULE rule)
+{
+    /* To convert the input expression to a postfix (while validating it) in reductions:
+        - Append the rhs terminals (other than brackers) to the output string
+        - At the end, append the "$" symbol to the output string
+    */
+
+    // Decide based on the rule
+    switch(rule)
+    {
+        case IDENTIFIER_RULE:
+            // E -> id
+            AppendToken(postfix, CopyToken(ExpressionStackTop(stack)->token));
+            ExpressionStackRemoveTop(stack);
+
+            // Remove the handle from the stack
+            ExpressionStackRemoveTop(stack);
+
+            break;
+
+        // E -> (E)
+        case BRACKET_RULE:
+            // Just remove 4 nodes from the stack, we aren't appending anything to the postfix string
+            ExpressionStackRemoveTop(stack);
+            ExpressionStackRemoveTop(stack);
+            ExpressionStackRemoveTop(stack);
+            ExpressionStackRemoveTop(stack);
+
+            break;
+
+        // E -> E OPERATOR E (all of these have the same semantics for reduction)
+        case MULTIPLICATION_RULE: case DIVISION_RULE:
+        case ADDITION_RULE: case SUBSTRACTION_RULE:
+        case EQUAL_RULE: case NOT_EQUAL_RULE:
+        case LESS_THAN_RULE: case LARGER_THAN_RULE:
+        case LESSER_EQUAL_RULE: case LARGER_EQUAL_RULE:
+            // We only need the operator to append
+            ExpressionStackRemoveTop(stack);                                        // First nonterminal
+            ExpressionStackNode *operator = ExpressionStackPop(stack);              // Operator
+            ExpressionStackRemoveTop(stack);                                        // Second nonterminal
+            ExpressionStackRemoveTop(stack);                                        // Handle
+
+
+
+            AppendToken(postfix, CopyToken(operator->token));                       // Append the operator to the postfix string
+
+            free(operator);                                                         // Destroy excess nodes
+
+            break;
+
+        // Will literally never happen
+        default:
+            return;
+    }
+
+    // Push the nonterminal to the stack
+    ExpressionStackNode *nonterminal = ExpressionStackNodeInit(NULL, NONTERMINAL, PTABLE_NOKEY);
+    ExpressionStackPush(stack, nonterminal);
+
+    return;
+}
+
 TokenVector *InfixToPostfix(Parser *parser)
 {
     // needed structures/varibles
-    Token *token;                                           // Input token
-    TokenVector *postfix = InitTokenVector();               // Output postfix vector
     ExpressionStack *stack = ExpressionStackInit();         // Stack for precedence analysis
-    int bracket_count = 0;                                  // In case the expression ends
-    PtableKey key;                                          // Key for indexing into the precedence table
+    TokenVector *postfix = InitTokenVector();               // Output postfix vector
     ExpressionStackNode *node;                              // Temporary node for pushing to the stack
+    Token *token;                                           // Input token
+    EXPRESSION_RULE rule  = NOT_FOUND_RULE;                 // Rule to be applied
+    PtableKey key = PTABLE_NOKEY;                           // Key for indexing into the precedence table
+    int bracket_count = 0;                                  // In case the expression ends
+    int distance = -1;                                      // Distance to the handle  
+    bool expression_over = false;                           // If the expression is over, set to true after accepting the last token
+
+    // Check if the expression isn't empty
+    Token *first = GetNextToken(parser);
+    if(first->token_type == SEMICOLON || first->token_type == R_ROUND_BRACKET)
+    {
+        PrintError("Error in syntactic analysis: Line %d: Empty expression", parser->line_number);
+        CLEANUP
+        exit(ERROR_SYNTACTIC);
+    }
+
+    --(stream_index); // Move the stream back to the beginning of the expression
 
     // Initial dollar sign
     ExpressionStackNode *beginning = ExpressionStackNodeInit(NULL, TERMINAL, PTABLE_DOLLAR);
+    ExpressionStackPush(stack, beginning);
 
-    while ((key = GetPtableKey(token = CopyToken(GetNextToken(parser)), bracket_count)) != PTABLE_DOLLAR)
+    while (true)
     {
+        // Get the next token from the input if we aren't at the end of the expression, else it stays the same
+        if(!expression_over) token = CopyToken(GetNextToken(parser));
+
         // Update the bracket count if needed
-        if (token->token_type == L_ROUND_BRACKET) bracket_count++;
-        else if (token->token_type == R_ROUND_BRACKET) bracket_count--;
+        if (token->token_type == L_ROUND_BRACKET && !expression_over) bracket_count++;
+        else if (token->token_type == R_ROUND_BRACKET && !expression_over) bracket_count--;
 
         // Get the topmost terminal symbol from the stack and the token's key to index
-        ExpressionStackNode *tompost = TopmostTerminal(stack);
+        ExpressionStackNode *topmost = TopmostTerminal(stack);
         key = GetPtableKey(token, bracket_count);
 
         // Check for a invalid token
         if (key == PTABLE_ERROR)
         {
             PrintError("Error in syntactic analysis: Line %d: Unexpected token \"%s\" in expression", parser->line_number, token->attribute);
-            DestroyStackAndVector(postfix, stack);
+            DestroyExpressionStackAndVector(postfix, stack);
             DestroyToken(token);
             CLEANUP
             exit(ERROR_SYNTACTIC);
         }
 
+        // Check if the expression is over
+        else if(key == PTABLE_DOLLAR) expression_over = true;
+
         // Get the next action from the precedence table
-        PtableValue action = precedence_table[tompost->key_type][key];
+        PtableValue action = precedence_table[topmost->key_type][key];
         switch(action)
         {
             // Push the input token to the stack and move on to the next iteration
@@ -228,29 +325,52 @@ TokenVector *InfixToPostfix(Parser *parser)
 
             // Reduce the stack (so find a rule)
             case REDUCE:
-                int distance = 0;
-                ExpressionStackNode *reduction_start = TopmostHandle(stack, &distance);
+                // Revert some actions depending on the input token since we will read it again anyway
+                if(!expression_over) (--stream_index);
+                if(token->token_type == R_ROUND_BRACKET && !expression_over) bracket_count++;
+                if(token->token_type == L_ROUND_BRACKET && !expression_over) bracket_count--;
+                distance = TopmostHandleDistance(stack);
+
+                // Destroy the copy
+                if(!expression_over) DestroyToken(token);
 
                 // We have to reduce the nodes between the handle and the stack top
-                EXPRESSION_RULE rule = FindRule(stack, reduction_start, distance);
+                rule = FindRule(stack, distance);
+
+                // If no rule can be applied, throw an error
                 if(rule == NOT_FOUND_RULE)
                 {
                     PrintError("Error in syntactic analysis: Line %d: Invalid expression", parser->line_number);
-                    DestroyStackAndVector(postfix, stack);
+                    DestroyExpressionStackAndVector(postfix, stack);
                     DestroyToken(token);
                     CLEANUP
                     exit(ERROR_SYNTACTIC);
                 }
+
+                else ReduceToNonterminal(stack, postfix, rule);
+
+                break;
+
+            // Invalid expression
+            case INVALID:
+                PrintError("Error in syntactic analysis: Line %d: Invalid expression", parser->line_number);
+                DestroyExpressionStackAndVector(postfix, stack);
+                DestroyToken(token);
+                CLEANUP
+                exit(ERROR_SYNTACTIC);
+
+            // End of the expression
+            case ACCEPT:
+                AppendToken(postfix, CopyToken(token));
+                ExpressionStackDestroy(stack);
+                return postfix;
         }
     }   
-
-    AppendToken(postfix, token);
-    ExpressionStackDestroy(stack);
-    return postfix;
 }
 
 bool IsTokenInString(TokenVector *postfix, Token *token)
 {
+    if(token == NULL) return false;
     for (int i = 0; i < postfix->length; i++)
     {
         if (token == postfix->token_string[i])
@@ -260,17 +380,34 @@ bool IsTokenInString(TokenVector *postfix, Token *token)
     return false;
 }
 
-void DestroyStackAndVector(TokenVector *postfix, ExpressionStack *stack)
+void DestroyExpressionStackAndVector(TokenVector *postfix, ExpressionStack *stack)
 {
     while (stack->size != 0)
     {
-        Token *top = ExpressionStackPop(stack);
+        ExpressionStackNode *top = ExpressionStackPop(stack);
+        if (top->token != NULL && !IsTokenInString(postfix, top->token))
+        {
+            DestroyToken(top->token);
+            top->token = NULL;
+            ExpressionStackRemoveTop(stack);
+        }
+    }
+
+    DestroyTokenVector(postfix);
+    ExpressionStackDestroy(stack);
+}
+
+void DestroyEvaluationStackAndVector(TokenVector *postfix, EvaluationStack *stack)
+{
+    while (stack->size != 0)
+    {
+        Token *top = EvaluationStackPop(stack);
         if (!IsTokenInString(postfix, top))
             DestroyToken(top);
     }
 
     DestroyTokenVector(postfix);
-    ExpressionStackDestroy(stack);
+    EvaluationStackDestroy(stack);
 }
 
 void PrintPostfix(TokenVector *postfix)
@@ -807,7 +944,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
     Token *token = NULL;                               // Input token
     Token *operand_left = NULL, *operand_right = NULL; // Operand (stack top) tokens
     DATA_TYPE result_type, return_type = INT32_TYPE;   // Intermediate and final data types
-    ExpressionStack *stack = ExpressionStackInit();    // Stack for operands
+    EvaluationStack *stack = EvaluationStackInit();    // Stack for evaluation
     VariableSymbol *id_input = NULL;                   // Variable symbols for ID inputs
 
     // Replace the constants for easier generation
@@ -838,7 +975,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
                 if (id_input == NULL)
                 {
                     PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"", parser->line_number, token->attribute);
-                    DestroyStackAndVector(postfix, stack);
+                    DestroyEvaluationStackAndVector(postfix, stack);
                     CLEANUP
                     exit(ERROR_SEMANTIC_UNDEFINED);
                 }
@@ -852,7 +989,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
             }
 
             // Push the operand and process the next token
-            ExpressionStackPush(stack, token);
+            EvaluationStackPush(stack, token);
             PUSHS(token->attribute, token->token_type, LOCAL_FRAME);
             break;
 
@@ -862,8 +999,8 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
         case ADDITION_OPERATOR:
         case SUBSTRACTION_OPERATOR:
             // All of these are binary, so pop two operands from the stack
-            operand_right = ExpressionStackPop(stack);
-            operand_left = ExpressionStackPop(stack);
+            operand_right = EvaluationStackPop(stack);
+            operand_left = EvaluationStackPop(stack);
 
             /* Four possible options:
                 1. Neither operand is an ID
@@ -885,7 +1022,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
                 // The error message was already printed
                 if (error_code != 0)
                 {
-                    DestroyStackAndVector(postfix, stack);
+                    DestroyEvaluationStackAndVector(postfix, stack);
                     CLEANUP
                     exit(error_code);
                 }
@@ -904,7 +1041,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
                 // The error message was already printed
                 if (error_code != 0)
                 {
-                    DestroyStackAndVector(postfix, stack);
+                    DestroyEvaluationStackAndVector(postfix, stack);
                     CLEANUP
                     exit(error_code);
                 }
@@ -923,7 +1060,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
                 // The error message was already printed
                 if (error_code != 0)
                 {
-                    DestroyStackAndVector(postfix, stack);
+                    DestroyEvaluationStackAndVector(postfix, stack);
                     CLEANUP
                     exit(error_code);
                 }
@@ -940,7 +1077,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
             */
             Token *result = InitToken();
             result->token_type = result_type == INT32_TYPE ? INTEGER_32 : DOUBLE_64;
-            ExpressionStackPush(stack, result);
+            EvaluationStackPush(stack, result);
 
             return_type = result_type;
 
@@ -954,8 +1091,8 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
         case LESSER_EQUAL_OPERATOR:
         case LARGER_EQUAL_OPERATOR:
             // Again, all of these are binary, so pop two operands from the stack
-            operand_right = ExpressionStackPop(stack);
-            operand_left = ExpressionStackPop(stack);
+            operand_right = EvaluationStackPop(stack);
+            operand_left = EvaluationStackPop(stack);
 
             /* Once again, we have 3 cases
                 1. Neither operand is an ID
@@ -976,7 +1113,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
                 // The error message was already printed
                 if (error_code != 0)
                 {
-                    DestroyStackAndVector(postfix, stack);
+                    DestroyEvaluationStackAndVector(postfix, stack);
                     CLEANUP
                     exit(error_code);
                 }
@@ -995,7 +1132,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
                 // The error message was already printed
                 if (error_code != 0)
                 {
-                    DestroyStackAndVector(postfix, stack);
+                    DestroyEvaluationStackAndVector(postfix, stack);
                     CLEANUP
                     exit(error_code);
                 }
@@ -1014,7 +1151,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
                 // The error message was already printed
                 if (error_code != 0)
                 {
-                    DestroyStackAndVector(postfix, stack);
+                    DestroyEvaluationStackAndVector(postfix, stack);
                     CLEANUP
                     exit(error_code);
                 }
@@ -1028,7 +1165,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
             if (postfix->token_string[i + 1]->token_type != SEMICOLON && postfix->token_string[i + 1]->token_type != R_ROUND_BRACKET)
             {
                 PrintError("Error in semantic analysis: Line %d: Unexpected token after boolean expression", parser->line_number);
-                DestroyStackAndVector(postfix, stack);
+                DestroyEvaluationStackAndVector(postfix, stack);
                 CLEANUP
                 exit(ERROR_SYNTACTIC);
             }
@@ -1043,12 +1180,13 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
         // Will never happen, but throw an error just in case
         default:
             PrintError("Error in syntactic analysis: Line %d: Unexpected token in expression", parser->line_number);
-            DestroyStackAndVector(postfix, stack);
+            DestroyEvaluationStackAndVector(postfix, stack);
             CLEANUP
             exit(ERROR_SYNTACTIC);
         }
     }
 
-    DestroyStackAndVector(postfix, stack);
+
+    DestroyEvaluationStackAndVector(postfix, stack);
     return return_type;
 }

@@ -26,12 +26,11 @@ bool IsOperand(Token *token);
  * 
  * 
  * @param stack Stack instance
- * @param handle Topmost handle in the stack
  * @param distance Distance from the top of the stack to the handle (limits the number of possible rules that can be applied)
  * 
  * @return EXPRESSION_RULE Rule to be applied, or NOT_FOUND_RULE if no rule can be applied
  */
-EXPRESSION_RULE FindRule(ExpressionStack *stack, ExpressionStackNode *handle, int distance);
+EXPRESSION_RULE FindRule(ExpressionStack *stack, int distance);
 
 /**
  * @brief Performs reduction on the stack according to the given rule
@@ -84,7 +83,10 @@ bool IsNullable(DATA_TYPE type);
  * @param postfix The token vector to search in and destroy
  * @param stack The stack to search in and destroy
  */
-void DestroyStackAndVector(TokenVector *postfix, ExpressionStack *stack);
+void DestroyExpressionStackAndVector(TokenVector *postfix, ExpressionStack *stack);
+
+// The same as the previous function, but for the EvaluationStack
+void DestroyEvaluationStackAndVector(TokenVector *postfix, EvaluationStack *stack);
 
 /**
  * @brief Checks if a float value has zero decimal places

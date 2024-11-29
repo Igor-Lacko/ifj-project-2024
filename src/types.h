@@ -189,41 +189,6 @@ typedef struct
 } TokenVector;
 
 
-/********************* STACK STRUCTURES ********************/
-
-typedef struct SymStackNode
-{ // Linked list for symtable stack implementation
-    Symtable *table;
-    struct SymStackNode *next;
-} SymtableStackNode;
-
-typedef struct
-{ // Stack for symtables
-    unsigned long size;
-    SymtableStackNode *top;
-} SymtableStack;
-
-typedef enum
-{ // Expression stack node types
-    HANDLE,                                     // Handle symbol, represents start of a reduction
-    TERMINAL,                                   // Terminal symbol, represented by the token inside the node
-    NONTERMINAL                                 // There don't need to bne multiple types for this, since we only have one non-terminal -> E
-} STACK_NODE_TYPE;
-
-typedef struct ExprStackNode
-{ // Linked list for expression parser stack implementation
-    Token *token;
-    STACK_NODE_TYPE node_type;
-    PtableKey key_type;
-    struct ExprStackNode *next;
-} ExpressionStackNode;
-
-typedef struct
-{ // Stack for expression parsing
-    unsigned long size;
-    ExpressionStackNode *top;
-} ExpressionStack;
-
 /******************** STRUCTURES FOR PRECEDENTIAL ANALYSIS ********************/
 
 // Enumeration of grammar rules for reduction in expressions
@@ -274,6 +239,53 @@ typedef enum
 } PtableValue;
 
 typedef PtableValue PrecedenceTable[PTABLE_SIZE][PTABLE_SIZE];
+
+/********************* STACK STRUCTURES ********************/
+
+typedef struct SymStackNode
+{ // Linked list for symtable stack implementation
+    Symtable *table;
+    struct SymStackNode *next;
+} SymtableStackNode;
+
+typedef struct
+{ // Stack for symtables
+    unsigned long size;
+    SymtableStackNode *top;
+} SymtableStack;
+
+typedef enum
+{ // Expression stack node types
+    HANDLE,                                     // Handle symbol, represents start of a reduction
+    TERMINAL,                                   // Terminal symbol, represented by the token inside the node
+    NONTERMINAL                                 // There don't need to bne multiple types for this, since we only have one non-terminal -> E
+} STACK_NODE_TYPE;
+
+typedef struct ExprStackNode
+{ // Linked list for expression parser stack implementation
+    Token *token;
+    STACK_NODE_TYPE node_type;
+    PtableKey key_type;
+    struct ExprStackNode *next;
+} ExpressionStackNode;
+
+typedef struct
+{ // Stack for expression parsing
+    unsigned long size;
+    ExpressionStackNode *top;
+} ExpressionStack;
+
+typedef struct EvalStackNode
+{ // Linked list for evaluation stack implementation
+    Token *token;
+    struct EvalStackNode *next;
+} EvaluationStackNode;
+
+typedef struct
+{ // Stack for expression evaluation
+    unsigned long size;
+    EvaluationStackNode *top;
+} EvaluationStack;
 
 
 /******************** ENUM FOR IFJCODE24 FRAMES ********************/

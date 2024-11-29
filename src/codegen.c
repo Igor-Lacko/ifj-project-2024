@@ -88,18 +88,26 @@ void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame)
 
     // White space handling for string literals
     if(type == LITERAL_TOKEN) WriteStringLiteral(attribute);
-    else fprintf(stdout, "%s", attribute);
+    else if(type == INTEGER_32) fprintf(stdout, "%s", attribute);
+    else
+    {
+        double val = strtod(attribute, NULL);
+        fprintf(stdout, "%a", val);
+    }
 
     fprintf(stdout, "\n");
     free(type_string);
 }
 
-void MOVE(const char *dst, const char *src, bool is_literal, FRAME dst_frame)
+void MOVE(Token *dst, Token *src, FRAME dst_frame)
 {
     char *frame_string = GetFrameString(dst_frame);
-    fprintf(stdout, "MOVE %s%s ", frame_string, dst);
-    if(is_literal) WriteStringLiteral(src);
-    else fprintf(stdout, "%s\n", src);
+    fprintf(stdout, "MOVE %s%s ", frame_string, dst->attribute);
+    if(src->token_type == LITERAL_TOKEN) WriteStringLiteral(src->attribute);
+    else if(src->token_type == DOUBLE_64) fprintf(stdout, "%a", strtod(src->attribute, NULL));
+    else fprintf(stdout, "%s", src->attribute);
+
+    fprintf(stdout, "\n");
 }
 
 void SETPARAM(int order, const char *value, TOKEN_TYPE type, FRAME frame)
@@ -113,6 +121,7 @@ void SETPARAM(int order, const char *value, TOKEN_TYPE type, FRAME frame)
 
     // If the token is a string literal, call the WriteStringLiteral function to handle whitespaces accordingly
     if(type == LITERAL_TOKEN) WriteStringLiteral(value); // Why can't i use the ternary operator here :(((
+    else if (type == DOUBLE_64) fprintf(stdout, "%a", strtod(value, NULL));
     else fprintf(stdout, "%s", value);
 
     fprintf(stdout, "\n");
@@ -237,10 +246,9 @@ void WRITEINSTRUCTION(Token *token, FRAME frame)
 
     // Write the token attribute depenting on the type
     if(token->token_type == LITERAL_TOKEN) WriteStringLiteral(token->attribute);
+    else if(token->token_type == DOUBLE_64) fprintf(stdout, "%a", strtod(token->attribute, NULL));
     else fprintf(stdout, "%s", token->attribute);
-
-    // If the token is a float, print the exponent, other than that just a newline
-    token->token_type == DOUBLE_64 ? fprintf(stdout, "p+0\n") : fprintf(stdout, "\n");
+    fprintf(stdout, "\n");
 
     free(prefix);
 }
@@ -263,7 +271,8 @@ void FLOAT2INT(VariableSymbol *dst, Token *value, FRAME dst_frame, FRAME src_fra
     char *src_prefix = value->token_type == IDENTIFIER_TOKEN ? GetFrameString(src_frame) : strdup("float@0x");
     char *dst_prefix = GetFrameString(dst_frame);
 
-    fprintf(stdout, "FLOAT2INT %s%s %s%s\n", dst_prefix, dst->name, src_prefix, value->attribute);
+    if(value->token_type == IDENTIFIER_TOKEN) fprintf(stdout, "FLOAT2INT %s%s %s%s\n", dst_prefix, dst->name, src_prefix, value->attribute);
+    else fprintf(stdout, "FLOAT2INT %s%s %s%a\n", dst_prefix, dst->name, src_prefix, strtod(value->attribute, NULL));
 
     free(src_prefix);
     free(dst_prefix);
@@ -375,17 +384,17 @@ void STRCMP(VariableSymbol *var, Token *str1, Token *str2, FRAME dst_frame, FRAM
 
     // LABEL FIRSTGREATER
     fprintf(stdout, "LABEL FIRSTGREATER%d\n", strcmp_count);
-    MOVE(var->name, "int@1", false, dst_frame);
+    fprintf(stdout, "MOVE %s%s int@1\n", dst_frame_str, var->name);
     fprintf(stdout, "JUMP ENDSTRCMP%d\n", strcmp_count);
 
     // LABEL SECONDGREATER
     fprintf(stdout, "LABEL SECONDGREATER%d\n", strcmp_count);
-    MOVE(var->name, "int@-1", false, dst_frame);
+    fprintf(stdout, "MOVE %s%s int@-1\n", dst_frame_str, var->name);
     fprintf(stdout, "JUMP ENDSTRCMP%d\n", strcmp_count);
 
     // LABEL AREEQUAL
     fprintf(stdout, "LABEL AREEQUAL%d\n", strcmp_count);
-    MOVE(var->name, "int@0", false, dst_frame);
+    fprintf(stdout, "MOVE %s%s int@0\n", dst_frame_str, var->name);
 
     // LABEL ENDSTRCMP
     fprintf(stdout, "LABEL ENDSTRCMP%d\n", strcmp_count);
@@ -456,7 +465,7 @@ void ORD(VariableSymbol *var, Token *string, Token *position, FRAME dst_frame, F
     fprintf(stdout, "JUMP ENDORD%d\n", ord_count);
 
     fprintf(stdout, "LABEL ORDRETURN0%d\n", ord_count);
-    MOVE(var->name, "int@0", false, dst_frame);
+    fprintf(stdout, "MOVE %s%s int@0\n", dst_prefix, var->name);
     fprintf(stdout, "LABEL ENDORD%d\n", ord_count);
 
     // Deallocate the resources
