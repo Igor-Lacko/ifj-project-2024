@@ -96,6 +96,18 @@ void DestroyEvaluationStackAndVector(TokenVector *postfix, EvaluationStack *stac
 bool HasZeroDecimalPlaces(char *float_value);
 
 /**
+ * @brief Checks if two literals used in a expression together are compatible. (Aren't only with different types and the '/' operator)
+ * 
+ * @param literal_left The left operand literal
+ * @param literal_right The right operand literal
+ * @param operator The operator token
+ * @param parser Pointer to the parser structure
+ * 
+ * @return int Exit code. If 0, the literals are compatible, else exit with the returned value 
+ */
+int CheckLiteralsCompatibilityArithmetic(Token *literal_left, Token *literal_right, Token *operator, Parser *parser);
+
+/**
  * @brief Generates code for a arithmetic operation between two literals
  * 
  * @param operand_left Left operand literal
@@ -109,9 +121,12 @@ DATA_TYPE ArithmeticOperationTwoLiterals(Token *operand_left, Token *operand_rig
  * 
  * @param token The literal operand
  * @param var The variable operand
+ * @param operator The operator token
+ * @param parser Pointer to the parser structure
+ * 
  * @return int Exit code. If 0, the operands are compatible, else exit with the returned value
  */
-int CheckLiteralVarCompatibilityArithmetic(Token *literal, Token *var, Parser *parser);
+int CheckLiteralVarCompatibilityArithmetic(Token *literal, Token *var, Token *operator, Parser *parser);
 
 /**
  * @brief Generates code for an operation between a literal and an identifier
@@ -130,6 +145,7 @@ DATA_TYPE ArithmeticOperationLiteralId(Token *literal, VariableSymbol *id, Token
  * @param var_lhs left hand side variable
  * @param var_rhs right hand side variable, top of the stack
  * @param parser Pointer to the parser structure
+ * 
  * @return int Error code in case of an error, 0 if the variables are compatible
  */
 int CheckTwoVariablesCompatibilityArithmetic(Token *var_lhs, Token *var_rhs, Parser *parser);
@@ -144,6 +160,17 @@ int CheckTwoVariablesCompatibilityArithmetic(Token *var_lhs, Token *var_rhs, Par
  */
 DATA_TYPE ArithmeticOperationTwoIds(VariableSymbol *operand_left, VariableSymbol *operand_right, Token *operator);
 
+/**
+ * @brief Checks the validity of a boolean expression between two literals
+ * 
+ * @param literal_left Lhs literal
+ * @param literal_right Rhs literal
+ * @param operator Operation to perform
+ * @param parser Pointer to the parser structure
+ * 
+ * @return int Exit code. If 0, the literals are compatible, else exit with the returned value
+ */
+int CheckCompatibilityLiteralsBoolean(Token *literal_left, Token *literal_right, Token *operator, Parser *parser);
 
 /**
  * @brief Generates code for an operation between two literals
@@ -151,6 +178,7 @@ DATA_TYPE ArithmeticOperationTwoIds(VariableSymbol *operand_left, VariableSymbol
  * @param operand_left Lhs operand
  * @param operand_right Rhs operand
  * @param operator Operation to perform
+ * 
  * @return DATA_TYPE Resulting type of the expression
  */
 void BooleanOperationTwoLiterals(Token *operand_left, Token *operand_right, Token *operator);
@@ -160,10 +188,12 @@ void BooleanOperationTwoLiterals(Token *operand_left, Token *operand_right, Toke
  * 
  * @param token The literal operand
  * @param var The variable operand
+ * @param operator The operator token
  * @param parser Pointer to the parser structure
+ * 
  * @return int Exit code. If 0, the operands are compatible, else exit with the returned value
  */
-int CheckLiteralVarCompatibilityBoolean(Token *literal, Token *var, Parser *parser);
+int CheckLiteralVarCompatibilityBoolean(Token *literal, Token *var, Token *operator, Parser *parser);
 
 /**
  * @brief Generates code for an operation between a literal and an identifier
@@ -174,6 +204,16 @@ int CheckLiteralVarCompatibilityBoolean(Token *literal, Token *var, Parser *pars
  * @param literal_top_stack If the literal is on top of the stack, to know how to generate code
  */
 void BooleanOperationLiteralId(Token *literal, VariableSymbol *id, Token *operator, bool literal_top_stack);
+
+/**
+ * @brief Help function for CheckTwoVariablesCompatibilityBoolean, converts const vars with different types to the same type if posssible
+ * 
+ * @param var_lhs Lhs variable
+ * @param var_rhs Rhs variable
+ * 
+ * @return false in case of an error, true if the variables are compatible
+ */
+bool ConvertConstVarsBoolean(VariableSymbol *var_lhs, VariableSymbol *var_rhs);
 
 /**
  * @brief Checks compatibility between two variables

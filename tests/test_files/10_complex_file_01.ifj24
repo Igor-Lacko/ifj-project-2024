@@ -5,57 +5,71 @@ pub fn main() void {
     var b: i32 = 20;
     var c: f64 = 30.5;
     var d: f64 = 40.75;
-    var e: ?i32 = null;
-    var f: ?f64 = null;
     var g: []u8 = ifj.string("Hello, ");
     var h: []u8 = ifj.string("World!");
     var i: []u8 = ifj.string("IFJ24");
     var j: []u8 = ifj.string("Programming");
-    var k: ?[]u8 = null;
 
     var sum: i32 = a + b;
+    var float_sum  = ifj.i2f(sum);
     var diff: f64 = d - c;
-    var prod: f64 = ifj.i2f(a) * c;
-    var quotient: f64 = d / ifj.i2f(b);
+    var float_a = ifj.i2f(a);
+    var prod: f64 = float_a * c;
+    var quotient: f64 = d / float_sum;
 
     ifj.write(sum); // Expected output: 30
+    ifj.write("\n");
     ifj.write(diff); // Expected output: 10.25
+    ifj.write("\n");
     ifj.write(prod); // Expected output: 305.0
+    ifj.write("\n");
     ifj.write(quotient); // Expected output: 2.0375
+    ifj.write("\n");
 
     var concat_str: []u8 = ifj.concat(g, h);
     ifj.write(concat_str); // Expected output: "Hello, World!"
+    ifj.write("\n");
 
     var substr: ?[]u8 = ifj.substring(i, 0, 3);
     ifj.write(substr); // Expected output: "IFJ"
+    ifj.write("\n");
 
     var strcmp_result: i32 = ifj.strcmp(i, j);
     ifj.write(strcmp_result); // Expected output: -1 (since "IFJ24" < "Programming")
+    ifj.write("\n");
 
     var ord_value: i32 = ifj.ord(i, 0);
     ifj.write(ord_value); // Expected output: ASCII value of 'I'
+    ifj.write("\n");
 
     var chr_value: []u8 = ifj.chr(65);
     ifj.write(chr_value); // Expected output: "A"
+    ifj.write("\n");
 
     var input_str: ?[]u8 = ifj.readstr();
     ifj.write(input_str);
+    ifj.write("\n");
 
     var input_i32: ?i32 = ifj.readi32();
     ifj.write(input_i32);
+    ifj.write("\n");
 
     var input_f64: ?f64 = ifj.readf64();
     ifj.write(input_f64);
+    ifj.write("\n");
 
     if (a > b) {
-        ifj.write(ifj.string("a is greater than b"));
+        ifj.write("a is greater than b");
+        ifj.write("\n");
     } else {
-        ifj.write(ifj.string("a is not greater than b"));
+        ifj.write("a is greater than b");
+        ifj.write("\n");
     }
 
     var counter: i32 = 0;
     while (counter < 5) {
         ifj.write(counter);
+        ifj.write("\n");
         counter = counter + 1;
     }
 

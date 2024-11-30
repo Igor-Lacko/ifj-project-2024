@@ -4,46 +4,46 @@ pub fn main() void {
     var a: i32 = 10;
     var b: i32 = 20;
     var c: ?i32 = null;
-    var d: ?i32 = 30;
 
     var i: i32 = 0;
     while (i < 5) {
         i = i + 1;
         ifj.write(i);
+        ifj.write("\n");
     }
 
-    var j: ?i32 = 0;
 
     if (a < b) {
-        ifj.write("a is less than b"); // Expected output: "a is less than b"
+        ifj.write("a is less than b\n"); // Expected output: "a is less than b"
     } else {
-        ifj.write("a is not less than b");
+        ifj.write("a is not less than b\n");
     }
 
     if (c == null) {
-        ifj.write("c is null"); // Expected output: "c is null"
+        ifj.write("c is null\n"); // Expected output: "c is null"
     } else {
-        ifj.write("c is not null");
+        ifj.write("c is not null\n");
     }
 
     var sum_result: i32 = add(a, b);
     ifj.write(sum_result); // Expected output: 30
+    ifj.write("\n");
 
-    print_message("Hello from IFJ24!");
+    print_message("Hello from IFJ24!\n");
 
     var str1: []u8 = ifj.string("Hello, ");
-    var str2: []u8 = ifj.string("World!");
+    var str2: []u8 = ifj.string("World!\n");
     var concatenated: []u8 = ifj.concat(str1, str2);
     ifj   .    write(concatenated); // Expected output: "Hello, World!"
 
     return;
 }
 
-fn add(x: i32, y: i32) i32 {
+pub fn add(x: i32, y: i32) i32 {
     return x + y;
 }
 
-fn print_message(msg: []u8) void {
+pub fn print_message(msg: []u8) void {
     ifj.write(msg);
     return;
 }

@@ -38,8 +38,13 @@ PtableKey GetPtableKey(Token *token, int bracket_count)
 
     switch (token->token_type)
     {
-        case IDENTIFIER_TOKEN: case INTEGER_32: case DOUBLE_64:
-            return PTABLE_ID;
+        case IDENTIFIER_TOKEN: case INTEGER_32: case DOUBLE_64: case KEYWORD:
+            if(token->token_type == KEYWORD)
+            {
+                return token->keyword_type == NULL_TYPE ? PTABLE_ID : PTABLE_ERROR;
+            } 
+
+            else return PTABLE_ID;
 
         case MULTIPLICATION_OPERATOR:
             return PTABLE_MULTIPLICATION;
@@ -87,7 +92,8 @@ PtableKey GetPtableKey(Token *token, int bracket_count)
 
 bool IsOperand(Token *token)
 {
-    return token->token_type == IDENTIFIER_TOKEN || token->token_type == INTEGER_32 || token->token_type == DOUBLE_64;
+    return token->token_type == IDENTIFIER_TOKEN || token->token_type == INTEGER_32 || token->token_type == DOUBLE_64
+        || (token->token_type == KEYWORD && token->keyword_type == NULL_TYPE);
 }
 
 bool IsNullable(DATA_TYPE type)
@@ -340,6 +346,7 @@ TokenVector *InfixToPostfix(Parser *parser)
                 // If no rule can be applied, throw an error
                 if(rule == NOT_FOUND_RULE)
                 {
+                    fprintf(stderr, "Invalid expression, rule not found\n");
                     PrintError("Error in syntactic analysis: Line %d: Invalid expression", parser->line_number);
                     DestroyExpressionStackAndVector(postfix, stack);
                     DestroyToken(token);
@@ -353,6 +360,7 @@ TokenVector *InfixToPostfix(Parser *parser)
 
             // Invalid expression
             case INVALID:
+                fprintf(stderr, "Invalid expression\n");
                 PrintError("Error in syntactic analysis: Line %d: Invalid expression", parser->line_number);
                 DestroyExpressionStackAndVector(postfix, stack);
                 DestroyToken(token);
@@ -434,7 +442,7 @@ void ReplaceConstants(TokenVector *postfix, Parser *parser)
         if (token->token_type == IDENTIFIER_TOKEN)
         {
             VariableSymbol *var = SymtableStackFindVariable(parser->symtable_stack, token->attribute);
-            if (var != NULL && !var->nullable && var->is_const && var->value != NULL)
+            if (var != NULL && !var->nullable && var->is_const && var->value != NULL && var->type == DOUBLE64_TYPE && HasZeroDecimalPlaces(var->value))
             {
                 var->was_used = true;
                 Token *new = InitToken();
@@ -442,17 +450,17 @@ void ReplaceConstants(TokenVector *postfix, Parser *parser)
                 new->line_number = token->line_number;
                 switch (var->type)
                 {
-                case INT32_TYPE:
-                    new->token_type = INTEGER_32;
-                    break;
+                    case INT32_TYPE:
+                        new->token_type = INTEGER_32;
+                        break;
 
-                case DOUBLE64_TYPE:
-                    new->token_type = DOUBLE_64;
-                    break;
+                    case DOUBLE64_TYPE:
+                        new->token_type = DOUBLE_64;
+                        break;
 
-                // Will never happen
-                default:
-                    break;
+                    // Will never happen
+                    default:
+                        break;
                 }
 
                 // Replace the old token
@@ -471,6 +479,32 @@ bool HasZeroDecimalPlaces(char *float_value)
     if (val - int_part < 0.0)
         return (val - int_part) > (0.0 - EPSILON);
     return (val - int_part) < EPSILON;
+}
+
+int CheckLiteralsCompatibilityArithmetic(Token *var_lhs, Token *var_rhs, Token *operator, Parser *parser)
+{
+    // Neither can be NULL
+    if(var_lhs->token_type == KEYWORD || var_rhs->token_type == KEYWORD)
+    {
+        PrintError("Error in semantic analysis: Line %d: Unexpected keyword in expression", parser->line_number);
+        return ERROR_SYNTACTIC;
+    }
+
+    // Incompatibility can only occur with different types and the division operator
+    if(operator->token_type != DIVISION_OPERATOR) return 0;
+
+    // If their types don't match, they are compatible only if the float has zero decimal places
+    if(var_lhs->token_type != var_rhs->token_type)
+    {
+        Token *f_token = var_lhs->token_type == DOUBLE_64 ? var_lhs : var_rhs;
+        if(!HasZeroDecimalPlaces(f_token->attribute))
+        {
+            PrintError("Error in semantic analysis: Line %d: Incompatible types in division operation", parser->line_number);
+            return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
+        }
+    }
+
+    return 0;
 }
 
 DATA_TYPE ArithmeticOperationTwoLiterals(Token *operand_left, Token *operand_right, Token *operator)
@@ -522,6 +556,49 @@ DATA_TYPE ArithmeticOperationTwoLiterals(Token *operand_left, Token *operand_rig
     }
 
     return result_type;
+}
+
+int CheckLiteralVarCompatibilityArithmetic(Token *literal, Token *var, Token *operator, Parser *parser)
+{
+    // The literal can't be NULL
+    if (literal->token_type == KEYWORD)
+    {
+        PrintError("Error in semantic analysis: Line %d: Unexpected keyword in expression", parser->line_number);
+        return ERROR_SYNTACTIC;
+    }
+
+    // First check if var is defined
+    VariableSymbol *var_symbol = SymtableStackFindVariable(parser->symtable_stack, var->attribute);
+    if (var_symbol == NULL)
+    {
+        PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"", parser->line_number, var->attribute);
+        return ERROR_SEMANTIC_UNDEFINED;
+    }
+
+    // Check if the variable is nullable
+    else if (IsNullable(var_symbol->type))
+    {
+        PrintError("Error in semantic analysis: Line %d: Variable \"%s\" is nullable", parser->line_number, var->attribute);
+        return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
+    }
+
+    /*  The types are compatible if:
+        1. Their types are equal
+        2. The literal is an integer and the variable is a double (implicit conversion)
+        3. The literal is a double with zero decimal places and the variable is an integer (implicit conversion) TODO
+    */
+    if (literal->token_type == INTEGER_32 && var_symbol->type == INT32_TYPE)
+        return 0; // case 1
+    else if (literal->token_type == DOUBLE_64 && var_symbol->type == DOUBLE64_TYPE)
+        return 0; // case 1
+    else if (literal->token_type == INTEGER_32 && var_symbol->type == DOUBLE64_TYPE && operator->token_type != DIVISION_OPERATOR)
+        return 0; // case 2, later convert to float
+    else if (literal->token_type == DOUBLE_64 && HasZeroDecimalPlaces(literal->attribute) && var_symbol->type == INT32_TYPE)
+        return 0; // case 3, later convert to int
+
+    // If none of the cases are met, the types are incompatible
+    PrintError("Error in semantic analysis: Line %d: Incompatible types in expression", parser->line_number);
+    return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
 }
 
 DATA_TYPE ArithmeticOperationLiteralId(Token *literal, VariableSymbol *id, Token *operator, bool literal_on_top)
@@ -598,42 +675,6 @@ DATA_TYPE ArithmeticOperationLiteralId(Token *literal, VariableSymbol *id, Token
     return result_type;
 }
 
-int CheckLiteralVarCompatibilityArithmetic(Token *literal, Token *var, Parser *parser)
-{
-    // First check if var is defined
-    VariableSymbol *var_symbol = SymtableStackFindVariable(parser->symtable_stack, var->attribute);
-    if (var_symbol == NULL)
-    {
-        PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"", parser->line_number, var->attribute);
-        return ERROR_SEMANTIC_UNDEFINED;
-    }
-
-    // Check if the variable is nullable
-    else if (IsNullable(var_symbol->type))
-    {
-        PrintError("Error in semantic analysis: Line %d: Variable \"%s\" is nullable", parser->line_number, var->attribute);
-        return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
-    }
-
-    /*  The types are compatible if:
-        1. Their types are equal
-        2. The literal is an integer and the variable is a double (implicit conversion)
-        3. The literal is a double with zero decimal places and the variable is an integer (implicit conversion) TODO
-    */
-    if (literal->token_type == INTEGER_32 && var_symbol->type == INT32_TYPE)
-        return 0; // case 1
-    else if (literal->token_type == DOUBLE_64 && var_symbol->type == DOUBLE64_TYPE)
-        return 0; // case 1
-    else if (literal->token_type == INTEGER_32 && var_symbol->type == DOUBLE64_TYPE)
-        return 0; // case 2, later convert to float
-    else if (literal->token_type == DOUBLE_64 && HasZeroDecimalPlaces(literal->attribute) && var_symbol->type == INT32_TYPE)
-        return 0; // case 3, later convert to int
-
-    // If none of the cases are met, the types are incompatible
-    PrintError("Error in semantic analysis: Line %d: Incompatible types in expression", parser->line_number);
-    return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
-}
-
 int CheckTwoVariablesCompatibilityArithmetic(Token *var_lhs, Token *var_rhs, Parser *parser)
 {
     // Get the corresponding variable symbols
@@ -705,6 +746,32 @@ DATA_TYPE ArithmeticOperationTwoIds(VariableSymbol *operand_left, VariableSymbol
     return result_type;
 }
 
+int CheckCompatibilityLiteralsBoolean(Token *literal_left, Token *literal_right, Token *operator, Parser *parser)
+{
+    /* The literals are incompatible if, and only if these conditions are met:
+        1. Both of them are NULL AND the operator is not == or !=
+        2. Only one of them is NULL
+    */
+
+    // Case 1
+    if (literal_left->token_type == KEYWORD && literal_right->token_type == KEYWORD && operator->token_type != EQUAL_OPERATOR && operator->token_type != NOT_EQUAL_OPERATOR)
+    {
+        PrintError("Error in semantic analysis: Line %d: \"null\" can't be used in expressions with operators other than \"==\" and \"!=\"!", parser->line_number);
+        return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
+    }
+
+    // Case 2
+    else if ((literal_left->token_type == KEYWORD && literal_right->token_type != KEYWORD) ||
+            (literal_left->token_type != KEYWORD && literal_right->token_type == KEYWORD))
+            {
+                PrintError("Error in semantic analysis: Line %d: Incompatible types in expression", parser->line_number);
+                return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
+            }
+
+    // Valid relational expression
+    return 0;
+}
+
 void BooleanOperationTwoLiterals(Token *operand_left, Token *operand_right, Token *operator)
 {
     // If one of the operands is a double, we need to convert the int
@@ -756,7 +823,7 @@ void BooleanOperationTwoLiterals(Token *operand_left, Token *operand_right, Toke
     }
 }
 
-int CheckLiteralVarCompatibilityBoolean(Token *literal, Token *var, Parser *parser)
+int CheckLiteralVarCompatibilityBoolean(Token *literal, Token *var, Token *operator, Parser *parser)
 {
     // First check if var is defined
     VariableSymbol *var_symbol = SymtableStackFindVariable(parser->symtable_stack, var->attribute);
@@ -766,8 +833,28 @@ int CheckLiteralVarCompatibilityBoolean(Token *literal, Token *var, Parser *pars
         return ERROR_SEMANTIC_UNDEFINED;
     }
 
+    // Case with null literal
+    if (literal->token_type == KEYWORD)
+    {
+        /* An error here will occur if:
+            1. The operator is not == or !=
+            2. The variable is not nullable
+        */
+        if(operator->token_type != EQUAL_OPERATOR && operator->token_type != NOT_EQUAL_OPERATOR)
+        {
+            PrintError("Error in semantic analysis: Line %d: \"null\" can't be used in expressions with operators other than \"==\" and \"!=\"!", parser->line_number);
+            return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
+        }
+
+        if(!IsNullable(var_symbol->type))
+        {
+            PrintError("Error in semantic analysis: Line %d: Variable \"%s\" is not nullable", parser->line_number, var->attribute);
+            return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
+        }
+    }
+
     // Nullable check (== and != accept nullables, but only if both operands are nullable)
-    if (IsNullable(var_symbol->type))
+    if (IsNullable(var_symbol->type) && (operator->token_type != EQUAL_OPERATOR && operator->token_type != NOT_EQUAL_OPERATOR))
     {
         PrintError("Error in semantic analysis: Line %d: Comparing nullable variable \"%s\" with a constant", parser->line_number, var->attribute);
         return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
@@ -857,6 +944,66 @@ void BooleanOperationLiteralId(Token *literal, VariableSymbol *id, Token *operat
     }
 }
 
+bool ConvertConstVarsBoolean(VariableSymbol *lhs, VariableSymbol *rhs)
+{
+    fprintf(stderr, "trying to convert vars %s and %s\n", lhs->name, rhs->name);
+    if(!(lhs->is_const && lhs->value != NULL) && !(rhs->is_const && rhs->value != NULL))
+        return false;
+
+    else if(((lhs->nullable && rhs->nullable) || (!lhs->nullable && rhs->nullable) || (lhs->nullable && !rhs->nullable)) && (lhs->type != rhs->type))
+        return false;
+
+    // Also, rhs is on the top of the stack, lhs is not
+    else if(lhs->is_const && lhs->value != NULL)
+    {
+        switch(lhs->type)
+        {
+            // Convert lhs to a float
+            case INT32_TYPE: case INT32_NULLABLE_TYPE:
+                PopToRegister(DOUBLE64_TYPE);
+                INT2FLOATS
+                fprintf(stdout, "PUSHS GF@$F0\n");
+                break;
+
+            // Convert lhs to an int
+            case DOUBLE64_TYPE: case DOUBLE64_NULLABLE_TYPE:
+                if(!HasZeroDecimalPlaces(lhs->value)) return false;
+                PopToRegister(INT32_TYPE);
+                FLOAT2INTS
+                fprintf(stdout, "PUSHS GF@$R0\n");
+                break;
+
+            // Will never happen
+            default:
+                return false;
+        }
+    }
+
+    // rhs is on top of the stack
+    else if(rhs->is_const && rhs->value != NULL)
+    {
+        switch(rhs->type)
+        {
+            // Convert rhs to a float
+            case INT32_TYPE: case INT32_NULLABLE_TYPE:
+                INT2FLOATS
+                break;
+
+            // Convert rhs to an int
+            case DOUBLE64_TYPE: case DOUBLE64_NULLABLE_TYPE:
+                if(!HasZeroDecimalPlaces(rhs->value)) return false;
+                FLOAT2INTS
+                break;
+
+            // Will never happen
+            default:
+                return false;
+        }
+    }
+
+    return true;
+}
+
 int CheckTwoVariablesCompatibilityBoolean(Token *var_lhs, Token *var_rhs, Token *operator, Parser * parser)
 {
     // Get the corresponding variable symbols
@@ -880,7 +1027,7 @@ int CheckTwoVariablesCompatibilityBoolean(Token *var_lhs, Token *var_rhs, Token 
     // Also, they have to match so not ?f64 == ?i32
     if (operator->token_type == EQUAL_OPERATOR || operator->token_type == NOT_EQUAL_OPERATOR)
     {
-        if (lhs->type != rhs->type)
+        if (lhs->type != rhs->type && !ConvertConstVarsBoolean(lhs, rhs))
         {
             PrintError("Error in semantic analysis: Line %d: Incompatible types in expression", parser->line_number);
             return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
@@ -890,14 +1037,14 @@ int CheckTwoVariablesCompatibilityBoolean(Token *var_lhs, Token *var_rhs, Token 
     }
 
     // With other operators we can't have nullable operands
-    else if (IsNullable(lhs->type) || IsNullable(rhs->type))
+    else if ((IsNullable(lhs->type) || IsNullable(rhs->type)) && (operator->token_type != EQUAL_OPERATOR && operator->token_type != NOT_EQUAL_OPERATOR))
     {
-        PrintError("Error in semantic analysis: Line %d: Comparing nullable variables with a non-nullable one", parser->line_number);
+        PrintError("Error in semantic analysis: Line %d: Using nullable variables with operators other than \"==\" or \"!=\"", parser->line_number);
         return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
     }
 
-    // Their types have to match
-    if (lhs->type != rhs->type)
+    // Their types have to match, or they both have to be constants with values known at compile time
+    if (lhs->type != rhs->type && !ConvertConstVarsBoolean(lhs, rhs))
     {
         PrintError("Error in semantic analysis: Line %d: Incompatible types in expression", parser->line_number);
         return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
@@ -961,9 +1108,18 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
         case INTEGER_32:
         case DOUBLE_64:
         case IDENTIFIER_TOKEN:
+        case KEYWORD:
             // Switch up the resulting type
             if (token->token_type == DOUBLE_64)
                 return_type = DOUBLE64_TYPE;
+
+            if(token->token_type == KEYWORD && token->keyword_type != NULL_TYPE)
+            {
+                PrintError("Error in semantic analysis: Line %d: Unexpected keyword \"%s\" in expression", parser->line_number, token->attribute);
+                DestroyEvaluationStackAndVector(postfix, stack);
+                CLEANUP
+                exit(ERROR_SYNTACTIC);
+            }
 
             // Check if the identifier isn't either undefined, or nullable
             if (token->token_type == IDENTIFIER_TOKEN)
@@ -1011,13 +1167,26 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
 
             // Case 1
             if (operand_left->token_type != IDENTIFIER_TOKEN && operand_right->token_type != IDENTIFIER_TOKEN)
+            {
+                // Check the validity of the operation
+                int error_code = CheckLiteralsCompatibilityArithmetic(operand_left, operand_right, token, parser);
+
+                // The error message was already printed
+                if (error_code != 0)
+                {
+                    DestroyEvaluationStackAndVector(postfix, stack);
+                    CLEANUP
+                    exit(error_code);
+                }
+
                 result_type = ArithmeticOperationTwoLiterals(operand_left, operand_right, token);
+            }
 
             // Case 2a (the left operand is an ID)
             else if (operand_left->token_type == IDENTIFIER_TOKEN && operand_right->token_type != IDENTIFIER_TOKEN)
             {
                 // Check the validity of the operation
-                int error_code = CheckLiteralVarCompatibilityArithmetic(operand_right, operand_left, parser);
+                int error_code = CheckLiteralVarCompatibilityArithmetic(operand_right, operand_left, token, parser);
 
                 // The error message was already printed
                 if (error_code != 0)
@@ -1036,7 +1205,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
             else if (operand_left->token_type != IDENTIFIER_TOKEN && operand_right->token_type == IDENTIFIER_TOKEN)
             {
                 // Check the validity of the operation
-                int error_code = CheckLiteralVarCompatibilityArithmetic(operand_left, operand_right, parser);
+                int error_code = CheckLiteralVarCompatibilityArithmetic(operand_left, operand_right, token, parser);
 
                 // The error message was already printed
                 if (error_code != 0)
@@ -1108,7 +1277,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
             else if (operand_left->token_type == IDENTIFIER_TOKEN && operand_right->token_type != IDENTIFIER_TOKEN)
             {
                 // Check the validity of the operation
-                int error_code = CheckLiteralVarCompatibilityBoolean(operand_right, operand_left, parser);
+                int error_code = CheckLiteralVarCompatibilityBoolean(operand_right, operand_left, token, parser);
 
                 // The error message was already printed
                 if (error_code != 0)
@@ -1127,7 +1296,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
             else if (operand_left->token_type != IDENTIFIER_TOKEN && operand_right->token_type == IDENTIFIER_TOKEN)
             {
                 // Check the validity of the operation
-                int error_code = CheckLiteralVarCompatibilityBoolean(operand_left, operand_right, parser);
+                int error_code = CheckLiteralVarCompatibilityBoolean(operand_left, operand_right, token, parser);
 
                 // The error message was already printed
                 if (error_code != 0)

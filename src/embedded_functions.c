@@ -47,11 +47,11 @@ FunctionSymbol *IsEmbeddedFunction(Parser *parser)
     }
 
     // The identifier was not an embedded function
-    PrintError("Error in syntax analysis: Line %d: Invalid embedded function name \"%s\"", parser->line_number, token->attribute);
+    PrintError("Error in semantic analysis: Line %d: Invalid embedded function name \"%s\"", parser->line_number, token->attribute);
     DestroyTokenVector(stream);
     SymtableStackDestroy(parser->symtable_stack);
     DestroySymtable(parser->global_symtable);
-    exit(ERROR_SYNTACTIC);
+    exit(ERROR_SEMANTIC_UNDEFINED);
 }
 
 void InsertEmbeddedFunctions(Parser *parser)

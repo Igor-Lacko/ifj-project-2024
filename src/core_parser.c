@@ -340,7 +340,6 @@ void VarDeclaration(Parser *parser, bool is_const)
 
     else if (token->token_type != ASSIGNMENT)
     {
-    fprintf(stderr, "bndfsaihdsoa\n");
         SymtableStackDestroy(parser->symtable_stack);
         DestroySymtable(parser->global_symtable);
         DestroyTokenVector(stream);
@@ -348,12 +347,10 @@ void VarDeclaration(Parser *parser, bool is_const)
     }
 
     // Try to remember the variable's value at compile-time
-    if (var->is_const && ConstValueAssignment(var))
-        return;
+    if (var->is_const && ConstValueAssignment(var)) return;
 
     // Assign to the variable
-    else
-        VariableAssignment(parser, var, false);
+    VariableAssignment(parser, var, false);
 }
 
 bool ConstValueAssignment(VariableSymbol *var)
@@ -603,7 +600,10 @@ void FunctionDefinition(Parser *parser)
 
     // Also if it's a void function put a return at the end
     else if (func->return_type == VOID_TYPE)
+    {
+        POPFRAME
         FUNCTION_RETURN
+    }
 
     // If it's not a void function and doesn't have a return statement, throw an error
     else if (!func->has_return)
@@ -681,25 +681,134 @@ void FunctionReturn(Parser *parser)
 
         stream_index--; // Revert the stream to the beginning of the expression
 
-        // The returned type is now on top of the data stack
-        TokenVector *postfix = InfixToPostfix(parser);
-        DATA_TYPE expr_type = ParseExpression(postfix, parser);
+        /* 2 options here after the return statement:
+            - return EXPR;
+            - return OPERAND; --> this means we have to check the next 2 tokens
+        */
 
-        // Invalid return type
-        if (expr_type != parser->current_function->return_type)
+        // Case 1
+        Token *potential_operand = GetNextToken(parser);
+        Token *potential_semicolon = GetNextToken(parser);
+
+        if(potential_semicolon->token_type == SEMICOLON)
         {
-            PrintError("Error in semantic analysis: Line %d: Invalid return type for function \"%s\"",
-                       parser->line_number, parser->current_function->name);
-            SymtableStackDestroy(parser->symtable_stack);
-            DestroySymtable(parser->global_symtable);
-            DestroyTokenVector(stream);
-            exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
+            VariableSymbol *potential_retval = NULL;
+            switch(potential_operand->token_type)
+            {
+                case INTEGER_32:
+                    if(!AreTypesCompatible(parser->current_function->return_type, INT32_TYPE))
+                    {
+                        PrintError("Error in semantic analysis: Line %d: Invalid return type for function \"%s\"",
+                                   parser->line_number, parser->current_function->name);
+                        CLEANUP
+                        exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
+                    }
+
+                    fprintf(stdout, "PUSHS int@%s\n", potential_operand->attribute);
+                    POPFRAME
+                    FUNCTION_RETURN
+                    return;
+
+                case DOUBLE_64:
+                    if(!AreTypesCompatible(parser->current_function->return_type, DOUBLE64_TYPE))
+                    {
+                        PrintError("Error in semantic analysis: Line %d: Invalid return type for function \"%s\"",
+                                   parser->line_number, parser->current_function->name);
+                        CLEANUP
+                        exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
+                    }
+
+                    fprintf(stdout, "PUSHS float@%a\n", strtod(potential_operand->attribute, NULL));
+                    POPFRAME
+                    FUNCTION_RETURN
+                    return;
+
+                case KEYWORD:
+                    if(token->keyword_type != NULL_TYPE)
+                    {
+                        PrintError("Error in synax analysis: Line %d: Unexpected token \"%s\" in return statement",
+                                   parser->line_number, token->attribute);
+                        CLEANUP
+                        exit(ERROR_SYNTACTIC);
+                    }
+
+                    else if(!AreTypesCompatible(parser->current_function->return_type, NULL_DATA_TYPE))
+                    {
+                        PrintError("Error in semantic analysis: Line %d: Invalid return type for function \"%s\"",
+                                   parser->line_number, parser->current_function->name);
+                        CLEANUP
+                        exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
+                    }
+
+                    fprintf(stdout, "PUSHS nil@nil\n");
+                    POPFRAME
+                    FUNCTION_RETURN
+                    return;
+
+                case IDENTIFIER_TOKEN:
+                    potential_retval = SymtableStackFindVariable(parser->symtable_stack, potential_operand->attribute);
+
+                    // Check if the variable is defined
+                    if(potential_retval == NULL)
+                    {
+                        PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"",
+                                   parser->line_number, potential_operand->attribute);
+                        CLEANUP
+                        exit(ERROR_SEMANTIC_UNDEFINED);
+                    }
+
+                    // Mark the variable as used
+                    potential_retval->was_used = true;
+
+                    // Check if the variable is compatible with the return type
+                    if(!AreTypesCompatible(parser->current_function->return_type, potential_retval->type))
+                    {
+                        PrintError("Error in semantic analysis: Line %d: Invalid return type for function \"%s\"",
+                                   parser->line_number, parser->current_function->name);
+                        CLEANUP
+                        exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
+                    }
+
+                    fprintf(stdout, "PUSHS LF@%s\n", potential_operand->attribute);
+                    POPFRAME
+                    FUNCTION_RETURN
+                    return;
+
+                default:
+                    PrintError("Error in syntax analysis: Line %d: Unexpected token \"%s\" in return statement",
+                               parser->line_number, token->attribute);
+                    CLEANUP
+                    exit(ERROR_SYNTACTIC);
+            }
         }
 
-        // exit the function
-        POPFRAME
-        FUNCTION_RETURN
-        return;
+        // Case 2
+        else
+        {
+            // Revert the expression back
+            stream_index -= 2;
+
+            // The returned type is now on top of the data stack
+            TokenVector *postfix = InfixToPostfix(parser);
+            DATA_TYPE expr_type = ParseExpression(postfix, parser);
+
+            // Invalid return type
+            if (expr_type != parser->current_function->return_type)
+            {
+                fprintf(stderr, "Expected %d, got %d\n", parser->current_function->return_type, expr_type);
+                PrintError("Error in semantic analysis: Line %d: Invalid return type for function \"%s\"",
+                           parser->line_number, parser->current_function->name);
+                SymtableStackDestroy(parser->symtable_stack);
+                DestroySymtable(parser->global_symtable);
+                DestroyTokenVector(stream);
+                exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
+            }
+
+            // exit the function
+            POPFRAME
+            FUNCTION_RETURN
+            return;
+        }
     }
 }
 
@@ -740,7 +849,14 @@ void VariableAssignment(Parser *parser, VariableSymbol *var, bool is_underscore)
     {
         // Get the function name to use as a key into the hash table
         Token *func_name = GetNextToken(parser);
-        FunctionSymbol *func = FindFunctionSymbol(parser->global_symtable, func_name->attribute); // This should always be successful
+        FunctionSymbol *func = FindFunctionSymbol(parser->global_symtable, func_name->attribute);
+        if(func == NULL)
+        {
+            PrintError("Error in semantic analysis: Line %d: Undefined function \"%s\"",
+                       parser->line_number, func_name->attribute);
+            CLEANUP
+            exit(ERROR_SEMANTIC_UNDEFINED);
+        }
         FunctionToVariable(parser, var, func, is_underscore);
         CheckTokenTypeVector(parser, SEMICOLON);
         return;
@@ -754,6 +870,25 @@ void VariableAssignment(Parser *parser, VariableSymbol *var, bool is_underscore)
         stream_index += 2;                       // skip the 'ifj' and the '.' token
         EmbeddedFunctionCall(parser, func, var); // If var is null, that means is_underscore is true
         return;
+    }
+
+    // String literals can't be assigned to variables, raise type compatibility error if variable has a type, else type derivation error
+    else if(token->token_type == LITERAL_TOKEN)
+    {
+        // Type compatibility error
+        if(var->type != VOID_TYPE)
+        {
+            PrintError("Error in semantic analysis: Line %d: Assigning string literal to variable \"%s\"",
+                       parser->line_number, var->name);
+            CLEANUP
+            exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+        }
+
+        // Type derivation error
+        PrintError("Error in semantic analysis: Line %d: Can't derive type for variable \"%s\" from string literal",
+                   parser->line_number, var->name);
+        CLEANUP
+        exit(ERROR_SEMANTIC_TYPE_DERIVATION);
     }
 
     // Null can also be assigned to a variable, but we have to check if it's a nullable type
@@ -800,31 +935,172 @@ void VariableAssignment(Parser *parser, VariableSymbol *var, bool is_underscore)
     else
         stream_index--;
 
-    TokenVector *postfix = InfixToPostfix(parser);
-    DATA_TYPE expr_type = ParseExpression(postfix, parser);
+    /* Once again, two cases:
+        - The expression is a single token (int, double, identifier) and a semicolon follows
+        - The expression is a complex expression and a semicolon follows
+    */
+    Token *potential_operand = GetNextToken(parser);
+    Token *potential_semicolon = GetNextToken(parser);
 
-    if (!is_underscore && !AreTypesCompatible(var->type, expr_type) && var->type != VOID_TYPE)
+    // Case 1
+    if(potential_semicolon->token_type == SEMICOLON)
     {
-        PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\", expected %d, got %d",
-                   parser->line_number, var->name, var->type, expr_type);
-        DestroyTokenVector(stream);
-        SymtableStackDestroy(parser->symtable_stack);
-        DestroySymtable(parser->global_symtable);
-        exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+        // Because FOR SOME REASON, C doesn't allow you to declare variables at the start of a switch case
+        VariableSymbol *potential_operand_symbol = NULL; 
+        switch(potential_operand->token_type)
+        {
+            case INTEGER_32:
+                if(is_underscore) return;
+
+                else if(AreTypesCompatible(var->type, INT32_TYPE) || var->type == VOID_TYPE)
+                {
+                    fprintf(stdout, "MOVE LF@%s int@%s\n", var->name, potential_operand->attribute);
+                    var->type = INT32_TYPE;
+                    var->defined = true;
+                    return;
+                }
+
+                else
+                {
+                    PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\"",
+                               parser->line_number, var->name);
+                    CLEANUP
+                    exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+                }
+
+                break;
+
+            case DOUBLE_64:
+                if(is_underscore) return;
+
+                else if(AreTypesCompatible(var->type, DOUBLE64_TYPE) || var->type == VOID_TYPE)
+                {
+                    fprintf(stdout, "MOVE LF@%s float@%a\n", var->name, strtod(potential_operand->attribute, NULL));
+                    var->type = DOUBLE64_TYPE;
+                    var->defined = true;
+                    return;
+                }
+
+                else
+                {
+                    PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\"",
+                               parser->line_number, var->name);
+                    CLEANUP
+                    exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+                }
+
+                break;
+
+            case KEYWORD:
+                if(potential_operand->keyword_type != NULL_TYPE)
+                {
+                    PrintError("Error in syntax analysis: Line %d: Unexpected token \"%s\" in assignment",
+                               parser->line_number, potential_operand->attribute);
+                    CLEANUP
+                    exit(ERROR_SYNTACTIC);
+                }
+
+                // Can not derive a type from null
+                else if(var->type == VOID_TYPE)
+                {
+                    PrintError("Error in semantic analysis: Line %d: Can't derive type for variable \"%s\" from \"null\"",
+                               parser->line_number, var->name);
+                    CLEANUP
+                    exit(ERROR_SEMANTIC_TYPE_DERIVATION);
+                }
+
+                else if(AreTypesCompatible(var->type, NULL_DATA_TYPE))
+                {
+                    fprintf(stdout, "MOVE LF@%s nil@nil\n", var->name);
+                    var->defined = true;
+                    return;
+                }
+
+                else
+                {
+                    PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\"",
+                               parser->line_number, var->name);
+                    CLEANUP
+                    exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+                }
+
+                break;
+
+            case IDENTIFIER_TOKEN:
+                potential_operand_symbol = SymtableStackFindVariable(parser->symtable_stack, potential_operand->attribute);
+
+                // Undefined case
+                if(potential_operand_symbol == NULL)
+                {
+                    PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"",
+                               parser->line_number, potential_operand->attribute);
+                    CLEANUP
+                    exit(ERROR_SEMANTIC_UNDEFINED);
+                }
+
+                // Mark the variable as used
+                potential_operand_symbol->was_used = true;
+
+                // Type compatibility check
+                if(AreTypesCompatible(var->type, potential_operand_symbol->type) || var->type == VOID_TYPE)
+                {
+                    fprintf(stdout, "MOVE LF@%s LF@%s\n", var->name, potential_operand->attribute);
+                    var->type = potential_operand_symbol->type;
+                    var->defined = true;
+                    return;
+                }
+
+                else
+                {
+                    PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\"",
+                               parser->line_number, var->name);
+                    CLEANUP
+                    exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+                }
+
+                break;
+
+            // Syntax error
+            default:
+                PrintError("Error in syntax analysis: Line %d: Unexpected token \"%s\" in assignment to variable",
+                           parser->line_number, potential_operand->attribute);
+                CLEANUP
+                exit(ERROR_SYNTACTIC);
+
+        }
     }
 
-    if (!is_underscore)
-        fprintf(stdout, "POPS LF@%s\n", var->name);
-    CLEARS
+    else
+    {
+        // Case 2, move the stream back and parse the expression
+        stream_index -= 2;
 
-    if (is_underscore)
-        return;
+        TokenVector *postfix = InfixToPostfix(parser);
+        DATA_TYPE expr_type = ParseExpression(postfix, parser);
 
-    // if the variable doesn't have a type yet, derive it from the expression (TODO: Add check for invalid types, etc.)
-    if (var->type == VOID_TYPE)
-        var->type = expr_type;
+        if (!is_underscore && !AreTypesCompatible(var->type, expr_type) && var->type != VOID_TYPE)
+        {
+            PrintError("Error in semantic analysis: Line %d: Assigning invalid type to variable \"%s\", expected %d, got %d",
+                       parser->line_number, var->name, var->type, expr_type);
+            DestroyTokenVector(stream);
+            SymtableStackDestroy(parser->symtable_stack);
+            DestroySymtable(parser->global_symtable);
+            exit(ERROR_SEMANTIC_TYPE_COMPATIBILITY);
+        }
 
-    var->defined = true;
+        if (!is_underscore)
+            fprintf(stdout, "POPS LF@%s\n", var->name);
+        CLEARS
+
+        if (is_underscore)
+            return;
+
+        // if the variable doesn't have a type yet, derive it from the expression (TODO: Add check for invalid types, etc.)
+        if (var->type == VOID_TYPE)
+            var->type = expr_type;
+
+        var->defined = true;
+    }
 }
 
 bool AreTypesCompatible(DATA_TYPE expected, DATA_TYPE got)
@@ -832,7 +1108,8 @@ bool AreTypesCompatible(DATA_TYPE expected, DATA_TYPE got)
     return (expected == got ||
             (expected == U8_ARRAY_NULLABLE_TYPE && got == U8_ARRAY_TYPE) ||
             (expected == INT32_NULLABLE_TYPE && got == INT32_TYPE) ||
-            (expected == DOUBLE64_NULLABLE_TYPE && got == DOUBLE64_TYPE));
+            (expected == DOUBLE64_NULLABLE_TYPE && got == DOUBLE64_TYPE) ||
+            (got == NULL_DATA_TYPE && IsNullable(expected)));
 }
 
 void ThrowAwayExpression(Parser *parser)

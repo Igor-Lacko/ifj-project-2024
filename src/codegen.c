@@ -83,6 +83,13 @@ void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame)
         return;
     }
 
+    // null case
+    else if(type == KEYWORD)
+    {
+        fprintf(stdout, "PUSHS nil@nil\n");
+        return;
+    }
+
     char *type_string = GetTypeStringToken(type);
     fprintf(stdout, "PUSHS %s", type_string);
 

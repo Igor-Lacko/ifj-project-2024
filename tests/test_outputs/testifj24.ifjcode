@@ -12,253 +12,180 @@ DEFVAR GF@$B2
 DEFVAR GF@$S1
 DEFVAR GF@$S2
 JUMP main
-LABEL main
-CREATEFRAME
+LABEL PrintString
 PUSHFRAME
-DEFVAR LF@viewportWidth
-DEFVAR LF@viewportHeight
-DEFVAR LF@sphereX
-DEFVAR LF@sphereY
-DEFVAR LF@sphereRadius
-DEFVAR LF@lightX
-DEFVAR LF@lightY
-DEFVAR LF@y
-DEFVAR LF@x
-DEFVAR LF@rayX
-DEFVAR LF@rayY
-DEFVAR LF@dx
-DEFVAR LF@dy
-DEFVAR LF@distSq
-DEFVAR LF@nx
-DEFVAR LF@ny
-DEFVAR LF@lx
-DEFVAR LF@ly
-DEFVAR LF@input
-DEFVAR LF@lenL
-DEFVAR LF@normLx
-DEFVAR LF@normLy
-DEFVAR LF@dot
-MOVE LF@viewportWidth float@0x1.4p+4
-MOVE LF@viewportHeight float@0x1.4p+3
-MOVE LF@sphereX float@0x0p+0
-MOVE LF@sphereY float@0x0p+0
-MOVE LF@sphereRadius float@0x1.4p+2
-MOVE LF@lightX float@0x1.4p+3
-MOVE LF@lightY float@0x1.4p+3
-PUSHS float@0x0p+0
-PUSHS float@0x1p+0
-SUBS
-PUSHS float@0x1.4p+3
-MULS
-PUSHS float@0x1p+1
-DIVS
-POPS LF@y
-CLEARS
-LABEL $while0
-PUSHS LF@y
-PUSHS float@0x1.4p+3
-PUSHS float@0x1p+1
-DIVS
-GTS
-NOTS
-POPS GF@$B0
-CLEARS
-JUMPIFEQ $endwhile0 GF@$B0 bool@false
-PUSHS float@0x0p+0
-PUSHS float@0x1p+0
-SUBS
-PUSHS float@0x1.4p+4
-MULS
-PUSHS float@0x1p+1
-DIVS
-POPS LF@x
-CLEARS
-LABEL $while1
-PUSHS LF@x
-PUSHS float@0x1.4p+4
-PUSHS int@2
-INT2FLOATS
-DIVS
-GTS
-NOTS
-POPS GF@$B0
-CLEARS
-JUMPIFEQ $endwhile1 GF@$B0 bool@false
-PUSHS LF@x
-PUSHS float@0x1p+0
-MULS
-POPS LF@rayX
-CLEARS
-PUSHS LF@y
-PUSHS float@0x1p+0
-MULS
-POPS LF@rayY
-CLEARS
-PUSHS LF@rayX
-PUSHS float@0x0p+0
-SUBS
-POPS LF@dx
-CLEARS
-PUSHS LF@rayY
-PUSHS float@0x0p+0
-SUBS
-POPS LF@dy
-CLEARS
-PUSHS LF@dx
-PUSHS LF@dx
-MULS
-PUSHS LF@dy
-PUSHS LF@dy
-MULS
-ADDS
-POPS LF@distSq
-CLEARS
+DEFVAR LF@s
+MOVE LF@s LF@PARAM0
+WRITE LF@s
+WRITE string@\010
+POPFRAME
+RETURN
+LABEL PrintInt
+PUSHFRAME
+DEFVAR LF@n
+MOVE LF@n LF@PARAM0
+WRITE LF@n
+WRITE string@\010
+POPFRAME
+RETURN
+LABEL IsPrime
+PUSHFRAME
+DEFVAR LF@divisor
+DEFVAR LF@n
+MOVE LF@n LF@PARAM0
 LABEL $if0
-PUSHS LF@distSq
-PUSHS float@0x1.4p+2
-PUSHS float@0x1.4p+2
-MULS
-GTS
-NOTS
+PUSHS LF@n
+PUSHS int@2
+LTS
 POPS GF@$B0
 CLEARS
 JUMPIFEQ $else0 GF@$B0 bool@false
-PUSHS LF@dx
-PUSHS float@0x1.4p+2
-DIVS
-POPS LF@nx
-CLEARS
-PUSHS LF@dy
-PUSHS float@0x1.4p+2
-DIVS
-POPS LF@ny
-CLEARS
-PUSHS float@0x1.4p+3
-PUSHS LF@rayX
-SUBS
-POPS LF@lx
-CLEARS
-PUSHS float@0x1.4p+3
-PUSHS LF@rayY
-SUBS
-POPS LF@ly
-CLEARS
-PUSHS LF@lx
-PUSHS LF@lx
-MULS
-PUSHS LF@ly
-PUSHS LF@ly
-MULS
-ADDS
-POPS LF@input
-CLEARS
-CREATEFRAME
-DEFVAR TF@PARAM0
-MOVE TF@PARAM0 LF@input
-CALL sqrt
-POPS LF@lenL
-CLEARS
-LABEL $if1
-PUSHS LF@lenL
 PUSHS int@0
-INT2FLOATS
-GTS
+POPFRAME
+RETURN
+JUMP $endif0
+LABEL $else0
+LABEL $endif0
+MOVE LF@divisor int@2
+LABEL $while0
+PUSHS LF@divisor
+PUSHS LF@n
+LTS
+POPS GF@$B0
+CLEARS
+JUMPIFEQ $endwhile0 GF@$B0 bool@false
+LABEL $if1
+PUSHS LF@n
+PUSHS LF@divisor
+IDIVS
+PUSHS LF@divisor
+MULS
+PUSHS LF@n
+EQS
 POPS GF@$B0
 CLEARS
 JUMPIFEQ $else1 GF@$B0 bool@false
-PUSHS LF@lx
-PUSHS LF@lenL
-DIVS
-POPS LF@normLx
-CLEARS
-PUSHS LF@ly
-PUSHS LF@lenL
-DIVS
-POPS LF@normLy
-CLEARS
-PUSHS LF@nx
-PUSHS LF@normLx
-MULS
-PUSHS LF@ny
-PUSHS LF@normLy
-MULS
-ADDS
-POPS LF@dot
-CLEARS
-LABEL $if2
-PUSHS LF@dot
 PUSHS int@0
-INT2FLOATS
+POPFRAME
+RETURN
+JUMP $endif1
+LABEL $else1
+PUSHS LF@divisor
+PUSHS int@1
+ADDS
+POPS LF@divisor
+CLEARS
+LABEL $endif1
+JUMP $while0
+LABEL $endwhile0
+PUSHS int@1
+POPFRAME
+RETURN
+LABEL main
+CREATEFRAME
+PUSHFRAME
+DEFVAR LF@valid
+DEFVAR LF@cnt
+DEFVAR LF@error_msg
+DEFVAR LF@input
+DEFVAR LF@INPUT
+DEFVAR LF@is_prime
+MOVE LF@valid int@0
+MOVE LF@cnt int@0
+MOVE LF@error_msg string@Invalid\032input.\032Please\032enter\032a\032positive\032integer\032above\0321\032and\032below\0325010\010
+WRITE string@Enter\032a\032positive\032integer\032above\0322\032and\032below\0325010:\032
+READ LF@input int
+LABEL $while1
+PUSHS LF@valid
+PUSHS int@0
+EQS
+POPS GF@$B0
+CLEARS
+JUMPIFEQ $endwhile1 GF@$B0 bool@false
+LABEL $if2
+JUMPIFEQ $else2 LF@input nil@nil
+MOVE LF@INPUT LF@input
+LABEL $if3
+PUSHS LF@INPUT
+PUSHS int@1
 GTS
 POPS GF@$B0
 CLEARS
-JUMPIFEQ $else2 GF@$B0 bool@false
-WRITE string@*
-JUMP $endif2
-LABEL $else2
-WRITE string@.
-LABEL $endif2
-JUMP $endif1
-LABEL $else1
-WRITE string@.
-LABEL $endif1
-JUMP $endif0
-LABEL $else0
-WRITE string@\032
-LABEL $endif0
-PUSHS LF@x
-PUSHS int@1
-INT2FLOATS
-ADDS
-POPS LF@x
+JUMPIFEQ $else3 GF@$B0 bool@false
+LABEL $if4
+PUSHS LF@INPUT
+PUSHS int@5010
+LTS
+POPS GF@$B0
 CLEARS
-JUMP $while1
-LABEL $endwhile1
-WRITE string@\010
-PUSHS LF@y
-PUSHS int@1
-INT2FLOATS
-ADDS
-POPS LF@y
-CLEARS
-JUMP $while0
-LABEL $endwhile0
-WRITE string@Raytracing\032complete.\010
-EXIT int@0
-LABEL sqrt
-PUSHFRAME
-DEFVAR LF@guess
-DEFVAR LF@tolerance
-DEFVAR LF@x
-MOVE LF@x LF@PARAM0
-PUSHS LF@x
-PUSHS float@0x1p+1
-DIVS
-POPS LF@guess
-CLEARS
-MOVE LF@tolerance float@0x1.0c6f7a0b5ed8dp-20
+JUMPIFEQ $else4 GF@$B0 bool@false
+MOVE LF@valid int@1
 LABEL $while2
-PUSHS LF@guess
-PUSHS LF@guess
-MULS
-PUSHS LF@x
-PUSHS float@0x1.0c6f7a0b5ed8dp-20
-ADDS
-GTS
+PUSHS LF@INPUT
+PUSHS int@5010
+LTS
 POPS GF@$B0
 CLEARS
 JUMPIFEQ $endwhile2 GF@$B0 bool@false
-PUSHS LF@guess
-PUSHS LF@x
-PUSHS LF@guess
-DIVS
+CREATEFRAME
+DEFVAR TF@PARAM0
+MOVE TF@PARAM0 LF@INPUT
+CALL IsPrime
+POPS LF@is_prime
+CLEARS
+LABEL $if5
+PUSHS LF@is_prime
+PUSHS int@1
+EQS
+POPS GF@$B0
+CLEARS
+JUMPIFEQ $else5 GF@$B0 bool@false
+PUSHS LF@cnt
+PUSHS int@1
 ADDS
-PUSHS float@0x1p+1
-DIVS
-POPS LF@guess
+POPS LF@cnt
+CLEARS
+WRITE LF@INPUT
+WRITE string@\010
+JUMP $endif5
+LABEL $else5
+LABEL $endif5
+PUSHS LF@INPUT
+PUSHS int@1
+ADDS
+POPS LF@INPUT
 CLEARS
 JUMP $while2
 LABEL $endwhile2
-PUSHS LF@guess
-POPFRAME
-RETURN
+JUMP $endif4
+LABEL $else4
+CREATEFRAME
+DEFVAR TF@PARAM0
+MOVE TF@PARAM0 LF@error_msg
+CALL PrintString
+READ LF@input int
+LABEL $endif4
+JUMP $endif3
+LABEL $else3
+CREATEFRAME
+DEFVAR TF@PARAM0
+MOVE TF@PARAM0 LF@error_msg
+CALL PrintString
+READ LF@input int
+LABEL $endif3
+JUMP $endif2
+LABEL $else2
+CREATEFRAME
+DEFVAR TF@PARAM0
+MOVE TF@PARAM0 LF@error_msg
+CALL PrintString
+READ LF@input int
+LABEL $endif2
+JUMP $while1
+LABEL $endwhile1
+WRITE string@Number\032of\032prime\032numbers:\032
+CREATEFRAME
+DEFVAR TF@PARAM0
+MOVE TF@PARAM0 LF@cnt
+CALL PrintInt
+EXIT int@0

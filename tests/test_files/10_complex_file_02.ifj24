@@ -13,19 +13,29 @@ pub fn main() void {
     var neg_exp: f64 = 1.23e-4; var pos_exp: f64 = 1.23e4;
 
     ifj.write(sum); // Expected output: 30
+    ifj.write("\n");
     ifj.write(diff); // Expected output: -71.25
+    ifj.write("\n");
     ifj.write(prod); // Expected output: 305.0
+    ifj.write("\n");
     ifj.write(quotient); // Expected output: -2.0375
+    ifj.write("\n");
     ifj.write(neg_exp); // Expected output: 0.000123
+    ifj.write("\n");
     ifj.write(pos_exp); // Expected output: 12300.0
+    ifj.write("\n");
 
     var concat_str: []u8 = ifj.concat(g, h); ifj.write(concat_str); // Expected output: "Hello, World!"
+    ifj.write("\n");
 
     var substr: ?[]u8 = ifj.substring(i, 0, 3); ifj.write(substr); // Expected output: "IFJ"
+    ifj    .  write("\n");
 
     var strcmp_result: i32 = ifj.strcmp(i, j); ifj.write(strcmp_result); // Expected output: -1 (since "IFJ24" < "Programming")
+    ifj.write("\n");
 
     var ord_value: i32 = ifj.ord(i, 0); ifj.write(ord_value); // Expected output: ASCII value of 'I'
+    
 
     var chr_value: []u8 = ifj.chr(65); ifj.write(chr_value); // Expected output: "A"
 
