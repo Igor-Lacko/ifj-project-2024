@@ -726,7 +726,7 @@ void FunctionReturn(Parser *parser)
                 case KEYWORD:
                     if(token->keyword_type != NULL_TYPE)
                     {
-                        PrintError("Error in synax analysis: Line %d: Unexpected token \"%s\" in return statement",
+                        PrintError("Error in syntax analysis: Line %d: Unexpected token \"%s\" in return statement",
                                    parser->line_number, token->attribute);
                         CLEANUP
                         exit(ERROR_SYNTACTIC);
@@ -736,6 +736,7 @@ void FunctionReturn(Parser *parser)
                     {
                         PrintError("Error in semantic analysis: Line %d: Invalid return type for function \"%s\"",
                                    parser->line_number, parser->current_function->name);
+                        fprintf(stderr, "expected %d, got %d\n", parser->current_function->return_type, NULL_DATA_TYPE);
                         CLEANUP
                         exit(ERROR_SEMANTIC_TYPECOUNT_FUNCTION);
                     }

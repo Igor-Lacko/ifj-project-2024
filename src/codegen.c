@@ -535,6 +535,12 @@ void SUBSTRING(VariableSymbol *var, Token *str, Token *beginning_index, Token *e
     fprintf(stdout, "OR GF@$B0 GF@$B0 GF@$B1\n");                                                   // B0 = B0 || B1, condition 5 marked off
     JUMPIFEQ("SUBSTRINGRETURNNULL", "GF@$B0", "bool@true", substring_count);                        // if(B0) return NULL
 
+    /* Also check another edge case where i == j, in that case we return an empty string, pseudocodeL
+        EQ B0 R0 R1
+        JUMPIFEQ SUBSTRINGRETURNEMPTY B0 bool@true
+    */
+    fprintf(stdout, "EQ GF@$B0 GF@$R0 GF@$R1\n");
+    JUMPIFEQ("SUBSTRINGRETURNEMPTY", "GF@$B0", "bool@true", substring_count);
 
     /* Substring getting pseudocode
         MOVE B2, true                           B2 = true (flag of the first character)
@@ -577,6 +583,11 @@ void SUBSTRING(VariableSymbol *var, Token *str, Token *beginning_index, Token *e
     // Case where we return NULL
     fprintf(stdout, "LABEL SUBSTRINGRETURNNULL%d\n", substring_count);                              // LABEL SUBSTRINGRETURNNULL
     fprintf(stdout, "MOVE %s%s nil@nil\n", dst_prefix, var->name);                                  // var = nil
+    JUMP_WITH_ORDER("SUBSTRINGEND", substring_count);                                               // goto SUBSTRINGEND
+
+    // Case where we return an empty string
+    fprintf(stdout, "LABEL SUBSTRINGRETURNEMPTY%d\n", substring_count);                             // LABEL SUBSTRINGRETURNEMPTY
+    fprintf(stdout, "MOVE %s%s string@\n", dst_prefix, var->name);                                  // var = ""
 
     // End of the function
     fprintf(stdout, "LABEL SUBSTRINGEND%d\n", substring_count);                                     // LABEL SUBSTRINGEND

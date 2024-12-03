@@ -178,13 +178,13 @@ void ParseFunctionDefinition(Parser *parser)
     switch (token->keyword_type)
     {
     case I32:
-        func->return_type = INT32_TYPE;
+        func->return_type = token->attribute[0] == '?' ? INT32_NULLABLE_TYPE : INT32_TYPE;
         break;
     case F64:
-        func->return_type = DOUBLE64_TYPE;
+        func->return_type = token->attribute[0] == '?' ? DOUBLE64_NULLABLE_TYPE : DOUBLE64_TYPE;
         break;
     case U8:
-        func->return_type = U8_ARRAY_TYPE;
+        func->return_type = token->attribute[0] == '?' ? U8_ARRAY_NULLABLE_TYPE : U8_ARRAY_TYPE;
         break;
     default:
         func->return_type = VOID_TYPE;

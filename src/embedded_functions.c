@@ -289,6 +289,5 @@ void EmbeddedFunctionCall(Parser *parser, FunctionSymbol *func, VariableSymbol *
     else if (!strcmp(func->name, "substring"))
         SUBSTRING(var, params->token_string[0], params->token_string[1], params->token_string[2], LOCAL_FRAME, LOCAL_FRAME, LOCAL_FRAME, LOCAL_FRAME);
 
-    // TODO: substring, and check other instructions for more "optimal" arguments
     DestroyTokenVector(params);
 }
