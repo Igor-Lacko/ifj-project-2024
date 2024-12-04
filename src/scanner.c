@@ -136,11 +136,11 @@ void ConsumeNumber(Token *token, int *line_number)
     ungetc(c, stdin);
 
     // We need to sprintf it with %a
-    if(token->token_type == DOUBLE_64)
+    if (token->token_type == DOUBLE_64)
     {
         double float_res = strtod(vector->value, NULL);
         unsigned long length = snprintf(NULL, 0, "%lf", float_res);
-        if((token->attribute = malloc((length + 1) * sizeof(char))) == NULL)
+        if ((token->attribute = malloc((length + 1) * sizeof(char))) == NULL)
             ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
 
         sprintf(token->attribute, "%lf", float_res);
@@ -199,7 +199,7 @@ void ConsumeIdentifier(Token *token, int *line_number)
     Vector *vector = InitVector();
 
     // lone '_' identifier case
-    if ((c = getchar()) == '_' && !isalnum(NextChar()))
+    if ((c = getchar()) == '_' && !isalnum(NextChar()) && NextChar() != '_')
     {
         token->token_type = UNDERSCORE_TOKEN;
         token->attribute = strdup("_");
@@ -274,7 +274,8 @@ void ConsumeLiteral(Token *token, int *line_number)
     // loop until we encounter another " character
     while ((c = getchar()) != '"' && c != '\n' && c != EOF)
     {
-        if(c != '\\') AppendChar(vector, c);
+        if (c != '\\')
+            AppendChar(vector, c);
         else
         { // possible escape sequence
             switch (c = getchar())
@@ -345,18 +346,18 @@ void ConsumeMultiLineLiteral(Token *token, int *line_number)
     Vector *vector = InitVector();
 
     // At the start, we are after the initial '\\' duo
-    while(true)
+    while (true)
     {
         c = getchar();
 
         // Non-escape sequence or newline characters
-        if(c != '\n' && c != EOF)
+        if (c != '\n' && c != EOF)
         {
             AppendChar(vector, c);
             continue;
         }
 
-        else if(c == EOF)
+        else if (c == EOF)
         {
             DestroyToken(token);
             DestroyVector(vector);
@@ -366,12 +367,13 @@ void ConsumeMultiLineLiteral(Token *token, int *line_number)
         else
         {
             ++(*line_number);
-            if(DoesMultiLineLiteralContinue(line_number))
+            if (DoesMultiLineLiteralContinue(line_number))
             {
                 AppendChar(vector, '\n');
                 continue;
             }
-            else break;
+            else
+                break;
         }
     }
 
@@ -386,18 +388,18 @@ void ConsumeMultiLineLiteral(Token *token, int *line_number)
 bool DoesMultiLineLiteralContinue(int *line_number)
 {
     int c;
-    while((c = getchar()) != EOF)
+    while ((c = getchar()) != EOF)
     {
-        if(c != '\\' && c != '\n')
+        if (c != '\\' && c != '\n')
         {
-            if(!isspace(c))
+            if (!isspace(c))
             {
                 ungetc(c, stdin);
                 return false;
             }
         }
 
-        else if(c == '\n')
+        else if (c == '\n')
         {
             ++(*line_number);
             return false;
@@ -405,7 +407,7 @@ bool DoesMultiLineLiteralContinue(int *line_number)
 
         else
         {
-            if((c = NextChar()) == '\\')
+            if ((c = NextChar()) == '\\')
             {
                 getchar();
                 return true;
@@ -429,21 +431,23 @@ void ConsumeHexadecimalEscapeSequence(Vector *vector, int *line_number)
     char digit_1, digit_2;
 
     // Do this twice :))
-    if(!isdigit(c=getchar()))
+    if (!isdigit(c = getchar()))
     {
         DestroyVector(vector);
         ErrorExit(ERROR_LEXICAL, "Line %d: Invalid hexadecimal escape sequence '\\x%c'", *line_number, c);
     }
 
-    else digit_1 = c;
+    else
+        digit_1 = c;
 
-    if(!isdigit(c=getchar()))
+    if (!isdigit(c = getchar()))
     {
         DestroyVector(vector);
         ErrorExit(ERROR_LEXICAL, "Line %d: Invalid hexadecimal escape sequence '\\x%c'", *line_number, c);
     }
 
-    else digit_2 = c;
+    else
+        digit_2 = c;
 
     // Convert the two digits to a hexadecimal number
     char hex[3] = {digit_1, digit_2, '\0'};
@@ -559,7 +563,7 @@ KEYWORD_TYPE IsKeyword(char *attribute)
         "void",
         "while"};
 
-    if(attribute[0] == '?')
+    if (attribute[0] == '?')
     {
         return IsKeyword(attribute + 1);
     }
@@ -813,7 +817,7 @@ Token *LoadTokenFromStream(int *line_number)
 
         // Signals the start of a multiline string
         case '\\':
-            if((next = NextChar()) == '\\')
+            if ((next = NextChar()) == '\\')
             {
                 getchar();
                 token->token_type = LITERAL_TOKEN;
@@ -981,5 +985,5 @@ void PrintToken(Token *token)
     default:
         fprintf(stderr, "PrintToken() default case");
     }
-    fprintf(stderr," Line number: %d\n", token->line_number);
+    fprintf(stderr, " Line number: %d\n", token->line_number);
 }
