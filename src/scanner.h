@@ -29,7 +29,7 @@ char NextChar();
  * @brief Gets the next character's type
  *
  * @param c : a character that isn't unique, e.g it belongs to a range of characters which can't be handled by a switch case (e.g [A-Z], etc.)
- * @return CHAR_TYPE Whitespace/Characyer/Number or Other (probably invalid token and error)
+ * @return CHAR_TYPE Whitespace/Character/Number or Other (probably invalid token and error)
  */
 CHAR_TYPE GetCharType(char c);
 

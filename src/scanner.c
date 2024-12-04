@@ -135,7 +135,7 @@ void ConsumeNumber(Token *token, int *line_number)
     // c is the first character after the number, so put it back to the stream
     ungetc(c, stdin);
 
-    // We need to sprintf it with %a
+    // Sprintf to a string
     if(token->token_type == DOUBLE_64)
     {
         double float_res = strtod(vector->value, NULL);
@@ -154,6 +154,14 @@ void ConsumeNumber(Token *token, int *line_number)
 
     // the float is saved as a char* since it can contain an exponent
     strcpy((token->attribute), vector->value);
+
+    // Check the leading zeroes, // TODO: check
+    if(token->token_type == INTEGER_32 && strlen(token->attribute) > 1 && token->attribute[0] == '0' && token->attribute[1] == '0')
+    {
+        fprintf(stderr, "Line %d: Invalid token %s\n", *line_number, token->attribute);
+        DestroyToken(token);
+        exit(ERROR_LEXICAL);
+    }
 
     DestroyVector(vector);
 }
