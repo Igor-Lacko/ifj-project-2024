@@ -1,3 +1,17 @@
+/**
+ * @file codegen.h
+ * @brief Header file for code generation functions for IFJCode24.
+ *
+ * This header file declares macros and functions related to the generation of
+ * code (IFJCode24) for various expressions, operations, control structures,
+ * and I/O instructions. It includes support for operations such as arithmetic, logical
+ * comparisons, function calls, and data manipulations.
+ *
+ * @authors
+ * - Igor Lacko [xlackoi00]
+ * - Rudolf Baumgartner [xbaumg01]
+ */
+
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
@@ -63,28 +77,26 @@
 #define JUMPIFEQ(label, symb1, symb2, order) fprintf(stdout, "JUMPIFEQ %s%d %s %s\n", label, order, symb1, symb2);
 #define JUMPIFNEQ(label, symb1, symb2, order) fprintf(stdout, "JUMPIFNEQ %s%d %s %s\n", label, order, symb1, symb2);
 
-
 /*
 ----------End of help macros-----------
 */
 
-
 /**
  * @brief Generates IFJ24 code for the given expression in postfix form
- * 
+ *
  * @param parser Used to check for redefinition, line numbers in case of an error, etc.
  * @param postfix The postfix expression contained in a TokenVector
  * @param var The variable that the expression is being assigned to. If NULL, assume we are in a conditional statement
- * 
+ *
  * @note Also to expand on the previous statement, if we are expecting a boolean expression, it will be put into B0
- * 
+ *
  * @return DATA_TYPE The data type of the expression, later used to check for errors
  */
 DATA_TYPE GeneratePostfixExpression(Parser *parser, TokenVector *postfix, VariableSymbol *var);
 
 /**
  * @brief Generates code for a int expression given by R1 @ R2, where @ is the operator
- * 
+ *
  * @param operator Operation to be performed
  * @note We use a register structure here: The operands are in the registers R1 and R2
  */
@@ -95,7 +107,7 @@ void InitRegisters();
 
 /**
  * @brief Defines a IFJCode24 variable, basically just a nicely named wrapper for fprintf
- * 
+ *
  * @param name The variable name
  * @param frame The frame/scope to define the variable for
  */
@@ -118,7 +130,7 @@ void EndWhileLabel(int count);
 
 /**
  * @brief Generates code for moving src to dst.
- * 
+ *
  * @param dst Destination variable.
  * @param src Source variable/symbol.
  * @param is_literal If the source is a literal.
@@ -128,7 +140,7 @@ void MOVE(Token *dst, Token *src, FRAME dst_frame);
 
 /**
  * @brief Generates code for pushing a symbol to the data stack.
- * 
+ *
  * @param attribute String representation of the token.
  * @param type Token type.
  * @param frame Frame type. Ignored if token type is not IDENTIFIER_TOKEN.
@@ -137,7 +149,7 @@ void PUSHS(const char *attribute, TOKEN_TYPE type, FRAME frame);
 
 /**
  * @brief Generates code for moving a value to a function's parameter
- * 
+ *
  * @param order The number/order of the parameter, for example the first param is TF@param0... etc.
  * @param value The string representation of the value.
  * @param type Token type.
@@ -201,9 +213,9 @@ void WriteStringLiteral(const char *str);
 
 /**
  * @brief Pushes the return value of a function to the data stack, depending on the return type.
- * 
+ *
  * @note The return value was in R0/F0/B0 before this function was called.
- * 
+ *
  * @param type The return type of the function.
  */
 void PushRetValue(DATA_TYPE type);

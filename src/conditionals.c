@@ -1,3 +1,16 @@
+/**
+ * @file conditionals.c
+ * @brief Implementation of functions for parsing and handling conditional statements.
+ *
+ * This file contains the implementation of functions for parsing if statements, including
+ * nullable if statements and managing their associated logic. It provides functionality for
+ * handling the syntactic and semantic analysis of conditional expressions, managing
+ * symbol tables, and generating intermediate code for conditional blocks.
+ *
+ * @authors
+ * - Igor Lacko [xlackoi00]
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

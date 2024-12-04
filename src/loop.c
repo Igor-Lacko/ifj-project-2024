@@ -1,3 +1,17 @@
+/**
+ * @file loop.c
+ * @brief Functions for parsing and handling while loops, including nullable loops, in the IFJ24 language.
+ *
+ * This file contains the implementation of parsing functions for standard and nullable while loops,
+ * including expression validation, symbol table manipulation, and generating corresponding pseudocode.
+ * The main loop parsing function `ParseWhileLoop` handles the parsing of the loop expression, checks for semantic errors,
+ * and generates appropriate assembly-like pseudocode. The nullable loop variant `ParseNullableWhileLoop` handles the
+ * special case of nullable variables in the loop condition.
+ *
+ * Authors:
+ * - Igor Lacko [xlackoi00]
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

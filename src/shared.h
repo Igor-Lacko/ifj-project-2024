@@ -1,3 +1,12 @@
+/**
+ * @file shared.h
+ * @brief Contains shared constants, extern variables, and data structures used across the compiler.
+ *        This includes information about token types, keywords, embedded functions, and the token stream.
+ *
+ * Authors:
+ * - Igor Lacko [xlackoi00]
+ */
+
 #ifndef SHARED_H
 #define SHARED_H
 

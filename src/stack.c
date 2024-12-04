@@ -1,3 +1,19 @@
+/**
+ * @file stack.c
+ * @brief Stack operations for expression parsing and scope management.
+ *
+ * This file contains the implementation of stack-based data structures
+ * used for expression parsing and scope management. It includes operations
+ * for managing symbol tables (for scope management), expression parsing
+ * (handling operator precedence and evaluation), and evaluation of
+ * expressions during parsing.
+ *
+ * Authors:
+ * - Igor Lacko [xlackoi00]
+ * - Boris Semanco [xseman06]
+ * - Jakub Pogádl [xpogad00]
+ */
+
 // Implementations of operations on stacks for expression parsing and scope parsing
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +25,6 @@
 #include "shared.h"
 #include "vector.h"
 #include "expression_parser.h"
-
 
 /*********************** SYMTABLE STACK OPERATIONS ********************/
 
@@ -160,7 +175,7 @@ ExpressionStack *ExpressionStackInit(void)
 ExpressionStackNode *ExpressionStackNodeInit(Token *token, STACK_NODE_TYPE node_type, PtableKey key)
 {
     ExpressionStackNode *node;
-    if((node = calloc(1, sizeof(ExpressionStackNode))) == NULL)
+    if ((node = calloc(1, sizeof(ExpressionStackNode))) == NULL)
     {
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
@@ -183,7 +198,8 @@ void ExpressionStackRemoveTop(ExpressionStack *stack)
     {
         ExpressionStackNode *previous_top = stack->top;
         stack->top = previous_top->next;
-        if(previous_top->token != NULL) DestroyToken(previous_top->token);
+        if (previous_top->token != NULL)
+            DestroyToken(previous_top->token);
         // free allocated memory resources
         free(previous_top);
 
@@ -229,10 +245,11 @@ int TopmostHandleDistance(ExpressionStack *stack)
         ++distance;
         current = current->next;
     }
-    return -1;      // No handle found, probably an error anyway?
+    return -1; // No handle found, probably an error anyway?
 }
 
-void ExpressionStackPush(ExpressionStack *stack, ExpressionStackNode *node){
+void ExpressionStackPush(ExpressionStack *stack, ExpressionStackNode *node)
+{
     // add data
     node->next = stack->top;
 
@@ -245,12 +262,13 @@ void PushHandleAfterTopmost(ExpressionStack *stack)
 {
     // Get the topmost terminal
     ExpressionStackNode *topmost = TopmostTerminal(stack);
-    if (topmost == NULL) ErrorExit(ERROR_INTERNAL, "Stack has no terminals!");
+    if (topmost == NULL)
+        ErrorExit(ERROR_INTERNAL, "Stack has no terminals!");
 
     // Create a new handle node
     ExpressionStackNode *handle = ExpressionStackNodeInit(NULL, HANDLE, GetPtableKey(topmost->token, 1));
 
-    if(stack->top == topmost)
+    if (stack->top == topmost)
     {
         (++stack->size);
         handle->next = stack->top;
@@ -261,12 +279,13 @@ void PushHandleAfterTopmost(ExpressionStack *stack)
     // Insert the handle after the topmost terminal
     ExpressionStackNode *current = stack->top;
 
-    while((current->next != NULL) && (current->next != topmost))
+    while ((current->next != NULL) && (current->next != topmost))
     {
         current = current->next;
     }
 
-    if(current->next == NULL) ErrorExit(ERROR_INTERNAL, "Topmost terminal not found in the stack!");
+    if (current->next == NULL)
+        ErrorExit(ERROR_INTERNAL, "Topmost terminal not found in the stack!");
 
     current->next = handle;
     handle->next = topmost;
@@ -348,17 +367,18 @@ void EvaluationStackRemoveTop(EvaluationStack *stack)
         EvaluationStackNode *previous_top = stack->top;
         stack->top = previous_top->next;
         // free allocated memory resources
-        if(previous_top->token != NULL) DestroyToken(previous_top->token);
+        if (previous_top->token != NULL)
+            DestroyToken(previous_top->token);
         free(previous_top);
 
         --(stack->size);
     }
 }
 
-void EvaluationStackPush(EvaluationStack *stack,Token *token)
+void EvaluationStackPush(EvaluationStack *stack, Token *token)
 {
     EvaluationStackNode *node;
-    if((node = calloc(1, sizeof(EvaluationStackNode))) == NULL)
+    if ((node = calloc(1, sizeof(EvaluationStackNode))) == NULL)
     {
         ErrorExit(ERROR_INTERNAL, "Memory allocation failed");
     }
