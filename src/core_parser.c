@@ -322,7 +322,6 @@ void VarDeclaration(Parser *parser, bool is_const)
             DestroyTokenVector(stream);
             DestroySymtable(parser->global_symtable);
             SymtableStackDestroy(parser->symtable_stack);
-            fprintf(stderr, "declaring var %s\n", var->name);
             ErrorExit(ERROR_SYNTACTIC, "Expected data type at line %d", parser->line_number);
         }
         var->type = token->keyword_type == I32 ? INT32_TYPE : token->keyword_type == F64 ? DOUBLE64_TYPE
@@ -1271,6 +1270,15 @@ void ProgramBody(Parser *parser)
                 // Function call
                 FunctionCall(parser, FindFunctionSymbol(parser->global_symtable, tmp_func_name), tmp_func_name, VOID_TYPE);
                 free(tmp_func_name);
+            }
+
+            // Check for an undefinded variable case
+            else if(!SymtableStackFindVariable(parser->symtable_stack, token->attribute))
+            {
+                PrintError("Error in semantic analysis: Line %d: Undefined variable \"%s\"",
+                           parser->line_number, token->attribute);
+                CLEANUP
+                exit(ERROR_SEMANTIC_UNDEFINED);
             }
 
             break;
