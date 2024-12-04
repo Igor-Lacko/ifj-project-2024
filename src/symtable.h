@@ -1,6 +1,19 @@
-/*Module containing everything related to the symtable's implementation*/
+/**
+ * @file symtable.h
+ * @brief Header file for the symbol table module.
+ *
+ * This file provides declarations for the symbol table (symtable), implemented as
+ * a hash table using open addressing for collision resolution. It includes
+ * functions for managing symbols (both variables and functions).
+ *
+ * ### Notes:
+ * - The hash function used for the symtable is based on the sdbm variant from
+ *   http://www.cse.yorku.ca/~oz/hash.html.
+ *
+ * @authors
+ * - Boris Semanco [xseman06]
+ */
 
-/*Also contains linked list declarations and structures, since a hash table is an array of linked lists*/
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
 

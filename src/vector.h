@@ -1,3 +1,13 @@
+/**
+ * @file vector.h
+ * @brief Provides functionality for handling dynamic vectors, including operations to append characters and tokens,
+ *        and to initialize and destroy vectors. This is used to manage collections of data structures in a memory-efficient
+ *        way by reallocating space when necessary.
+ *
+ * @authors
+ * - Igor Lacko [xlackoi00]
+ */
+
 #ifndef VECTOR_H
 #define VECTOR_H
 

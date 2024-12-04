@@ -1,3 +1,15 @@
+/**
+ * @file symtable.c
+ * @brief Implementation of the symbol table (symtable) module.
+ *
+ * This file contains the implementation of the symtable, which uses a hash table
+ * with open addressing for symbol management. It provides functions for initializing,
+ * inserting, searching, and destroying symbols.
+ *
+ * @authors
+ * - Boris Semanco [xseman06]
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -84,7 +96,7 @@ void AppendStringArray(StringArray *string_array, char *string)
     }
 
     // Check if the string is already in the array
-    for(int i = 0; i < string_array->count; i++)
+    for (int i = 0; i < string_array->count; i++)
     {
         if (strcmp(string_array->strings[i], string) == 0)
         {

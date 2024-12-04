@@ -1,3 +1,12 @@
+/**
+ * @file shared.c
+ * @brief Implements shared variables, constants, and arrays used across the compiler.
+ *        Includes token types, keyword types, embedded function details, and stream tracking.
+ *
+ * Authors:
+ * - Igor Lacko [xlackoi00]
+ */
+
 #include <stdlib.h>
 #include "shared.h"
 
@@ -37,8 +46,7 @@ const char token_types[TOKEN_COUNT][MAXLENGTH_TOKEN] = {
     ".",
     ":",
     "EOF",
-    "boolean"
-    };
+    "boolean"};
 
 const char keyword_types[KEYWORD_COUNT][MAXLENGTH_KEYWORD] = {
     "const",
@@ -69,7 +77,6 @@ const char embedded_names[EMBEDDED_FUNCTION_COUNT][MAXLENGTH_EMBEDDED_FUNCTION] 
     "strcmp",
     "ord",
     "chr"};
-
 
 DATA_TYPE embedded_return_types[EMBEDDED_FUNCTION_COUNT] = {
     U8_ARRAY_NULLABLE_TYPE,

@@ -1,3 +1,17 @@
+/**
+ * @file function_parser.c
+ * @brief Parses function definitions for preloading and call handling.
+ *
+ * This file is responsible for the initial pass of parsing function definitions
+ * in ifj24 programming language. It ensures that all functions are properly
+ * loaded into memory, validated, and made available for subsequent calls and operations.
+ *
+ * @authors
+ * - Igor Lacko [xlackoi00]
+ * - Jakub Pogádl [xpogad00]
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +28,6 @@
 // sekvence_příkazů
 // }
 
-
 void ParseIfWhile(Parser *parser)
 {
 
@@ -22,32 +35,33 @@ void ParseIfWhile(Parser *parser)
 
     Token *token;
     int counter = 1;
-    //loops through expression until )
+    // loops through expression until )
     while (counter)
     {
         token = LoadTokenFromStream(&parser->line_number);
-        if(token->token_type == L_ROUND_BRACKET)
+        if (token->token_type == L_ROUND_BRACKET)
         {
             AppendToken(stream, token);
             counter++;
         }
-        else if(token->token_type == R_ROUND_BRACKET)
+        else if (token->token_type == R_ROUND_BRACKET)
         {
             AppendToken(stream, token);
             counter--;
         }
-        else if(token->token_type == EOF_TOKEN)
+        else if (token->token_type == EOF_TOKEN)
         {
             ErrorExit(ERROR_SYNTACTIC, "Line %d: Incorrectly ended if statement", parser->line_number);
         }
-        else{
+        else
+        {
             AppendToken(stream, token);
         }
     }
 
-    //checks if the next token is a vertical bar
+    // checks if the next token is a vertical bar
     token = LoadTokenFromStream(&parser->line_number);
-    if(token->token_type == VERTICAL_BAR_TOKEN)
+    if (token->token_type == VERTICAL_BAR_TOKEN)
     {
         AppendToken(stream, token);
         token = CheckAndReturnTokenStream(parser, IDENTIFIER_TOKEN);
@@ -56,8 +70,8 @@ void ParseIfWhile(Parser *parser)
         CheckTokenTypeStream(parser, L_CURLY_BRACKET);
         return;
     }
-    
-    if(token->token_type != L_CURLY_BRACKET)
+
+    if (token->token_type != L_CURLY_BRACKET)
     {
         ErrorExit(ERROR_SYNTACTIC, "Line %d: Expected '{' after variable declaration", parser->line_number);
     }
@@ -65,10 +79,6 @@ void ParseIfWhile(Parser *parser)
     AppendToken(stream, token);
     return;
 }
-
-
-
-
 
 void ParseVariableDeclaration(Parser *parser)
 {
@@ -375,11 +385,11 @@ void ParseFunctions(Parser *parser)
             ParseConstDeclaration(parser);
         }
 
-        if(token->keyword_type == IF || token->keyword_type == WHILE){
+        if (token->keyword_type == IF || token->keyword_type == WHILE)
+        {
             ParseIfWhile(parser);
             parser->nested_level++;
         }
-
     }
 
     // Append the EOF token

@@ -1,3 +1,18 @@
+/**
+ * @file types.h
+ * @brief Definitions for token types, symbols, and data structures used in parsing and code generation.
+ *
+ * This header includes enums for token types (e.g., identifiers, keywords, operators), symbol tables, data types (e.g., integers, floats, boolean),
+ * and structures for managing symbols, expressions, and precedence analysis.
+ * It also defines structures for handling dynamic arrays (vectors) and the various stack implementations used in expression parsing and evaluation.
+ *
+ * @authors:
+ * - Igor Lacko [xlackoi00]
+ * - Jakub Pogádl [xpogad00]
+ * - Boris Semanco [xseman06]
+ * - Rudolf Baumgartner [xbaumg01]
+ */
+
 #ifndef TYPES_H
 #define TYPES_H
 
@@ -188,25 +203,24 @@ typedef struct
     int capacity;         // max
 } TokenVector;
 
-
 /******************** STRUCTURES FOR PRECEDENTIAL ANALYSIS ********************/
 
 // Enumeration of grammar rules for reduction in expressions
 typedef enum
 {
-    IDENTIFIER_RULE,                // E -> id
-    BRACKET_RULE,                   // E -> (E)
-    MULTIPLICATION_RULE,            // E -> E * E
-    DIVISION_RULE,                  // E -> E / E
-    ADDITION_RULE,                  // E -> E + E
-    SUBSTRACTION_RULE,              // E -> E - E
-    EQUAL_RULE,                     // E -> E == E
-    NOT_EQUAL_RULE,                 // E -> E != E
-    LESS_THAN_RULE,                 // E -> E < E
-    LARGER_THAN_RULE,               // E -> E > E
-    LESSER_EQUAL_RULE,              // E -> E <= E
-    LARGER_EQUAL_RULE,              // E -> E >= E
-    NOT_FOUND_RULE                  // Rule not found, error
+    IDENTIFIER_RULE,     // E -> id
+    BRACKET_RULE,        // E -> (E)
+    MULTIPLICATION_RULE, // E -> E * E
+    DIVISION_RULE,       // E -> E / E
+    ADDITION_RULE,       // E -> E + E
+    SUBSTRACTION_RULE,   // E -> E - E
+    EQUAL_RULE,          // E -> E == E
+    NOT_EQUAL_RULE,      // E -> E != E
+    LESS_THAN_RULE,      // E -> E < E
+    LARGER_THAN_RULE,    // E -> E > E
+    LESSER_EQUAL_RULE,   // E -> E <= E
+    LARGER_EQUAL_RULE,   // E -> E >= E
+    NOT_FOUND_RULE       // Rule not found, error
 } EXPRESSION_RULE;
 
 typedef enum
@@ -225,8 +239,8 @@ typedef enum
     PTABLE_LEFT_BRACKET,
     PTABLE_RIGHT_BRACKET,
     PTABLE_DOLLAR,
-    PTABLE_ERROR,       // Invalid token in expression
-    PTABLE_NOKEY        // When pushing a Non-terminal/Handle to the stack
+    PTABLE_ERROR, // Invalid token in expression
+    PTABLE_NOKEY  // When pushing a Non-terminal/Handle to the stack
 } PtableKey;
 
 typedef enum
@@ -255,10 +269,10 @@ typedef struct
 } SymtableStack;
 
 typedef enum
-{ // Expression stack node types
-    HANDLE,                                     // Handle symbol, represents start of a reduction
-    TERMINAL,                                   // Terminal symbol, represented by the token inside the node
-    NONTERMINAL                                 // There don't need to bne multiple types for this, since we only have one non-terminal -> E
+{               // Expression stack node types
+    HANDLE,     // Handle symbol, represents start of a reduction
+    TERMINAL,   // Terminal symbol, represented by the token inside the node
+    NONTERMINAL // There don't need to bne multiple types for this, since we only have one non-terminal -> E
 } STACK_NODE_TYPE;
 
 typedef struct ExprStackNode
@@ -286,7 +300,6 @@ typedef struct
     unsigned long size;
     EvaluationStackNode *top;
 } EvaluationStack;
-
 
 /******************** ENUM FOR IFJCODE24 FRAMES ********************/
 typedef enum

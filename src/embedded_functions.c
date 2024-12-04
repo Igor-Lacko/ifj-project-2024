@@ -1,3 +1,18 @@
+/**
+ * @file embedded_functions.c
+ * @brief Functions for handling embedded functions in the IFJCode24 interpreter.
+ *
+ * This file implements functions for identifying, inserting, and calling
+ * embedded functions in the IFJCode24 interpreter. These functions include
+ * checking whether a function is embedded, inserting the embedded functions
+ * into the symbol table, parsing their parameters, and generating the corresponding
+ * intermediate code. The supported embedded functions include I/O operations
+ * (e.g., read/write), type conversions, string manipulation, and more.
+ *
+ * Authors:
+ * - Igor Lacko [xlackoi00]
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

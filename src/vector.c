@@ -1,3 +1,17 @@
+/**
+ * @file vector.c
+ * @brief Implementation of dynamic vectors for characters and tokens.
+ *
+ * This file contains the implementation of functions for managing dynamic vectors. It provides utilities for:
+ * - Initializing, appending, and destroying character vectors.
+ * - Initializing, appending, and destroying token vectors.
+ *
+ * The dynamic allocation ensures that the vector can grow in size as needed during the parsing process. Error handling is included to manage memory allocation failures.
+ *
+ * @authors:
+ * - Igor Lacko [xlackoi00]
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,15 +38,15 @@ void AppendChar(Vector *vector, char c)
     // check if length + 1 > capacity, if yes allocate more memory
     if (vector->length + 1 > vector->max_length)
     {
-        if ((vector->value = realloc(vector->value, sizeof(char) * ALLOC_CHUNK(vector -> length))) == NULL)
+        if ((vector->value = realloc(vector->value, sizeof(char) * ALLOC_CHUNK(vector->length))) == NULL)
         {
             ErrorExit(ERROR_INTERNAL, "Compiler internal error: Memory allocation failed");
         }
-        vector->max_length = ALLOC_CHUNK(vector -> length);
+        vector->max_length = ALLOC_CHUNK(vector->length);
     }
 
     // append new character
-    (vector->value)[vector->length ++] = c;
+    (vector->value)[vector->length++] = c;
 }
 
 TokenVector *InitTokenVector()

@@ -1,4 +1,15 @@
-/*Module containing error exit code macros and declarations for error.c (error handling functions)*/
+/**
+ * @file error.h
+ * @brief Error handling macros and function declarations.
+ *
+ * This header defines error codes for lexical, syntactic, semantic, and internal errors,
+ * along with functions for printing error messages. The `ErrorExit` function terminates the
+ * program with the given error code, while `PrintError` only prints the error message.
+ *
+ * Authors:
+ * - Boris Semanco [xseman06]
+ */
+
 #ifndef ERROR_H
 #define ERROR_H
 
@@ -21,7 +32,9 @@
 /*End of semantic error codes*/
 
 // Debug macro
-#define NOT_IMPLEMENTED fprintf(stderr, "Error: This feature is not implemented yet!"); exit(ERROR_INTERNAL);
+#define NOT_IMPLEMENTED                                             \
+    fprintf(stderr, "Error: This feature is not implemented yet!"); \
+    exit(ERROR_INTERNAL);
 
 #define ERROR_INTERNAL 99 // internal compiler error, for example a failed malloc call... etc.
 

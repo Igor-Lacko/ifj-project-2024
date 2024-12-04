@@ -1,3 +1,21 @@
+/**
+ * @file stack.h
+ * @brief Stack-based data structures for expression parsing and scope recognition.
+ *
+ * This file defines stack operations used for expression parsing, managing
+ * symbol tables for scope recognition, and evaluating expressions during
+ * parsing. It includes the implementation of the symbol table stack,
+ * expression stack, and evaluation stack, which are used to manage scopes,
+ * handle operator precedence, and evaluate intermediate expressions. The
+ * operations allow for pushing, popping, and querying elements from these
+ * stacks, as well as clearing, printing, and destroying them.
+ *
+ * Authors:
+ * - Igor Lacko [xlackoi00]
+ * - Boris Semanco [xseman06]
+ * - Jakub Pogádl [xpogad00]
+ */
+
 // Contains stack structures for expression parsing and scope recognition
 
 #ifndef STACK_H
@@ -74,31 +92,31 @@ ExpressionStackNode *ExpressionStackTop(ExpressionStack *stack);
 
 /**
  * @brief Returns the terminal symbol closest to the stack top
- * 
+ *
  * @param stack Stack instance
- * @return ExpressionStackNode* Node containing the terminal symbol 
+ * @return ExpressionStackNode* Node containing the terminal symbol
  */
 ExpressionStackNode *TopmostTerminal(ExpressionStack *stack);
 
 /**
  * @brief Returns the distance to the handle closest to the stack top
- * 
+ *
  * @param stack Stack instance
- * 
+ *
  * @return int Distance from the top of the stack to the handle
  */
 int TopmostHandleDistance(ExpressionStack *stack);
 
 /**
  * @brief Pushes the handle after the topmost terminal symbol
- * 
+ *
  * @param stack Stack instance
  */
 void PushHandleAfterTopmost(ExpressionStack *stack);
 
 /**
  * @brief Initializes a new expression stack node
- * 
+ *
  * @param token Token contained in the node
  * @param type Node type (terminal/non-terminal/handle)
  * @param key The key type to index into the table
@@ -175,7 +193,7 @@ void EvaluationStackPush(EvaluationStack *stack, Token *token);
 
 /**
  * @brief Pops the top element from the stack
- * 
+ *
  * @param stack Stack instance
  */
 Token *EvaluationStackPop(EvaluationStack *stack);

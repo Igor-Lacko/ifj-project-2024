@@ -1,3 +1,10 @@
+/**
+ * @file scanner.h
+ * @brief Header file for lexical analyzer (scanner)
+ *
+ * @authors Igor Lacko [xlackoi00]
+ */
+
 #ifndef SCANNER_H
 #define SCANNER_H
 
@@ -61,7 +68,7 @@ void ConsumeLiteral(Token *token, int *line_number);
 
 /**
  * @brief Consumes whitespace until it encounters the next non-whitespace character
- * 
+ *
  * @param line_number Current line number
  * @return true If the next two non-whitespace characters == '\\'
  * @return false Otherwise
@@ -70,7 +77,7 @@ bool DoesMultiLineLiteralContinue(int *line_number);
 
 /**
  * @brief Consumes and validates a escape sequence of the form \xHH in a literal
- * 
+ *
  * @param vector Vector containing the overlapping literal
  * @param line_number Current line number
  */
@@ -94,7 +101,7 @@ void ConsumeIdentifier(Token *token, int *line_number);
 
 /**
  * @brief called upon encountering a '@'
- * 
+ *
  * @param token token to add to
  * @param line_number for error messages
  */

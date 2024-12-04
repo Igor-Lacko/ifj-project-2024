@@ -1,3 +1,13 @@
+/**
+ * @file scanner.c
+ * @brief Lexical analyzer (scanner) for the compiler
+ *
+ * This file implements the lexical analysis phase of the compiler,
+ * responsible for breaking down the input source code into tokens.
+ *
+ * @authors Igor Lacko [xlackoi00]
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -136,7 +146,7 @@ void ConsumeNumber(Token *token, int *line_number)
     ungetc(c, stdin);
 
     // Sprintf to a string
-    if(token->token_type == DOUBLE_64)
+    if (token->token_type == DOUBLE_64)
     {
         double float_res = strtod(vector->value, NULL);
         unsigned long length = snprintf(NULL, 0, "%lf", float_res);
@@ -156,7 +166,7 @@ void ConsumeNumber(Token *token, int *line_number)
     strcpy((token->attribute), vector->value);
 
     // Check the leading zeroes, // TODO: check
-    if(token->token_type == INTEGER_32 && strlen(token->attribute) > 1 && token->attribute[0] == '0' && token->attribute[1] == '0')
+    if (token->token_type == INTEGER_32 && strlen(token->attribute) > 1 && token->attribute[0] == '0' && token->attribute[1] == '0')
     {
         fprintf(stderr, "Line %d: Invalid token %s\n", *line_number, token->attribute);
         DestroyToken(token);
