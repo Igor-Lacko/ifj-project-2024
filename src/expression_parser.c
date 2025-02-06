@@ -1,3 +1,15 @@
+/**
+ * @file expression_parser.c
+ * @brief Implements functions for parsing expressions and generating code for arithmetic and boolean operations.
+ *
+ * This file contains the implementation of functions for infix-to-postfix conversion, expression parsing,
+ * and handling operand compatibility. It also provides code generation for operations involving literals,
+ * variables, and identifiers.
+ *
+ * Authors:
+ * - Igor Lacko [xlackoi00]
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,21 +26,20 @@
 #include "shared.h"
 
 const PrecedenceTable precedence_table = {
-    /*ID*/  {INVALID, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, INVALID, REDUCE, REDUCE},
-    /***/   {SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
-    /*/*/   {SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
-    /*+*/   {SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
-    /*-*/   {SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
-    /*==*/  {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
-    /*!=*/  {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
-    /*<*/   {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
-    /*>*/   {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
-    /*<=*/  {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
-    /*>=*/  {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
-    /*(*/   {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, MATCH, INVALID},
-    /*)*/   {INVALID, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, INVALID, REDUCE, REDUCE},
-    /*$*/   {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, INVALID, ACCEPT}
-};
+    /*ID*/ {INVALID, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, INVALID, REDUCE, REDUCE},
+    /***/ {SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
+    /*/*/ {SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
+    /*+*/ {SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
+    /*-*/ {SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
+    /*==*/{SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
+    /*!=*/{SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
+    /*<*/ {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
+    /*>*/ {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
+    /*<=*/{SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
+    /*>=*/{SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, SHIFT, REDUCE, REDUCE},
+    /*(*/ {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, MATCH, INVALID},
+    /*)*/ {INVALID, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, REDUCE, INVALID, REDUCE, REDUCE},
+    /*$*/ {SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, SHIFT, INVALID, ACCEPT}};
 
 PtableKey GetPtableKey(Token *token, int bracket_count)
 {
@@ -38,62 +49,65 @@ PtableKey GetPtableKey(Token *token, int bracket_count)
 
     switch (token->token_type)
     {
-        case IDENTIFIER_TOKEN: case INTEGER_32: case DOUBLE_64: case KEYWORD:
-            if(token->token_type == KEYWORD)
-            {
-                return token->keyword_type == NULL_TYPE ? PTABLE_ID : PTABLE_ERROR;
-            } 
+    case IDENTIFIER_TOKEN:
+    case INTEGER_32:
+    case DOUBLE_64:
+    case KEYWORD:
+        if (token->token_type == KEYWORD)
+        {
+            return token->keyword_type == NULL_TYPE ? PTABLE_ID : PTABLE_ERROR;
+        }
 
-            else return PTABLE_ID;
+        else
+            return PTABLE_ID;
 
-        case MULTIPLICATION_OPERATOR:
-            return PTABLE_MULTIPLICATION;
+    case MULTIPLICATION_OPERATOR:
+        return PTABLE_MULTIPLICATION;
 
-        case DIVISION_OPERATOR:
-            return PTABLE_DIVISION;
+    case DIVISION_OPERATOR:
+        return PTABLE_DIVISION;
 
-        case ADDITION_OPERATOR:
-            return PTABLE_ADDITION;
+    case ADDITION_OPERATOR:
+        return PTABLE_ADDITION;
 
-        case SUBSTRACTION_OPERATOR:
-            return PTABLE_SUBSTRACTION;
+    case SUBSTRACTION_OPERATOR:
+        return PTABLE_SUBSTRACTION;
 
-        case EQUAL_OPERATOR:
-            return PTABLE_EQUAL;
+    case EQUAL_OPERATOR:
+        return PTABLE_EQUAL;
 
-        case NOT_EQUAL_OPERATOR:
-            return PTABLE_NOT_EQUAL;
+    case NOT_EQUAL_OPERATOR:
+        return PTABLE_NOT_EQUAL;
 
-        case LESS_THAN_OPERATOR:
-            return PTABLE_LESS_THAN;
+    case LESS_THAN_OPERATOR:
+        return PTABLE_LESS_THAN;
 
-        case LARGER_THAN_OPERATOR:
-            return PTABLE_LARGER_THAN;
+    case LARGER_THAN_OPERATOR:
+        return PTABLE_LARGER_THAN;
 
-        case LESSER_EQUAL_OPERATOR:
-            return PTABLE_LESSER_EQUAL;
+    case LESSER_EQUAL_OPERATOR:
+        return PTABLE_LESSER_EQUAL;
 
-        case LARGER_EQUAL_OPERATOR:
-            return PTABLE_LARGER_EQUAL;
+    case LARGER_EQUAL_OPERATOR:
+        return PTABLE_LARGER_EQUAL;
 
-        case L_ROUND_BRACKET:
-            return PTABLE_LEFT_BRACKET;
+    case L_ROUND_BRACKET:
+        return PTABLE_LEFT_BRACKET;
 
-        case R_ROUND_BRACKET:
-            return bracket_count == -1 ? PTABLE_DOLLAR : PTABLE_RIGHT_BRACKET;
+    case R_ROUND_BRACKET:
+        return bracket_count == -1 ? PTABLE_DOLLAR : PTABLE_RIGHT_BRACKET;
 
-        case SEMICOLON:
-            return PTABLE_DOLLAR;
+    case SEMICOLON:
+        return PTABLE_DOLLAR;
 
-        default:
-            return PTABLE_ERROR;
+    default:
+        return PTABLE_ERROR;
     }
 }
 
 bool IsOperand(Token *token)
 {
-    return token->token_type == IDENTIFIER_TOKEN || token->token_type == INTEGER_32 || token->token_type == DOUBLE_64
-        || (token->token_type == KEYWORD && token->keyword_type == NULL_TYPE);
+    return token->token_type == IDENTIFIER_TOKEN || token->token_type == INTEGER_32 || token->token_type == DOUBLE_64 || (token->token_type == KEYWORD && token->keyword_type == NULL_TYPE);
 }
 
 bool IsNullable(DATA_TYPE type)
@@ -110,88 +124,94 @@ EXPRESSION_RULE FindRule(ExpressionStack *stack, int distance)
     ExpressionStackNode *top = ExpressionStackTop(stack);
 
     // No possible rule can be applied
-    if(distance != 1 && distance != 3) return NOT_FOUND_RULE;
+    if (distance != 1 && distance != 3)
+        return NOT_FOUND_RULE;
 
     // Only E -> id can be applied here
-    else if(distance == 1)
+    else if (distance == 1)
     {
-        if(top->node_type == TERMINAL && IsOperand(top->token))
+        if (top->node_type == TERMINAL && IsOperand(top->token))
             return IDENTIFIER_RULE;
 
         return NOT_FOUND_RULE;
     }
 
     // Check if the stack size can actually contain a rule
-    if(stack->size < 4) return NOT_FOUND_RULE; // 4 since we need 3 nodes + the handle
+    if (stack->size < 4)
+        return NOT_FOUND_RULE; // 4 since we need 3 nodes + the handle
 
     // Special case, brackets rule (E -> (E)) --> only other type when a terminal can be on the top of the stack
-    if(top->node_type == TERMINAL)
+    if (top->node_type == TERMINAL)
     {
-        if(top->token->token_type != R_ROUND_BRACKET) return NOT_FOUND_RULE;
-        if(top->next->node_type != NONTERMINAL) return NOT_FOUND_RULE;
-        if(top->next->next->node_type != TERMINAL
-        && top->next->next->token->token_type != L_ROUND_BRACKET) return NOT_FOUND_RULE;
+        if (top->token->token_type != R_ROUND_BRACKET)
+            return NOT_FOUND_RULE;
+        if (top->next->node_type != NONTERMINAL)
+            return NOT_FOUND_RULE;
+        if (top->next->next->node_type != TERMINAL && top->next->next->token->token_type != L_ROUND_BRACKET)
+            return NOT_FOUND_RULE;
 
         return BRACKET_RULE;
     }
-
 
     /********** ALL OTHER RULES, IN THE FORM (E OPERATOR E) (WITHOUT BRACKETS) **********/
     EXPRESSION_RULE rule;
 
     // E
-    if(top->node_type != NONTERMINAL) return NOT_FOUND_RULE;
+    if (top->node_type != NONTERMINAL)
+        return NOT_FOUND_RULE;
 
     // OPERATOR
-    if(top->next->node_type != TERMINAL) return NOT_FOUND_RULE;
-    switch(top->next->token->token_type)
+    if (top->next->node_type != TERMINAL)
+        return NOT_FOUND_RULE;
+    switch (top->next->token->token_type)
     {
-        case MULTIPLICATION_OPERATOR:
-            rule = MULTIPLICATION_RULE;
-            break;
+    case MULTIPLICATION_OPERATOR:
+        rule = MULTIPLICATION_RULE;
+        break;
 
-        case DIVISION_OPERATOR:
-            rule = DIVISION_RULE;
-            break;
+    case DIVISION_OPERATOR:
+        rule = DIVISION_RULE;
+        break;
 
-        case ADDITION_OPERATOR:
-            rule = ADDITION_RULE;
-            break;
+    case ADDITION_OPERATOR:
+        rule = ADDITION_RULE;
+        break;
 
-        case SUBSTRACTION_OPERATOR:
-            rule = SUBSTRACTION_RULE;
-            break;
+    case SUBSTRACTION_OPERATOR:
+        rule = SUBSTRACTION_RULE;
+        break;
 
-        case EQUAL_OPERATOR:
-            rule = EQUAL_RULE;
-            break;
+    case EQUAL_OPERATOR:
+        rule = EQUAL_RULE;
+        break;
 
-        case NOT_EQUAL_OPERATOR:
-            rule = NOT_EQUAL_RULE;
-            break;
+    case NOT_EQUAL_OPERATOR:
+        rule = NOT_EQUAL_RULE;
+        break;
 
-        case LESS_THAN_OPERATOR:
-            rule = LESS_THAN_RULE;
-            break;
+    case LESS_THAN_OPERATOR:
+        rule = LESS_THAN_RULE;
+        break;
 
-        case LARGER_THAN_OPERATOR:
-            rule = LARGER_THAN_RULE;
-            break;
+    case LARGER_THAN_OPERATOR:
+        rule = LARGER_THAN_RULE;
+        break;
 
-        case LESSER_EQUAL_OPERATOR:
-            rule = LESSER_EQUAL_RULE;
-            break;
+    case LESSER_EQUAL_OPERATOR:
+        rule = LESSER_EQUAL_RULE;
+        break;
 
-        case LARGER_EQUAL_OPERATOR:
-            rule = LARGER_EQUAL_RULE;
-            break;
+    case LARGER_EQUAL_OPERATOR:
+        rule = LARGER_EQUAL_RULE;
+        break;
 
-        default:
-            return NOT_FOUND_RULE;
+    default:
+        return NOT_FOUND_RULE;
     }
 
     // E
-    if(top->next->next->node_type != NONTERMINAL) return NOT_FOUND_RULE;
+    if (top->next->next->node_type != NONTERMINAL)
+        return NOT_FOUND_RULE;
 
     return rule;
 }
@@ -204,51 +224,54 @@ void ReduceToNonterminal(ExpressionStack *stack, TokenVector *postfix, EXPRESSIO
     */
 
     // Decide based on the rule
-    switch(rule)
+    switch (rule)
     {
-        case IDENTIFIER_RULE:
-            // E -> id
-            AppendToken(postfix, CopyToken(ExpressionStackTop(stack)->token));
-            ExpressionStackRemoveTop(stack);
+    case IDENTIFIER_RULE:
+        // E -> id
+        AppendToken(postfix, CopyToken(ExpressionStackTop(stack)->token));
+        ExpressionStackRemoveTop(stack);
 
-            // Remove the handle from the stack
-            ExpressionStackRemoveTop(stack);
+        // Remove the handle from the stack
+        ExpressionStackRemoveTop(stack);
 
-            break;
+        break;
 
-        // E -> (E)
-        case BRACKET_RULE:
-            // Just remove 4 nodes from the stack, we aren't appending anything to the postfix string
-            ExpressionStackRemoveTop(stack);
-            ExpressionStackRemoveTop(stack);
-            ExpressionStackRemoveTop(stack);
-            ExpressionStackRemoveTop(stack);
+    // E -> (E)
+    case BRACKET_RULE:
+        // Just remove 4 nodes from the stack, we aren't appending anything to the postfix string
+        ExpressionStackRemoveTop(stack);
+        ExpressionStackRemoveTop(stack);
+        ExpressionStackRemoveTop(stack);
+        ExpressionStackRemoveTop(stack);
 
-            break;
+        break;
 
-        // E -> E OPERATOR E (all of these have the same semantics for reduction)
-        case MULTIPLICATION_RULE: case DIVISION_RULE:
-        case ADDITION_RULE: case SUBSTRACTION_RULE:
-        case EQUAL_RULE: case NOT_EQUAL_RULE:
-        case LESS_THAN_RULE: case LARGER_THAN_RULE:
-        case LESSER_EQUAL_RULE: case LARGER_EQUAL_RULE:
-            // We only need the operator to append
-            ExpressionStackRemoveTop(stack);                                        // First nonterminal
-            ExpressionStackNode *operator = ExpressionStackPop(stack);              // Operator
-            ExpressionStackRemoveTop(stack);                                        // Second nonterminal
-            ExpressionStackRemoveTop(stack);                                        // Handle
+    // E -> E OPERATOR E (all of these have the same semantics for reduction)
+    case MULTIPLICATION_RULE:
+    case DIVISION_RULE:
+    case ADDITION_RULE:
+    case SUBSTRACTION_RULE:
+    case EQUAL_RULE:
+    case NOT_EQUAL_RULE:
+    case LESS_THAN_RULE:
+    case LARGER_THAN_RULE:
+    case LESSER_EQUAL_RULE:
+    case LARGER_EQUAL_RULE:
+        // We only need the operator to append
+        ExpressionStackRemoveTop(stack);                          // First nonterminal
+        ExpressionStackNode *operator= ExpressionStackPop(stack); // Operator
+        ExpressionStackRemoveTop(stack);                          // Second nonterminal
+        ExpressionStackRemoveTop(stack);                          // Handle
 
+        AppendToken(postfix, CopyToken(operator->token)); // Append the operator to the postfix string
 
+        free(operator); // Destroy excess nodes
 
-            AppendToken(postfix, CopyToken(operator->token));                       // Append the operator to the postfix string
+        break;
 
-            free(operator);                                                         // Destroy excess nodes
-
-            break;
-
-        // Will literally never happen
-        default:
-            return;
+    // Will literally never happen
+    default:
+        return;
     }
 
     // Push the nonterminal to the stack
@@ -261,19 +284,19 @@ void ReduceToNonterminal(ExpressionStack *stack, TokenVector *postfix, EXPRESSIO
 TokenVector *InfixToPostfix(Parser *parser)
 {
     // needed structures/varibles
-    ExpressionStack *stack = ExpressionStackInit();         // Stack for precedence analysis
-    TokenVector *postfix = InitTokenVector();               // Output postfix vector
-    ExpressionStackNode *node;                              // Temporary node for pushing to the stack
-    Token *token;                                           // Input token
-    EXPRESSION_RULE rule  = NOT_FOUND_RULE;                 // Rule to be applied
-    PtableKey key = PTABLE_NOKEY;                           // Key for indexing into the precedence table
-    int bracket_count = 0;                                  // In case the expression ends
-    int distance = -1;                                      // Distance to the handle  
-    bool expression_over = false;                           // If the expression is over, set to true after accepting the last token
+    ExpressionStack *stack = ExpressionStackInit(); // Stack for precedence analysis
+    TokenVector *postfix = InitTokenVector();       // Output postfix vector
+    ExpressionStackNode *node;                      // Temporary node for pushing to the stack
+    Token *token;                                   // Input token
+    EXPRESSION_RULE rule = NOT_FOUND_RULE;          // Rule to be applied
+    PtableKey key = PTABLE_NOKEY;                   // Key for indexing into the precedence table
+    int bracket_count = 0;                          // In case the expression ends
+    int distance = -1;                              // Distance to the handle
+    bool expression_over = false;                   // If the expression is over, set to true after accepting the last token
 
     // Check if the expression isn't empty
     Token *first = GetNextToken(parser);
-    if(first->token_type == SEMICOLON || first->token_type == R_ROUND_BRACKET)
+    if (first->token_type == SEMICOLON || first->token_type == R_ROUND_BRACKET)
     {
         PrintError("Error in syntactic analysis: Line %d: Empty expression", parser->line_number);
         CLEANUP
@@ -289,11 +312,14 @@ TokenVector *InfixToPostfix(Parser *parser)
     while (true)
     {
         // Get the next token from the input if we aren't at the end of the expression, else it stays the same
-        if(!expression_over) token = CopyToken(GetNextToken(parser));
+        if (!expression_over)
+            token = CopyToken(GetNextToken(parser));
 
         // Update the bracket count if needed
-        if (token->token_type == L_ROUND_BRACKET && !expression_over) bracket_count++;
-        else if (token->token_type == R_ROUND_BRACKET && !expression_over) bracket_count--;
+        if (token->token_type == L_ROUND_BRACKET && !expression_over)
+            bracket_count++;
+        else if (token->token_type == R_ROUND_BRACKET && !expression_over)
+            bracket_count--;
 
         // Get the topmost terminal symbol from the stack and the token's key to index
         ExpressionStackNode *topmost = TopmostTerminal(stack);
@@ -310,75 +336,82 @@ TokenVector *InfixToPostfix(Parser *parser)
         }
 
         // Check if the expression is over
-        else if(key == PTABLE_DOLLAR) expression_over = true;
+        else if (key == PTABLE_DOLLAR)
+            expression_over = true;
 
         // Get the next action from the precedence table
         PtableValue action = precedence_table[topmost->key_type][key];
-        switch(action)
+        switch (action)
         {
-            // Push the input token to the stack and move on to the next iteration
-            case MATCH:
-                node = ExpressionStackNodeInit(token, TERMINAL, GetPtableKey(token, 1)); // TODO: check if this hard-coded 1 is correct
-                ExpressionStackPush(stack, node);
-                break;
+        // Push the input token to the stack and move on to the next iteration
+        case MATCH:
+            node = ExpressionStackNodeInit(token, TERMINAL, GetPtableKey(token, 1)); // TODO: check if this hard-coded 1 is correct
+            ExpressionStackPush(stack, node);
+            break;
 
-            // Put a handle after the topmost terminal and push the input token to the stack
-            case SHIFT:
-                PushHandleAfterTopmost(stack);
-                node = ExpressionStackNodeInit(token, TERMINAL, GetPtableKey(token, 1));
-                ExpressionStackPush(stack, node);
-                break;
+        // Put a handle after the topmost terminal and push the input token to the stack
+        case SHIFT:
+            PushHandleAfterTopmost(stack);
+            node = ExpressionStackNodeInit(token, TERMINAL, GetPtableKey(token, 1));
+            ExpressionStackPush(stack, node);
+            break;
 
-            // Reduce the stack (so find a rule)
-            case REDUCE:
-                // Revert some actions depending on the input token since we will read it again anyway
-                if(!expression_over) (--stream_index);
-                if(token->token_type == R_ROUND_BRACKET && !expression_over) bracket_count++;
-                if(token->token_type == L_ROUND_BRACKET && !expression_over) bracket_count--;
-                distance = TopmostHandleDistance(stack);
+        // Reduce the stack (so find a rule)
+        case REDUCE:
+            // Revert some actions depending on the input token since we will read it again anyway
+            if (!expression_over)
+                (--stream_index);
+            if (token->token_type == R_ROUND_BRACKET && !expression_over)
+                bracket_count++;
+            if (token->token_type == L_ROUND_BRACKET && !expression_over)
+                bracket_count--;
+            distance = TopmostHandleDistance(stack);
 
-                // Destroy the copy
-                if(!expression_over) DestroyToken(token);
+            // Destroy the copy
+            if (!expression_over)
+                DestroyToken(token);
 
-                // We have to reduce the nodes between the handle and the stack top
-                rule = FindRule(stack, distance);
+            // We have to reduce the nodes between the handle and the stack top
+            rule = FindRule(stack, distance);
 
-                // If no rule can be applied, throw an error
-                if(rule == NOT_FOUND_RULE)
-                {
-                    fprintf(stderr, "Invalid expression, rule not found\n");
-                    PrintError("Error in syntactic analysis: Line %d: Invalid expression", parser->line_number);
-                    DestroyExpressionStackAndVector(postfix, stack);
-                    DestroyToken(token);
-                    CLEANUP
-                    exit(ERROR_SYNTACTIC);
-                }
-
-                else ReduceToNonterminal(stack, postfix, rule);
-
-                break;
-
-            // Invalid expression
-            case INVALID:
-                fprintf(stderr, "Invalid expression\n");
+            // If no rule can be applied, throw an error
+            if (rule == NOT_FOUND_RULE)
+            {
+                fprintf(stderr, "Invalid expression, rule not found\n");
                 PrintError("Error in syntactic analysis: Line %d: Invalid expression", parser->line_number);
                 DestroyExpressionStackAndVector(postfix, stack);
                 DestroyToken(token);
                 CLEANUP
                 exit(ERROR_SYNTACTIC);
+            }
 
-            // End of the expression
-            case ACCEPT:
-                AppendToken(postfix, CopyToken(token));
-                ExpressionStackDestroy(stack);
-                return postfix;
+            else
+                ReduceToNonterminal(stack, postfix, rule);
+
+            break;
+
+        // Invalid expression
+        case INVALID:
+            fprintf(stderr, "Invalid expression\n");
+            PrintError("Error in syntactic analysis: Line %d: Invalid expression", parser->line_number);
+            DestroyExpressionStackAndVector(postfix, stack);
+            DestroyToken(token);
+            CLEANUP
+            exit(ERROR_SYNTACTIC);
+
+        // End of the expression
+        case ACCEPT:
+            AppendToken(postfix, CopyToken(token));
+            ExpressionStackDestroy(stack);
+            return postfix;
         }
-    }   
+    }
 }
 
 bool IsTokenInString(TokenVector *postfix, Token *token)
 {
-    if(token == NULL) return false;
+    if (token == NULL)
+        return false;
     for (int i = 0; i < postfix->length; i++)
     {
         if (token == postfix->token_string[i])
@@ -450,17 +483,17 @@ void ReplaceConstants(TokenVector *postfix, Parser *parser)
                 new->line_number = token->line_number;
                 switch (var->type)
                 {
-                    case INT32_TYPE:
-                        new->token_type = INTEGER_32;
-                        break;
+                case INT32_TYPE:
+                    new->token_type = INTEGER_32;
+                    break;
 
-                    case DOUBLE64_TYPE:
-                        new->token_type = DOUBLE_64;
-                        break;
+                case DOUBLE64_TYPE:
+                    new->token_type = DOUBLE_64;
+                    break;
 
-                    // Will never happen
-                    default:
-                        break;
+                // Will never happen
+                default:
+                    break;
                 }
 
                 // Replace the old token
@@ -481,23 +514,24 @@ bool HasZeroDecimalPlaces(char *float_value)
     return (val - int_part) < EPSILON;
 }
 
-int CheckLiteralsCompatibilityArithmetic(Token *var_lhs, Token *var_rhs, Token *operator, Parser *parser)
+int CheckLiteralsCompatibilityArithmetic(Token *var_lhs, Token *var_rhs, Token *operator, Parser * parser)
 {
     // Neither can be NULL
-    if(var_lhs->token_type == KEYWORD || var_rhs->token_type == KEYWORD)
+    if (var_lhs->token_type == KEYWORD || var_rhs->token_type == KEYWORD)
     {
         PrintError("Error in semantic analysis: Line %d: Unexpected keyword in expression", parser->line_number);
         return ERROR_SYNTACTIC;
     }
 
     // Incompatibility can only occur with different types and the division operator
-    if(operator->token_type != DIVISION_OPERATOR) return 0;
+    if (operator->token_type != DIVISION_OPERATOR)
+        return 0;
 
     // If their types don't match, they are compatible only if the float has zero decimal places
-    if(var_lhs->token_type != var_rhs->token_type)
+    if (var_lhs->token_type != var_rhs->token_type)
     {
         Token *f_token = var_lhs->token_type == DOUBLE_64 ? var_lhs : var_rhs;
-        if(!HasZeroDecimalPlaces(f_token->attribute))
+        if (!HasZeroDecimalPlaces(f_token->attribute))
         {
             PrintError("Error in semantic analysis: Line %d: Incompatible types in division operation", parser->line_number);
             return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
@@ -558,7 +592,7 @@ DATA_TYPE ArithmeticOperationTwoLiterals(Token *operand_left, Token *operand_rig
     return result_type;
 }
 
-int CheckLiteralVarCompatibilityArithmetic(Token *literal, Token *var, Token *operator, Parser *parser)
+int CheckLiteralVarCompatibilityArithmetic(Token *literal, Token *var, Token *operator, Parser * parser)
 {
     // The literal can't be NULL
     if (literal->token_type == KEYWORD)
@@ -746,7 +780,7 @@ DATA_TYPE ArithmeticOperationTwoIds(VariableSymbol *operand_left, VariableSymbol
     return result_type;
 }
 
-int CheckCompatibilityLiteralsBoolean(Token *literal_left, Token *literal_right, Token *operator, Parser *parser)
+int CheckCompatibilityLiteralsBoolean(Token *literal_left, Token *literal_right, Token *operator, Parser * parser)
 {
     /* The literals are incompatible if, and only if these conditions are met:
         1. Both of them are NULL AND the operator is not == or !=
@@ -762,11 +796,11 @@ int CheckCompatibilityLiteralsBoolean(Token *literal_left, Token *literal_right,
 
     // Case 2
     else if ((literal_left->token_type == KEYWORD && literal_right->token_type != KEYWORD) ||
-            (literal_left->token_type != KEYWORD && literal_right->token_type == KEYWORD))
-            {
-                PrintError("Error in semantic analysis: Line %d: Incompatible types in expression", parser->line_number);
-                return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
-            }
+             (literal_left->token_type != KEYWORD && literal_right->token_type == KEYWORD))
+    {
+        PrintError("Error in semantic analysis: Line %d: Incompatible types in expression", parser->line_number);
+        return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
+    }
 
     // Valid relational expression
     return 0;
@@ -823,7 +857,7 @@ void BooleanOperationTwoLiterals(Token *operand_left, Token *operand_right, Toke
     }
 }
 
-int CheckLiteralVarCompatibilityBoolean(Token *literal, Token *var, Token *operator, Parser *parser)
+int CheckLiteralVarCompatibilityBoolean(Token *literal, Token *var, Token *operator, Parser * parser)
 {
     // First check if var is defined
     VariableSymbol *var_symbol = SymtableStackFindVariable(parser->symtable_stack, var->attribute);
@@ -840,13 +874,13 @@ int CheckLiteralVarCompatibilityBoolean(Token *literal, Token *var, Token *opera
             1. The operator is not == or !=
             2. The variable is not nullable
         */
-        if(operator->token_type != EQUAL_OPERATOR && operator->token_type != NOT_EQUAL_OPERATOR)
+        if (operator->token_type != EQUAL_OPERATOR && operator->token_type != NOT_EQUAL_OPERATOR)
         {
             PrintError("Error in semantic analysis: Line %d: \"null\" can't be used in expressions with operators other than \"==\" and \"!=\"!", parser->line_number);
             return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
         }
 
-        if(!IsNullable(var_symbol->type))
+        if (!IsNullable(var_symbol->type))
         {
             PrintError("Error in semantic analysis: Line %d: Variable \"%s\" is not nullable", parser->line_number, var->attribute);
             return ERROR_SEMANTIC_TYPE_COMPATIBILITY;
@@ -947,57 +981,63 @@ void BooleanOperationLiteralId(Token *literal, VariableSymbol *id, Token *operat
 bool ConvertConstVarsBoolean(VariableSymbol *lhs, VariableSymbol *rhs)
 {
     fprintf(stderr, "trying to convert vars %s and %s\n", lhs->name, rhs->name);
-    if(!(lhs->is_const && lhs->value != NULL) && !(rhs->is_const && rhs->value != NULL))
+    if (!(lhs->is_const && lhs->value != NULL) && !(rhs->is_const && rhs->value != NULL))
         return false;
 
-    else if(((lhs->nullable && rhs->nullable) || (!lhs->nullable && rhs->nullable) || (lhs->nullable && !rhs->nullable)) && (lhs->type != rhs->type))
+    else if (((lhs->nullable && rhs->nullable) || (!lhs->nullable && rhs->nullable) || (lhs->nullable && !rhs->nullable)) && (lhs->type != rhs->type))
         return false;
 
     // Also, rhs is on the top of the stack, lhs is not
-    else if(lhs->is_const && lhs->value != NULL)
+    else if (lhs->is_const && lhs->value != NULL)
     {
-        switch(lhs->type)
+        switch (lhs->type)
         {
-            // Convert lhs to a float
-            case INT32_TYPE: case INT32_NULLABLE_TYPE:
-                PopToRegister(DOUBLE64_TYPE);
-                INT2FLOATS
-                fprintf(stdout, "PUSHS GF@$F0\n");
-                break;
+        // Convert lhs to a float
+        case INT32_TYPE:
+        case INT32_NULLABLE_TYPE:
+            PopToRegister(DOUBLE64_TYPE);
+            INT2FLOATS
+            fprintf(stdout, "PUSHS GF@$F0\n");
+            break;
 
-            // Convert lhs to an int
-            case DOUBLE64_TYPE: case DOUBLE64_NULLABLE_TYPE:
-                if(!HasZeroDecimalPlaces(lhs->value)) return false;
-                PopToRegister(INT32_TYPE);
-                FLOAT2INTS
-                fprintf(stdout, "PUSHS GF@$R0\n");
-                break;
-
-            // Will never happen
-            default:
+        // Convert lhs to an int
+        case DOUBLE64_TYPE:
+        case DOUBLE64_NULLABLE_TYPE:
+            if (!HasZeroDecimalPlaces(lhs->value))
                 return false;
+            PopToRegister(INT32_TYPE);
+            FLOAT2INTS
+            fprintf(stdout, "PUSHS GF@$R0\n");
+            break;
+
+        // Will never happen
+        default:
+            return false;
         }
     }
 
     // rhs is on top of the stack
-    else if(rhs->is_const && rhs->value != NULL)
+    else if (rhs->is_const && rhs->value != NULL)
     {
-        switch(rhs->type)
+        switch (rhs->type)
         {
-            // Convert rhs to a float
-            case INT32_TYPE: case INT32_NULLABLE_TYPE:
-                INT2FLOATS
-                break;
+        // Convert rhs to a float
+        case INT32_TYPE:
+        case INT32_NULLABLE_TYPE:
+            INT2FLOATS
+            break;
 
-            // Convert rhs to an int
-            case DOUBLE64_TYPE: case DOUBLE64_NULLABLE_TYPE:
-                if(!HasZeroDecimalPlaces(rhs->value)) return false;
-                FLOAT2INTS
-                break;
-
-            // Will never happen
-            default:
+        // Convert rhs to an int
+        case DOUBLE64_TYPE:
+        case DOUBLE64_NULLABLE_TYPE:
+            if (!HasZeroDecimalPlaces(rhs->value))
                 return false;
+            FLOAT2INTS
+            break;
+
+        // Will never happen
+        default:
+            return false;
         }
     }
 
@@ -1113,7 +1153,7 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
             if (token->token_type == DOUBLE_64)
                 return_type = DOUBLE64_TYPE;
 
-            if(token->token_type == KEYWORD && token->keyword_type != NULL_TYPE)
+            if (token->token_type == KEYWORD && token->keyword_type != NULL_TYPE)
             {
                 PrintError("Error in semantic analysis: Line %d: Unexpected keyword \"%s\" in expression", parser->line_number, token->attribute);
                 DestroyEvaluationStackAndVector(postfix, stack);
@@ -1354,7 +1394,6 @@ DATA_TYPE ParseExpression(TokenVector *postfix, Parser *parser)
             exit(ERROR_SYNTACTIC);
         }
     }
-
 
     DestroyEvaluationStackAndVector(postfix, stack);
     return return_type;

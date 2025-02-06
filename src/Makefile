@@ -35,10 +35,6 @@ run: all
 run-debug: debug
 	./ifj24debug < $(INPUT_FILE) > $(OUTPUT_FILE)
 
-#----RUN AND CALL THE INTERPRETER AT THE SAME TIME----#
-interpreter: all
-	./ifj24 < $(INPUT_FILE) > $(OUTPUT_FILE) && ./../interpreter/ic24int $(OUTPUT_FILE)
-
 #----RUN TESTS----#
 test: all
 	./../tests_github/test.sh ../tests_github ifj24 ../interpreter/ic24int

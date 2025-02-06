@@ -56,6 +56,7 @@ dkms.conf
 
 #assignment and school files
 *.pdf
+!dokumentace.pdf
 *ifjcode24_examples/
 *ifj24_examples/
 *submit_folder/
@@ -69,5 +70,3 @@ rozdeleni
 *vscode*
 .json*
 
-
-tests/test_outputs/testifj24.ifjcode
