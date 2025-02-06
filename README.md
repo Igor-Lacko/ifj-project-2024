@@ -55,7 +55,7 @@ Implementation: 13/18
 Documentation: 3/5
 
 ## Authors
-Jakub Pogádl (xpogad00)
-Igor Lacko (xlackoi00)
-Boris Semanco (xseman06)
+Jakub Pogádl (xpogad00) <br>
+Igor Lacko (xlackoi00) <br>
+Boris Semanco (xseman06) <br>
 Rudolf Baumgartner (xbaumg01)
